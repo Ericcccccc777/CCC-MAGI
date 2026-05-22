@@ -1,0 +1,48 @@
+# Codex CLI config — rendered from outcome/cli-configs/codex/config.toml at /init.
+# See sibling README.md (in outcome/cli-configs/) for the integration overview.
+
+# Auditor model (Constitution § 1 requires cross-model audit).
+# `auditor_model_id` is the version string Codex CLI consumes; `auditor_model`
+# in narrative docs (CLAUDE.md, skills) is the display name like "Codex".
+model = "{{auditor_model_id}}"
+model_reasoning_effort = "high"
+
+# ─────────────────────────────────────────────────────────────────────
+# MCP servers
+# ─────────────────────────────────────────────────────────────────────
+
+# context7 — universal docs lookup. Used by skills for library API verification
+# (see execution-plan SKILL.md § "Version verification rule").
+[mcp_servers.context7]
+args = ["-y", "@upstash/context7-mcp"]
+command = "npx"
+
+# GitHub MCP — optional. Useful for any project that uses GitHub Issues / PRs.
+# Comment out if not using GitHub.
+[mcp_servers.github]
+bearer_token_env_var = "GITHUB_TOKEN"
+url = "https://api.githubcopilot.com/mcp/"
+
+# ─────────────────────────────────────────────────────────────────────
+# Project-specific MCPs — add yours below
+# ─────────────────────────────────────────────────────────────────────
+#
+# Backend MCP (only if `backend_db_type` is configured). Examples:
+#
+# Supabase:
+# [mcp_servers.supabase]
+# url = "https://mcp.supabase.com/mcp?project_ref=YOUR_PROJECT_REF"
+#
+# Postgres (generic, via mcp-postgres):
+# [mcp_servers.postgres]
+# args = ["mcp-postgres", "--connection-string", "$DATABASE_URL"]
+# command = "npx"
+#
+# MongoDB, MySQL, etc. — add per your stack.
+#
+# Other useful MCPs:
+# - Stripe (payments)
+# - Sentry (error tracker, if `error_tracker = sentry`)
+# - Linear / Notion / Slack (workflow integrations)
+#
+# /init asks at setup which MCPs to enable based on your project's stack.

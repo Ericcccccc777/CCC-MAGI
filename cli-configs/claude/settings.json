@@ -1,0 +1,74 @@
+{
+  "_comment_top": "Claude Code settings — rendered from outcome/cli-configs/claude/settings.json at /init. See sibling README.md for what each section does.",
+
+  "permissions": {
+    "_comment": "MCP tool calls allowed without prompting. Default = context7 only. Add project-specific MCPs (backend MCP, GitHub MCP, etc.) at /init or by hand-editing this file.",
+    "allow": [
+      "mcp__context7__query-docs",
+      "mcp__context7__resolve-library-id"
+    ]
+  },
+
+  "hooks": {
+    "_comment": "All hook scripts referenced below should live at $CLAUDE_PROJECT_DIR/.harness/scripts/. The harness ships templates; /init copies them and the user customizes each for the project's stack.",
+
+    "UserPromptSubmit": [
+      {
+        "_comment": "Bootstrap gate: fires on EVERY user prompt. If .harness/state/install.json is missing (harness installed but not yet configured), injects a directive telling Claude to read standalone-bootstrap.md and run the bootstrap flow BEFORE responding to the user. Once install.json exists, this hook exits silently. Critical for the harness's 'self-bootstrap on first interaction' design.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/bootstrap-check.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "_comment": "Pre-commit gate: typecheck + lint-bans + cycles. Fires only on `git commit` Bash calls.",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit:*)",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/precommit-typecheck.sh",
+            "timeout": 120,
+            "statusMessage": "Running typecheck before commit..."
+          },
+          {
+            "type": "command",
+            "if": "Bash(git commit:*)",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/lint-bans.sh",
+            "timeout": 30,
+            "statusMessage": "Scanning for anti-flag patterns before commit..."
+          },
+          {
+            "type": "command",
+            "if": "Bash(git commit:*)",
+            "_comment": "Cycles check is only meaningful if `dependency_flow` slot is non-empty. /init removes this entry on projects that opt out.",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/precommit-cycles.sh",
+            "timeout": 60,
+            "statusMessage": "Checking for dependency cycles..."
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "_comment": "Run formatter on every Edit/Write. The format-edit.sh script picks the right formatter based on file extension.",
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/format-edit.sh",
+            "timeout": 30,
+            "statusMessage": "Running formatter..."
+          }
+        ]
+      }
+    ]
+  }
+}

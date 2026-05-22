@@ -1,0 +1,32 @@
+{
+  "_comment_top": "Codex hooks — rendered from outcome/cli-configs/codex/hooks.json at /init. Mirror of the format-edit hook in claude/settings.json so both CLIs apply the formatter consistently.",
+
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "_comment": "Mirror of claude/settings.json bootstrap gate. Note: Codex CLI's UserPromptSubmit hook support may vary by version — if your Codex version doesn't recognize this hook event, it will silently ignore it (graceful degradation). The standalone-bootstrap.md flow + the Bootstrap Status Check block in CLAUDE.md still cover this scenario via Claude Code; Codex-only sessions on an unconfigured project may need the user to manually invoke the bootstrap.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/bootstrap-check.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "_comment": "Run formatter on every Edit/Write. The format-edit.sh script picks the right formatter based on file extension.",
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/format-edit.sh",
+            "timeout": 30,
+            "statusMessage": "Running formatter..."
+          }
+        ]
+      }
+    ]
+  }
+}

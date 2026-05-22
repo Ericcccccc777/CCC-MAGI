@@ -1,0 +1,43 @@
+{
+  "name": "create-ccc-harness",
+  "version": "0.1.0-mvp",
+  "description": "Install CCC-Harness into a project. Run via `npx create-ccc-harness@latest` in your project directory.",
+  "type": "module",
+  "bin": {
+    "create-ccc-harness": "./bin.js"
+  },
+  "main": "./bin.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "echo 'No tests yet — Round 3 MVP stub' && exit 0"
+  },
+  "files": [
+    "bin.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "harness",
+    "ai",
+    "claude-code",
+    "codex",
+    "spec-driven-development",
+    "cross-model-audit",
+    "ccc"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ericcccccc777/CCC-Harness.git"
+  },
+  "homepage": "https://github.com/Ericcccccc777/CCC-Harness#readme",
+  "bugs": {
+    "url": "https://github.com/Ericcccccc777/CCC-Harness/issues"
+  },
+  "_TODO_PRE_PUBLISH": [
+    "Bump version to 0.1.0 (drop -mvp suffix) when ready to publish to npm",
+    "Test the install flow end-to-end on a fresh clone target"
+  ]
+}

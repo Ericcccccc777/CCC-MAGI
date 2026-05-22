@@ -1,0 +1,63 @@
+# CCC-Harness — files NOT to be tracked by users' git repos
+#
+# This .gitignore ships with the harness and gets copied into the user's project
+# at /init time. It covers the harness's transient state files.
+
+# ─────────────────────────────────────────────────────────────────────
+# Transient harness state (writeable by skills at runtime)
+# ─────────────────────────────────────────────────────────────────────
+
+# Auditor approval JSON files (per-feature, per-stage)
+# These are session-local; commit-time cleanup deletes them
+.harness/state/auditor-approvals/
+
+# Test-fixer attempt logs (per-feature)
+.harness/state/test-fix/
+
+# Auditor environment file (per-machine secrets / model overrides)
+.harness/state/auditor.env
+
+# Note: `.harness/state/install.json` is INTENTIONALLY NOT ignored.
+# It's the canonical "this project is configured" marker. Teams that
+# want to share harness state across collaborators should commit it.
+
+# Audit snapshots from /audit-spec runs (frozen point-in-time references;
+# may be useful to commit for some teams, hence not ignored by default —
+# uncomment if you want to exclude)
+# .harness/audits/
+
+# ─────────────────────────────────────────────────────────────────────
+# Working files that should not be committed
+# ─────────────────────────────────────────────────────────────────────
+
+# Feature plan files (transient; deleted at Stage 8 commit anyway)
+# If a plan file survives to commit, that's a workflow bug — but excluding
+# them in .gitignore would mask the bug. Leaving uncommented for now.
+# docs/features/*-plan.md
+
+# Old-version archive directory (if user picked option 1 in bootstrap)
+# Some teams may want to commit this for posterity; default: ignore
+old_version_harness/
+
+# Temp directories from installer
+.ccc-harness-temp/
+
+# ─────────────────────────────────────────────────────────────────────
+# OS / editor noise
+# ─────────────────────────────────────────────────────────────────────
+
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# ─────────────────────────────────────────────────────────────────────
+# Optional secrets — projects often have these; leave commented as reminder
+# ─────────────────────────────────────────────────────────────────────
+
+# .env
+# .env.local
+# .env.*.local
