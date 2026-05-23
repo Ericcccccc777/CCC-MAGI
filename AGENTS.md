@@ -26,7 +26,7 @@ Stay scoped to the per-stage focus text. Drop items outside that scope.
 
 ## Doc-in-sync verification
 
-A code change that alters user-visible behavior or state-coordination invariants without a corresponding spec update in `{{spec_dir}}<name>*.md` IS a spec contradiction in waiting. Flag as critical.
+A code change that alters user-visible behavior or state-coordination invariants without a corresponding spec update in `{{spec_dir}}<name>*.md` IS a spec contradiction in waiting. Flag as a blocking item with `category: "universal-core"` (cites `constitution.md § 5`).
 
 Spec update IS required when the diff includes any of:
 - User-visible behavior changes (screen flow, error messages, recovery paths, mutations available to users)
@@ -41,7 +41,7 @@ Spec update is NOT required for (do not flag):
 - Dependency version bumps with no behavior change
 - Formatting / tooling / build config / CI
 
-Escape hatch: if the diff signals user-visible or invariant change but the author asserts behavior-preserving intent, look for a `spec-exempt: <reason>` line in the commit message body. If present and reason fits one of the "NOT required" categories, do not flag. If absent and the diff suggests behavior or invariant change, flag critical.
+Escape hatch: if the diff signals user-visible or invariant change but the author asserts behavior-preserving intent, look for a `spec-exempt: <reason>` line in the commit message body. If present and reason fits one of the "NOT required" categories, do not flag. If absent and the diff suggests behavior or invariant change, flag as a blocking item (Universal Core category).
 
 This is the spec-side correlate of HARD #2 (No skipped verification). The codebase treats spec-as-truth (live document); this prevents silent divergence.
 
@@ -82,19 +82,49 @@ You will be invoked via your CLI's structured-output mode. Emit JSON only — no
 
 ```json
 {
-  "verdict": "APPROVE" | "REQUEST CHANGES",
-  "critical": [
-    "<file:line — what is wrong, what failure mode looks like, suggested fix>"
+  "verdict": "PASS" | "CONCERNS" | "FAIL" | "WAIVED",
+  "risk_score": 0,
+  "waiver_reason": "string (REQUIRED if verdict=WAIVED; explains what's being waived and why)",
+  "blocking_items": [
+    {
+      "category": "universal-core" | "strong" | "advisory",
+      "rule_source": "<file path and section, e.g., 'constitution.md § 1' or 'CLAUDE.md § Operating Principles #3'>",
+      "finding": "<file:line — what is wrong, what failure mode looks like, suggested fix>"
+    }
   ],
-  "suggestions": [
-    "<optional non-blocking observations, same shape>"
+  "advisory_items": [
+    {
+      "rule_source": "<...>",
+      "finding": "<...>"
+    }
   ]
 }
 ```
 
-A finding is **critical** only if it would cause: a runtime crash, data loss, security/privacy leak, access-control bypass, irreversible schema mistake, papered-over bug (in stage 6 audit), or contradiction with the spec.
+A blocking item is justified only if it would cause: a runtime crash, data loss, security/privacy leak, access-control bypass, irreversible schema mistake, papered-over bug (in stage 6 audit), or contradiction with the spec.
 
-Aesthetic concerns, naming preferences, "could be cleaner", and uncertain reads do not meet the bar.
+Aesthetic concerns, naming preferences, "could be cleaner", and uncertain reads do not meet the bar — those go in `advisory_items` (or are dropped entirely).
+
+### Verdict picking rules
+
+**risk_score scale (0-10):**
+- 0-5 → **PASS** (no blocking issues; advisory items may still be present)
+- 6-8 → **CONCERNS** (auditor SHOULD pick CONCERNS in this range — issues exist but don't warrant halting)
+- 9-10 → **FAIL** (auditor MUST pick FAIL — bug, security, data loss, spec contradiction, or Universal Core violation)
+
+**Verdict semantics:**
+- **PASS** → advance silently. Most changes.
+- **CONCERNS** → advance, but the gate logs a warning to `.harness/audits/concerns-<feature>-<stage>-<timestamp>.json`. CEO sees the warning at commit time. Used for: drift, minor smells, things-to-watch.
+- **FAIL** → halt. Used for: bugs, security, data loss, spec contradictions, Universal Core violations.
+- **WAIVED** → advance with explicit `waiver_reason`. This is a CEO override verdict; the auditor itself never produces WAIVED. Logged to `.harness/audits/waivers-<feature>-<stage>-<timestamp>.json`.
+
+**Universal Core un-WAIVABLE rule:**
+Any blocking item that cites one of the five Universal Core items in `constitution.md § Section 1` (cross-model audit mandatory, data ownership red line, CEO has final authority — except on Universal Core, real-human smoke test mandatory, spec and reality stay in sync) MUST set `category: "universal-core"`. The gate script rejects any `WAIVED` verdict that carries a `universal-core` blocking item — the constitution forbids waiving these even by direct CEO instruction.
+
+**Category usage in `blocking_items`:**
+- `"universal-core"` — cites a rule in `constitution.md § 1`. Cannot be waived.
+- `"strong"` — cites a STRONG operating principle (e.g., `CLAUDE.md § Operating Principles`). CEO-overridable with reasoning.
+- `"advisory"` — for items that are blocking-shaped in form but the auditor is flagging as informational; prefer moving to `advisory_items` instead.
 
 ### Diagnostic schema (stage 6 escalation only)
 
@@ -127,6 +157,8 @@ Read what's relevant. Don't re-derive project rules from these; Claude reviewers
 
 ## When in doubt
 
-Default to **APPROVE with suggestions** rather than REQUEST CHANGES. The skill flow halts on REQUEST CHANGES; suggestions are advisory. Reserve REQUEST CHANGES for findings that meet the critical bar above.
+Default to **PASS with advisory_items**. Only escalate to CONCERNS if `risk_score ≥ 6`; only FAIL on `risk_score ≥ 9` or a Universal Core violation. Never produce WAIVED yourself — that verdict is for CEO override mode only, not auditor self-issued.
+
+The skill flow halts on FAIL; CONCERNS advances with a logged warning; advisory items are informational only.
 
 If a question feels outside your scope (project-rule conformance, naming, refactor opinions), drop it.

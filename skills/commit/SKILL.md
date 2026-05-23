@@ -176,7 +176,7 @@ If a feature was committed but the user wants to start a follow-up commit on the
 
 Per Constitution § 1 & § 4, push to GitHub only after BOTH:
 - Stage 7 CEO smoke test PASSED
-- Stage 6 / Stage 5 auditor audit APPROVED (or the lane's equivalent)
+- Stage 6 / Stage 5 auditor audit returned PASS, CONCERNS, or WAIVED (FAIL halts; CONCERNS advances but should be reviewed; WAIVED requires explicit `waiver_reason` and cannot have Universal Core blocking items)
 
 If either failed for this change, **do not push**. Surface to the user: "Push withheld — Constitution § 4 requires CEO smoke test pass before push; please complete Stage 7 then re-invoke push."
 

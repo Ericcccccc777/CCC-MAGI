@@ -124,10 +124,11 @@ Cite the rule source for every finding.
 
 For each finding: cite the file and line, cite the rule source, describe the risk concretely (what an attacker or leak looks like), show the offending snippet, and show a corrected version.
 
-End with:
+End with one of (`WAIVED` is reserved for CEO override and is not yours to issue):
 
-- **`APPROVE`** — no critical findings, security perspective clear to proceed
-- **`REQUEST CHANGES`** — at least one critical finding; fix and re-review
+- **`PASS`** — no blocking findings; security perspective clear to advance
+- **`CONCERNS`** — issues exist but don't warrant halting (defense-in-depth gaps, things-to-watch); the parent skill advances and the gate logs a warning to `.harness/audits/concerns-*.json` for CEO commit-time review
+- **`FAIL`** — at least one blocking finding (a critical-bar security or privacy issue); the parent skill halts and the user must fix and re-review
 - **`BLOCK`** — irreversible privacy risk detected; do not proceed, escalate to user (e.g., PII committed to URL params and indexed before discovery)
 
 ## Memory

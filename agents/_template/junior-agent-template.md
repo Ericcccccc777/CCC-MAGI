@@ -90,10 +90,11 @@ Organize findings by priority:
 
 For each finding: cite the file and line, cite the rule source, show the offending snippet, and show a corrected version.
 
-End with one of:
+End with one of (`WAIVED` is reserved for CEO override and is not yours to issue):
 
-- **`APPROVE`** — no critical findings, commit may proceed
-- **`REQUEST CHANGES`** — at least one critical finding; fix and re-review
+- **`PASS`** — no blocking findings; the parent skill advances silently
+- **`CONCERNS`** — issues exist but don't warrant halting (drift, minor smells, things-to-watch); the parent skill advances and the gate logs a warning to `.harness/audits/concerns-*.json` for CEO commit-time review
+- **`FAIL`** — at least one blocking finding (a rule violation that meets the critical bar above); the parent skill halts and the user must fix and re-review
 - **`ESCALATE: <other-agent>`** — defer to a different reviewer (optional verdict; declare in your scope if you use it)
 - **`BLOCK`** — irreversible red line crossed (use sparingly; e.g. PII in URL params)
 

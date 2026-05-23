@@ -46,9 +46,9 @@ The CEO spec drives the data requirements (every persistent entity, access patte
 
 7. **Invoke backend reviewer agent** to review the migration before it is committed. The reviewer is a **mechanical rule reviewer** — it cites rules from the project's backend rule doc (in `{{rule_sources}}`) and `references/methodology.md`. Judgment about whether the migration is _good_ belongs to the auditor in step 9.
 
-8. **Invoke security/privacy reviewer agent** to review the migration. **Mandatory for every migration** — invocation is not conditional on the writer's self-assessment of whether PII / auth / access-control is touched. Self-assessment is a bias source; mechanical invocation removes it. On a migration that does not touch its scope, the reviewer will return `APPROVE` quickly; that is the cost of removing the bias.
+8. **Invoke security/privacy reviewer agent** to review the migration. **Mandatory for every migration** — invocation is not conditional on the writer's self-assessment of whether PII / auth / access-control is touched. Self-assessment is a bias source; mechanical invocation removes it. On a migration that does not touch its scope, the reviewer will return `PASS` quickly; that is the cost of removing the bias.
 
-9. **Auditor cross-model review (judgment layer).** After both junior reviewers return `APPROVE`, invoke the gate with the adversarial preset. The preset wraps the focus text below with skeptical-review framing and a code-shaped attack surface (auth, data loss, idempotency, races, partial failure, schema drift) that maps directly onto migration hazards.
+9. **Auditor cross-model review (judgment layer).** After both junior reviewers return `PASS` (or `CONCERNS`, which advances with a warning), invoke the gate with the adversarial preset. The preset wraps the focus text below with skeptical-review framing and a code-shaped attack surface (auth, data loss, idempotency, races, partial failure, schema drift) that maps directly onto migration hazards.
 
    ```bash
    AUDITOR_GATE_PRESET=adversarial \
@@ -58,9 +58,9 @@ The CEO spec drives the data requirements (every persistent entity, access patte
      {{migration_dir}}<the-migration-file>
    ```
 
-   - **Exit 0 (APPROVE)** → proceed to step 10.
-   - **Exit 2 (REQUEST CHANGES)** → surface every CRITICAL item verbatim, halt. Do not apply the migration. The user fixes the issues and re-invokes `/db-schema`, or applies fixes inline and re-runs the gate manually.
-   - **Exit 1 (script error)** → surface stderr, halt.
+   - **Exit 0 (PASS / CONCERNS / WAIVED)** → proceed to step 10. For CONCERNS, surface the logged warning path (`.harness/audits/concerns-*.json`) and remind the CEO to review before commit. For WAIVED, surface the `waiver_reason`.
+   - **Exit 2 (FAIL)** → surface every blocking item verbatim, halt. Do not apply the migration. The user fixes the issues and re-invokes `/db-schema`, or applies fixes inline and re-runs the gate manually.
+   - **Exit 1 (script error / Universal Core WAIVED rejected / missing waiver_reason / legacy verdict)** → surface stderr, halt.
 
 10. **Remind the user** to run `bash .harness/scripts/post-migration.sh` after applying the migration **locally**. The script does whatever the project needs after a migration:
     - **Refresh / reload backend caches** that don't auto-reload on `migration up` (e.g., schema caches in some setups).
@@ -73,9 +73,9 @@ The CEO spec drives the data requirements (every persistent entity, access patte
 
 - **Surface every reviewer verdict verbatim.** No "reviewer says it's fine, proceeding." The user sees each reviewer's findings and verdict line in full before any next step is taken.
 - **Reviewer invocation is mandatory and ordered.** Backend reviewer first, security/privacy reviewer second (always, not conditional on self-assessment), auditor third. Skill has no judgment authority to skip a reviewer "because the migration looks simple."
-- **Auditor verdict is parsed deterministically from the gate's exit code.** No prose interpretation.
+- **Auditor verdict is parsed deterministically from the gate's exit code.** No prose interpretation. The four verdicts are `PASS` (advance silently), `CONCERNS` (advance with logged warning at `.harness/audits/concerns-*.json` for CEO commit-time review), `FAIL` (halt), and `WAIVED` (CEO override only; rejected by the gate if any blocking item cites Universal Core).
 - **On disagreement** (junior reviewers approve, auditor requests changes): auditor wins by default. Surface both views; user overrides explicitly if they disagree.
-- **Migration is not applied locally until all three reviewers return APPROVE.** Halt-on-REQUEST-CHANGES means actually halting; do not "apply locally to test, then fix later."
+- **Migration is not applied locally until all three reviewers advance (PASS, CONCERNS, or — for the auditor only — a CEO-issued WAIVED with valid `waiver_reason`).** Halt-on-FAIL means actually halting; do not "apply locally to test, then fix later." CONCERNS advances but the warning must be surfaced to the CEO before commit.
 
 ## Completion criteria
 
@@ -83,9 +83,9 @@ Stage 3 is complete when:
 
 - A new migration file exists under `{{migration_dir}}` and has been applied locally
 - `bash .harness/scripts/post-migration.sh` has been run (cache refreshed + types regenerated)
-- Backend reviewer has returned `APPROVE`
-- Security/privacy reviewer has returned `APPROVE` (mandatory for every migration, not conditional)
-- `.harness/scripts/auditor-gate.sh` returned `APPROVE` for stage 3 — `.harness/state/auditor-approvals/<feature>-stage3.json` exists with `verdict: APPROVE`
+- Backend reviewer has returned `PASS` or `CONCERNS` (FAIL halts)
+- Security/privacy reviewer has returned `PASS` or `CONCERNS` (mandatory for every migration, not conditional; FAIL halts)
+- `.harness/scripts/auditor-gate.sh` returned exit 0 for stage 3 (`PASS`, `CONCERNS`, or `WAIVED`) — `.harness/state/auditor-approvals/<feature>-stage3.json` exists with a non-FAIL `verdict`
 - Search-index sync mechanism is documented (if applicable)
 
 ## Anti-patterns to reject

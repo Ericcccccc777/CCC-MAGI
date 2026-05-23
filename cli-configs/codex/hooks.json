@@ -27,6 +27,30 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "_comment": "Mirror of claude/settings.json memory-recall hook. NOTE: Codex CLI's SessionStart hook support may vary by version — if your Codex version doesn't recognize this event, it will silently ignore the entry (graceful degradation). Memory recall works fully under Claude Code; Codex-only sessions on the same project still benefit because the manual /remember skill still writes to the same observations.jsonl.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-recall.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompaction": [
+      {
+        "_comment": "Mirror of claude/settings.json memory-snapshot hook. NOTE: same Codex-version caveat as SessionStart above — if PreCompaction is not implemented by your Codex version, this entry silently no-ops.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-snapshot.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

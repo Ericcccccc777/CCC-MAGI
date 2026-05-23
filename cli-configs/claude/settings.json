@@ -69,6 +69,32 @@
           }
         ]
       }
+    ],
+
+    "SessionStart": [
+      {
+        "_comment": "Memory recall: reads .harness/memory/observations.jsonl, scores entries by relevance to the current git branch's feature, and injects the top relevant entries into Claude's additionalContext at session start. Silently no-ops if the memory file is missing or empty.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-recall.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "PreCompaction": [
+      {
+        "_comment": "Memory snapshot: prompts Claude (via additionalContext) to summarize the session's key decisions into .harness/memory/observations.jsonl BEFORE context compaction proceeds. Claude does the summarization; the hook just orchestrates the prompt.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-snapshot.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

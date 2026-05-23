@@ -168,15 +168,15 @@ Read each verdict report verbatim. Do not summarize, filter, or aggregate.
 
 For each reviewer, surface to the user:
 
-- The verdict line (`APPROVE` / `REQUEST CHANGES` / `BLOCK` / `ESCALATE: <other-reviewer>`)
-- Critical findings (if any)
-- Warnings and suggestions (if any)
+- The verdict line (`PASS` / `CONCERNS` / `FAIL` / `BLOCK` / `ESCALATE: <other-reviewer>`)
+- Blocking findings (if any)
+- Warnings and advisory items (if any)
 
 Branch:
 
-- **Any reviewer returns `REQUEST CHANGES` or `BLOCK`** — halt. Stage 5 is incomplete. The user fixes the flagged issues and re-invokes `/implement`.
+- **Any reviewer returns `FAIL` or `BLOCK`** — halt. Stage 5 is incomplete. The user fixes the flagged issues and re-invokes `/implement`.
 - **Any reviewer returns `ESCALATE: <other>`** — verify `<other>` was already in the required-reviewers set. If yes, its verdict is already in this batch; proceed to the next branch. If no, spawn `<other>` now and surface its verdict before proceeding.
-- **All required reviewers return `APPROVE`** — proceed to Step 6.
+- **All required reviewers return `PASS` or `CONCERNS`** — proceed to Step 6. Surface any `CONCERNS` warnings explicitly so the CEO can weigh them before commit.
 
 ## Step 6 — Auditor review pass (judgment layer)
 
@@ -219,37 +219,38 @@ DIFF_FILE=$(mktemp /tmp/implement-auditor-diff.XXXXXX)
 git diff "$BASELINE" > "$DIFF_FILE"
 
 bash .harness/scripts/auditor-gate.sh review <feature> 5-trivial \
-  "Review this trivial-change diff. Per CLAUDE.md's trivial-change lane, this is < 20 LOC, no new feature surface, no schema change, no new dependency, no intent change. Run in Quick mode: report ONLY items that meet the BLOCKING bar — security holes, data loss, outright defects. Do NOT flag: code style, refactor opportunities, alternative approaches, naming, advisory items, suggestions for additional tests, anything that wouldn't block a normal commit. If you find non-trivial concerns, that's a signal the lane is misclassified — say so explicitly so the user can re-classify; do NOT silently flag them as advisory. If nothing meets BLOCKING, return APPROVE." \
+  "Review this trivial-change diff. Per CLAUDE.md's trivial-change lane, this is < 20 LOC, no new feature surface, no schema change, no new dependency, no intent change. Run in Quick mode: report ONLY items that meet the BLOCKING bar — security holes, data loss, outright defects. Do NOT flag: code style, refactor opportunities, alternative approaches, naming, advisory items, suggestions for additional tests, anything that wouldn't block a normal commit. If you find non-trivial concerns, that's a signal the lane is misclassified — say so explicitly so the user can re-classify; do NOT silently flag them as advisory. If nothing meets BLOCKING, return PASS." \
   "$DIFF_FILE"
 ```
 
 Read the gate's exit code:
 
-- **Exit 0 (APPROVE)** — surface `✓ Stage 5 complete: implementation reviewed by [list of junior reviewers] + {{auditor_model}} cross-model audit.` Mention any suggestions (advisory). Stage 5 complete; user may proceed to `/test-fix <feature>`.
-- **Exit 2 (REQUEST CHANGES)** — surface every CRITICAL item from the auditor verbatim, halt. The user addresses, re-invokes `/implement`.
-- **Exit 1 (script error)** — surface stderr, halt.
+- **Exit 0 (PASS / CONCERNS / WAIVED)** — surface `✓ Stage 5 complete: implementation reviewed by [list of junior reviewers] + {{auditor_model}} cross-model audit.` Mention any advisory items. For CONCERNS, also surface the logged warning path (`.harness/audits/concerns-*.json`) and remind the CEO to review before commit. For WAIVED, surface the `waiver_reason`. Stage 5 complete; user may proceed to `/test-fix <feature>`.
+- **Exit 2 (FAIL)** — surface every blocking item from the auditor verbatim, halt. The user addresses, re-invokes `/implement`.
+- **Exit 1 (script error / Universal Core WAIVED rejected / missing waiver_reason / legacy verdict)** — surface stderr, halt.
 
 ## Trust contract
 
 - **Reviewer selection is mechanical from `git diff`.** Skill has no judgment authority to skip a reviewer "because the diff looks fine."
 - **Verdicts are surfaced verbatim.** No "reviewer says it's fine, proceeding."
-- **Auditor is unconditional on subagent APPROVE.** No skipping the audit because "the diff looks clean." (Constitution § 1.)
-- **On disagreement** (junior reviewers approve, auditor requests changes): auditor wins by default. Surface both views; user overrides explicitly if they disagree.
+- **Auditor is unconditional on subagent PASS.** No skipping the audit because "the diff looks clean." (Constitution § 1.)
+- **On disagreement** (junior reviewers PASS, auditor FAILs): auditor wins by default. Surface both views; user overrides explicitly if they disagree.
+- **Verdict semantics.** The four verdicts are `PASS` (advance silently), `CONCERNS` (advance with logged warning at `.harness/audits/concerns-*.json` for CEO commit-time review), `FAIL` (halt), and `WAIVED` (CEO override only; rejected by the gate if any blocking item cites Universal Core).
 
 ## Completion criteria
 
 Stage 5 is complete when:
 
-- Every required junior reviewer returned `APPROVE`
-- `.harness/scripts/auditor-gate.sh` returned APPROVE for Stage 5
-- `.harness/state/auditor-approvals/<feature>-stage5.json` exists with `verdict: APPROVE`
+- Every required junior reviewer returned `PASS` or `CONCERNS` (FAIL halts)
+- `.harness/scripts/auditor-gate.sh` returned exit 0 for Stage 5 (`PASS`, `CONCERNS`, or `WAIVED`)
+- `.harness/state/auditor-approvals/<feature>-stage5.json` exists with a non-FAIL `verdict`
 
 The user should be able to proceed to `/test-fix <feature>` immediately after.
 
 ## Anti-patterns the skill blocks
 
 - Implementer self-assessing whether a reviewer is needed → mechanical from `git diff --stat`
-- Implementer rationalizing past a reviewer's REQUEST CHANGES → halt, no auto-proceed
+- Implementer rationalizing past a reviewer's FAIL → halt, no auto-proceed
 - Skipping the auditor because "junior reviewers already approved" → auditor unconditional
 - Treating auditor disagreement as noise → halt, user explicitly overrides if needed
 - Sequential reviewer spawn (lets earlier verdicts color later prompts) → all required reviewers in a single parallel batch

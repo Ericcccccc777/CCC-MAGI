@@ -106,9 +106,9 @@ If `context7` is unreachable or returns nothing useful for a library, do NOT gue
 
    Read the gate's exit code:
 
-   - **Exit 0 (APPROVE)** — surface any advisory items. Stage 4 complete; user may proceed to `/implement <feature>`.
-   - **Exit 2 (REQUEST CHANGES)** — surface every CRITICAL item verbatim. Halt. Update the plan to address findings, re-invoke `/execution-plan` (or have the gate re-run manually after edits).
-   - **Exit 1 (script error)** — surface stderr, halt.
+   - **Exit 0 (PASS / CONCERNS / WAIVED)** — surface any advisory items. For CONCERNS, also surface the logged warning path (`.harness/audits/concerns-*.json`) and remind the CEO to review before commit. For WAIVED, surface the `waiver_reason`. Stage 4 complete; user may proceed to `/implement <feature>`.
+   - **Exit 2 (FAIL)** — surface every blocking item verbatim. Halt. Update the plan to address findings, re-invoke `/execution-plan` (or have the gate re-run manually after edits).
+   - **Exit 1 (script error / Universal Core WAIVED rejected / missing waiver_reason / legacy verdict)** — surface stderr, halt.
 
    The gate writes `.harness/state/auditor-approvals/<feature>-stage4.json`. Stage 5 (`/implement`) checks for this file's existence.
 
@@ -201,6 +201,6 @@ Stage 4 is complete when:
 - User has reviewed and approved the file list and order
 - All open decisions surfaced during planning are resolved or explicitly deferred
 - Every plan entry whose correctness depends on a versioned library API has a `• verified:` annotation (or an explicit `• unverified:` with reason)
-- `.harness/scripts/auditor-gate.sh` returned APPROVE for stage 4 — `.harness/state/auditor-approvals/<feature>-stage4.json` exists with `verdict: APPROVE`
+- `.harness/scripts/auditor-gate.sh` returned exit 0 for stage 4 (`PASS`, `CONCERNS`, or `WAIVED`) — `.harness/state/auditor-approvals/<feature>-stage4.json` exists with a non-FAIL `verdict`. CONCERNS advances but the logged warning must be surfaced to the CEO before commit.
 
 Do not start writing feature code during Stage 4. The plan is the Stage 4 artifact; code is Stage 5.

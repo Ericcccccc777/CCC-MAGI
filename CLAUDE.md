@@ -143,7 +143,7 @@ The constitutional invariant is in `./constitution.md § 1`. Below is how it is 
 - Audit strength scales with change size: full review on the standard lanes, BLOCKING-only on the trivial lane.
 - The auditor is invoked at stages 2, 3, 4, 5, 6 (post-fix), and on every commit gate.
 - The auditor emits JSON per `AGENTS.md § Verdict output`.
-- `REQUEST CHANGES` halts the flow; `APPROVE with suggestions` advances.
+- `FAIL` halts the flow; `CONCERNS` advances with a logged warning (see `.harness/audits/concerns-*.json`); `PASS with advisory_items` advances silently; `WAIVED` is a CEO override and is rejected by the gate if any blocking item is `category: "universal-core"`.
 
 ### Lanes
 
@@ -249,6 +249,23 @@ Hooks are deterministic checks that run automatically.
 - **Pre-commit lint bans** — blocks commit if anti-flag patterns are found. Script: `scripts/lint-bans.sh`.
 - **Pre-commit cycles** — blocks commit if a dependency cycle is detected (enabled only if `dependency_flow` is non-empty). Script: `scripts/precommit-cycles.sh`.
 - **Post-edit format** — runs the project's formatter on edited files. Script: `scripts/format-edit.sh`.
+
+### Memory layer (`.harness/memory/`)
+
+Cross-session persistence. The harness keeps a small notebook of prior decisions, failures, and observations so each new Claude Code session starts with relevant context instead of blank.
+
+- `observations.jsonl` — append-only JSONL; one entry per decision/failure/observation
+- `conventions.md` — long-form project conventions (markdown)
+
+Mechanism:
+
+- **SessionStart hook** (`.harness/scripts/memory-recall.sh`) reads `observations.jsonl`, scores entries by relevance to the current git branch's feature, and injects the top relevant entries into the session's additionalContext.
+- **PreCompaction hook** (`.harness/scripts/memory-snapshot.sh`) instructs Claude (via additionalContext) to summarize the session's key decisions to `observations.jsonl` before context compaction proceeds. Claude does the summarization; the hook just orchestrates the prompt.
+- **`/remember` skill** — user-invokable manual entry. Captures decisions/failures/observations curated by the user.
+
+Token economics: memory recall adds ~1-3K tokens to session startup. Net savings only materialize on multi-session work on the same feature. Empty memory file → zero token impact.
+
+Privacy: by default `.harness/memory/` is NOT gitignored — useful for team collaboration. Solo developers may add it to `.gitignore` if they prefer.
 
 ## Rule sources
 

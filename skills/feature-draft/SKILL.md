@@ -234,9 +234,9 @@ bash .harness/scripts/auditor-gate.sh review <feature> 1 \
 
 Read the gate's exit code:
 
-- **Exit 0 (APPROVE)** — surface any advisory items to the CEO. Stage 1 is one round closer to done. Proceed to Step 5.
-- **Exit 2 (REQUEST CHANGES)** — surface every CRITICAL item verbatim. Proceed to Step 5.
-- **Exit 1 (script error)** — surface stderr, halt.
+- **Exit 0 (PASS / CONCERNS / WAIVED)** — surface any advisory items to the CEO. For CONCERNS, also surface the logged warning path (`.harness/audits/concerns-*.json`) so the CEO weighs it before commit. For WAIVED, surface the `waiver_reason`. Stage 1 is one round closer to done. Proceed to Step 5.
+- **Exit 2 (FAIL)** — surface every blocking item verbatim. Proceed to Step 5.
+- **Exit 1 (script error / Universal Core WAIVED rejected / missing waiver_reason / legacy verdict)** — surface stderr, halt.
 
 ## Step 5 — CEO answers, spec v2
 

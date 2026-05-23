@@ -232,7 +232,7 @@ Auditor findings are classified by intensity:
 | **STRONG** | Accept, or push back with explicit reasoning. | Better patterns exist; maintenance concerns; convention violations. |
 | **ADVISORY** | Free choice. Usually accepted but skippable. | Style; naming; small improvements. |
 
-The verdict comes back as a structured `verdict: APPROVE` / `REQUEST CHANGES` plus `critical[]` and `suggestions[]` arrays (see `outcome/AGENTS.md § Verdict output`). `REQUEST CHANGES` halts the flow until resolved.
+The verdict comes back as a structured `verdict: PASS | CONCERNS | FAIL | WAIVED` plus `risk_score` (0–10), optional `waiver_reason`, and `blocking_items[]` / `advisory_items[]` arrays (each item shaped `{ category, rule_source, finding }`; advisory items omit `category`). See `outcome/AGENTS.md § Verdict output`. `FAIL` halts the flow until resolved; `CONCERNS` advances with a warning logged to `.harness/audits/concerns-*.json` for CEO commit-time review; `PASS` advances silently; `WAIVED` is a CEO override that advances with a logged `waiver_reason` and is rejected by the gate if any blocking item is `category: "universal-core"`.
 
 ### 6.1 CEO escalation pattern
 

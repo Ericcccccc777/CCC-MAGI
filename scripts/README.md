@@ -12,12 +12,14 @@ This directory holds:
 |------|------|---------|--------------|-----------|
 | `bootstrap-check.sh` | Shell hook | Claude/Codex `UserPromptSubmit` event | Fires on every user prompt. If `.harness/state/install.json` is missing AND `.harness/` is present, injects a directive telling Claude to read `standalone-bootstrap.md` and run the bootstrap flow BEFORE responding. Exits silently if install.json exists. | **Yes — load-bearing** |
 | `standalone-bootstrap.md` | AI driver | CLAUDE.md Bootstrap Status Check + `bootstrap-check.sh` hook | Detects existing harness configs (using AI semantic judgment), presents 3-option menu, archives/deletes other configs, then invokes /init | **Yes — standalone path** |
-| `auditor-gate.sh` | Shell | every audit-gated skill | Invokes the auditor CLI ({{auditor_model}}), parses JSON verdict, returns exit code 0 (APPROVE) / 2 (REQUEST CHANGES) / 1 (script error) | **Yes — core** |
+| `auditor-gate.sh` | Shell | every audit-gated skill | Invokes the auditor CLI ({{auditor_model}}), parses JSON verdict, returns exit code 0 (PASS / CONCERNS / WAIVED — all advance) / 2 (FAIL — halt) / 1 (script error, Universal Core WAIVED rejected, missing waiver_reason, or legacy verdict). CONCERNS verdicts are logged to `.harness/audits/concerns-*.json`; WAIVED verdicts to `.harness/audits/waivers-*.json`. | **Yes — core** |
 | `precommit-typecheck.sh` | Shell | Claude/Codex hooks (PreToolUse `git commit`) | Runs the project's typecheck before commit | Yes, customize per stack |
 | `lint-bans.sh` | Shell | Claude/Codex hooks (PreToolUse `git commit`) | Greps staged diff for anti-flag patterns | Yes if `{{anti_flag_rules}}` non-empty |
 | `precommit-cycles.sh` | Shell | Claude/Codex hooks (PreToolUse `git commit`) | Runs dependency-cycle check | Optional — only if `{{dependency_flow}}` is non-empty |
 | `format-edit.sh` | Shell | Claude/Codex hooks (PostToolUse Edit\|Write) | Runs the project's formatter on the edited file | Yes, customize per stack |
 | `post-migration.sh` | Shell | `/db-schema` skill (manual invocation) | Backend cache refresh + typed-bindings regeneration | Only if `{{backend_db_type}}` configured |
+| `memory-recall.sh` | Shell hook | Claude/Codex `SessionStart` event | Reads `.harness/memory/observations.jsonl`, scores entries by relevance to the current git branch's feature, injects top-N entries into Claude's `additionalContext`. Silent no-op when memory file is missing or empty. | Yes if memory layer in use |
+| `memory-snapshot.sh` | Shell hook | Claude/Codex `PreCompaction` event | Injects an instruction telling Claude to summarize the session's key decisions into `.harness/memory/observations.jsonl` BEFORE context compaction proceeds. Creates the memory directory/file on first run. | Yes if memory layer in use |
 
 ## Why no harness-detect.sh anymore
 

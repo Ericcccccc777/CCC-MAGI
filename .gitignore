@@ -21,9 +21,12 @@
 # It's the canonical "this project is configured" marker. Teams that
 # want to share harness state across collaborators should commit it.
 
-# Audit snapshots from /audit-spec runs (frozen point-in-time references;
-# may be useful to commit for some teams, hence not ignored by default —
-# uncomment if you want to exclude)
+# Audit snapshots from /audit-spec runs + auditor-gate verdict logs
+# (concerns-<feature>-stage<N>-<timestamp>.json and
+#  waivers-<feature>-stage<N>-<timestamp>.json, written by auditor-gate.sh
+#  on CONCERNS and WAIVED verdicts respectively). These form the audit trail
+#  the CEO reviews before commit; default is NOT ignored so the trail is
+#  preserved. Uncomment if you want to exclude.
 # .harness/audits/
 
 # ─────────────────────────────────────────────────────────────────────
@@ -41,6 +44,13 @@ old_version_harness/
 
 # Temp directories from installer
 .ccc-harness-temp/
+
+# ─────────────────────────────────────────────────────────────────────
+# Memory layer — by default tracked (cross-session, valuable for team)
+# Uncomment if you prefer local-only memory:
+# ─────────────────────────────────────────────────────────────────────
+
+# .harness/memory/
 
 # ─────────────────────────────────────────────────────────────────────
 # OS / editor noise

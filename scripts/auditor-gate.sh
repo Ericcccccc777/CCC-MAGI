@@ -18,9 +18,10 @@
 #   AUDITOR_GATE_TARGET_LABEL — optional human-readable label for the target
 #
 # EXIT CODES
-#   0 — APPROVE
-#   1 — script error (CLI not found, malformed output, IO failure, etc.)
-#   2 — REQUEST CHANGES
+#   0 — PASS, CONCERNS, or WAIVED (all advance; caller reads JSON for nuance)
+#   1 — script error (CLI not found, malformed output, IO failure, JSON validation,
+#       Universal Core WAIVED attempt, missing waiver_reason, legacy verdict, etc.)
+#   2 — FAIL (halt)
 #
 # OUTPUT FILE
 #   review:     .harness/state/auditor-approvals/<feature>-stage<N>.json
@@ -83,11 +84,34 @@ FULL_PROMPT="${PRESET_PREFIX}${FOCUS}"
 read -r -d '' REVIEW_SCHEMA <<'JSON' || true
 {
   "type": "object",
-  "required": ["verdict"],
+  "required": ["verdict", "risk_score"],
   "properties": {
-    "verdict": {"type": "string", "enum": ["APPROVE", "REQUEST CHANGES"]},
-    "critical": {"type": "array", "items": {"type": "string"}},
-    "suggestions": {"type": "array", "items": {"type": "string"}}
+    "verdict": {"type": "string", "enum": ["PASS", "CONCERNS", "FAIL", "WAIVED"]},
+    "risk_score": {"type": "integer", "minimum": 0, "maximum": 10},
+    "waiver_reason": {"type": "string"},
+    "blocking_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "rule_source", "finding"],
+        "properties": {
+          "category": {"type": "string", "enum": ["universal-core", "strong", "advisory"]},
+          "rule_source": {"type": "string"},
+          "finding": {"type": "string"}
+        }
+      }
+    },
+    "advisory_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_source", "finding"],
+        "properties": {
+          "rule_source": {"type": "string"},
+          "finding": {"type": "string"}
+        }
+      }
+    }
   }
 }
 JSON
@@ -151,7 +175,7 @@ invoke_claude_fresh() {
 
   local schema_hint=""
   if [ "$MODE" = "review" ]; then
-    schema_hint=$'\n\nRespond with JSON only matching schema: {"verdict": "APPROVE" | "REQUEST CHANGES", "critical": [...], "suggestions": [...]}'
+    schema_hint=$'\n\nRespond with JSON only matching schema: {"verdict": "PASS" | "CONCERNS" | "FAIL" | "WAIVED", "risk_score": 0-10, "waiver_reason": "string (required if WAIVED)", "blocking_items": [{"category": "universal-core" | "strong" | "advisory", "rule_source": "...", "finding": "..."}], "advisory_items": [{"rule_source": "...", "finding": "..."}]}'
   else
     schema_hint=$'\n\nRespond with JSON only matching schema: {"hypotheses": [{"summary": "...", "evidence": "...", "next_step": "..."}, ...]}'
   fi
@@ -161,12 +185,18 @@ invoke_claude_fresh() {
 
 invoke_none() {
   # No auditor configured. Emit a structured "skipped" verdict and let the caller decide.
-  echo "warning: AUDITOR_CLI=none — emitting auto-APPROVE without verification" >&2
+  echo "warning: AUDITOR_CLI=none — emitting auto-PASS without verification" >&2
   cat > "$TEMP_OUTPUT" <<JSON
 {
-  "verdict": "APPROVE",
-  "critical": [],
-  "suggestions": ["auditor skipped (AUDITOR_CLI=none); constitution.md § 1 single-engine fallback not engaged either — config error?"]
+  "verdict": "PASS",
+  "risk_score": 0,
+  "blocking_items": [],
+  "advisory_items": [
+    {
+      "rule_source": "constitution.md § 1",
+      "finding": "auditor skipped (AUDITOR_CLI=none); single-engine fallback not engaged either — config error?"
+    }
+  ]
 }
 JSON
 }
@@ -217,20 +247,60 @@ if [ "$MODE" = "diagnostic" ]; then
 fi
 
 VERDICT=$(jq -r '.verdict' "$OUTPUT_FILE")
-CRITICAL_COUNT=$(jq '.critical // [] | length' "$OUTPUT_FILE")
+RISK_SCORE=$(jq -r '.risk_score // 0' "$OUTPUT_FILE")
+BLOCKING_COUNT=$(jq '.blocking_items // [] | length' "$OUTPUT_FILE")
+ADVISORY_COUNT=$(jq '.advisory_items // [] | length' "$OUTPUT_FILE")
 
 case "$VERDICT" in
-  APPROVE)
-    echo "✓ ${LABEL}: APPROVE"
-    if [ "$CRITICAL_COUNT" -gt 0 ]; then
-      echo "  (note: $CRITICAL_COUNT advisory items in $OUTPUT_FILE)"
+  PASS)
+    echo "✓ ${LABEL}: PASS (risk_score=${RISK_SCORE})"
+    if [ "$ADVISORY_COUNT" -gt 0 ]; then
+      echo "  (note: $ADVISORY_COUNT advisory item(s) in $OUTPUT_FILE)"
     fi
     exit 0
     ;;
-  "REQUEST CHANGES")
-    echo "✗ ${LABEL}: REQUEST CHANGES ($CRITICAL_COUNT critical item(s))"
+  CONCERNS)
+    # Log to .harness/audits/ for CEO review
+    AUDIT_DIR=".harness/audits"
+    mkdir -p "$AUDIT_DIR"
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    CONCERNS_FILE="$AUDIT_DIR/concerns-${FEATURE}-stage${STAGE}-${TIMESTAMP}.json"
+    cp "$OUTPUT_FILE" "$CONCERNS_FILE"
+    echo "⚠ ${LABEL}: CONCERNS (risk_score=${RISK_SCORE}, $BLOCKING_COUNT item(s); advancing)"
+    echo "  Logged to: $CONCERNS_FILE"
+    echo "  CEO should review before commit."
+    exit 0
+    ;;
+  FAIL)
+    echo "✗ ${LABEL}: FAIL (risk_score=${RISK_SCORE}, $BLOCKING_COUNT blocking item(s))"
     echo "  See: $OUTPUT_FILE"
     exit 2
+    ;;
+  WAIVED)
+    # Verify no Universal Core items are being waived
+    UNIVERSAL_CORE_COUNT=$(jq '[.blocking_items[]? | select(.category == "universal-core")] | length' "$OUTPUT_FILE")
+    if [ "$UNIVERSAL_CORE_COUNT" -gt 0 ]; then
+      echo "✗ ${LABEL}: WAIVED rejected — $UNIVERSAL_CORE_COUNT Universal Core item(s) cannot be waived (constitution.md § 3 — CEO has final authority EXCEPT on Universal Core)" >&2
+      echo "  See: $OUTPUT_FILE" >&2
+      exit 1
+    fi
+    WAIVER_REASON=$(jq -r '.waiver_reason // "(no reason given)"' "$OUTPUT_FILE")
+    if [ "$WAIVER_REASON" = "(no reason given)" ] || [ "$WAIVER_REASON" = "null" ]; then
+      echo "✗ ${LABEL}: WAIVED rejected — waiver_reason is required" >&2
+      exit 1
+    fi
+    AUDIT_DIR=".harness/audits"
+    mkdir -p "$AUDIT_DIR"
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    WAIVER_FILE="$AUDIT_DIR/waivers-${FEATURE}-stage${STAGE}-${TIMESTAMP}.json"
+    cp "$OUTPUT_FILE" "$WAIVER_FILE"
+    echo "⚠ ${LABEL}: WAIVED (advancing; reason: $WAIVER_REASON)"
+    echo "  Logged to: $WAIVER_FILE"
+    exit 0
+    ;;
+  APPROVE|"REQUEST CHANGES")
+    echo "auditor returned legacy verdict '$VERDICT' — schema migration incomplete. Update the auditor's prompt to use PASS/CONCERNS/FAIL/WAIVED." >&2
+    exit 1
     ;;
   *)
     echo "auditor returned unexpected verdict: $VERDICT" >&2

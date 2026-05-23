@@ -181,9 +181,9 @@ At the end of Stage 3, the following must exist:
 - One or more new files under `{{migration_dir}}`, applied locally.
 - An updated typed-DB-bindings file (if the project uses one).
 - Confirmation to the user that search-index sync (if applicable) is documented.
-- Backend reviewer review complete (APPROVE).
-- Security/privacy reviewer review complete (APPROVE, mandatory).
-- Auditor review complete (APPROVE).
+- Backend reviewer review complete (PASS or CONCERNS; FAIL halts).
+- Security/privacy reviewer review complete (PASS or CONCERNS, mandatory; FAIL halts).
+- Auditor review complete (PASS, CONCERNS, or WAIVED; FAIL halts).
 
 ## Anti-patterns to reject
 

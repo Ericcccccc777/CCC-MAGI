@@ -31,7 +31,7 @@ test('<test name>', async () => { ... })
 
 The comment ties the test to a scenario ID in `{{spec_dir}}<feature>.md`. Tests without the comment have no audit trail; the auditor's scenario-coverage check catches the gap.
 
-When tests pass and the auditor returns APPROVE, the resolved test bindings (file path + test name) are recorded in the implementation file's "Scenario → automated test map" section, NOT in the CEO spec.
+When tests pass and the auditor advances (PASS, CONCERNS, or WAIVED), the resolved test bindings (file path + test name) are recorded in the implementation file's "Scenario → automated test map" section, NOT in the CEO spec.
 
 ## Authoritative sources
 
@@ -163,9 +163,9 @@ Do NOT flag: project-convention choices per {{anti_flag_rules}}, formatting, nam
 
 Read the gate's exit code:
 
-- **Exit 0 (APPROVE)** — proceed to Step 5b (stability-fix backstop, if applicable). Mention any suggestions returned (advisory).
-- **Exit 2 (REQUEST CHANGES)** — surface every CRITICAL item verbatim. Halt. Stage 6 incomplete. Ask the user how to proceed (re-run test-fixer with the critical findings as additional guidance, manual fix, or accept the risk and override later at Stage 8).
-- **Exit 1 (script error)** — surface stderr, halt. Stage 6 cannot complete without a successful auditor call.
+- **Exit 0 (PASS / CONCERNS / WAIVED)** — proceed to Step 5b (stability-fix backstop, if applicable). Mention any advisory items. For CONCERNS, also surface the logged warning path (`.harness/audits/concerns-*.json`) and remind the CEO to review before commit. For WAIVED, surface the `waiver_reason`.
+- **Exit 2 (FAIL)** — surface every blocking item verbatim. Halt. Stage 6 incomplete. Ask the user how to proceed (re-run test-fixer with the blocking findings as additional guidance, manual fix, or accept the risk and override later at Stage 8).
+- **Exit 1 (script error / Universal Core WAIVED rejected / missing waiver_reason / legacy verdict)** — surface stderr, halt. Stage 6 cannot complete without a successful auditor call.
 
 ## Step 5b — Stability-fix lane backstop (conditional)
 
@@ -175,7 +175,7 @@ It fires when:
 
 1. **No prior Stage 5 audit exists** — `.harness/state/auditor-approvals/<feature>-stage5.json` is absent. Presence means `/implement` ran and the auditor already audited the fix on its full diff; running again here would duplicate.
 
-If the prior-audit file exists, skip Step 5b and report `✓ Stage 6 complete: tests pass; auditor post-fix audit (legitimacy + coverage + correctness + spec-vs-reality) approved.` exactly as the Step 5 APPROVE path does.
+If the prior-audit file exists, skip Step 5b and report `✓ Stage 6 complete: tests pass; auditor post-fix audit (legitimacy + coverage + correctness + spec-vs-reality) advanced.` exactly as the Step 5 PASS path does.
 
 ### Determine the original-fix baseline
 
@@ -200,9 +200,9 @@ The gate writes `.harness/state/auditor-approvals/<feature>-stage6-fix.json`.
 
 Read the gate's exit code:
 
-- **Exit 0 (APPROVE)** — surface `✓ Stage 6 complete: tests pass; auditor post-fix audit approved; stability-fix end-to-end audit approved.` Mention any suggestions (advisory). Stage 6 complete.
-- **Exit 2 (REQUEST CHANGES)** — surface every CRITICAL item verbatim. Halt. Stage 6 incomplete. The user addresses (typically by editing the fix, not the tests), then re-invokes `/test-fix`.
-- **Exit 1 (script error)** — surface stderr, halt.
+- **Exit 0 (PASS / CONCERNS / WAIVED)** — surface `✓ Stage 6 complete: tests pass; auditor post-fix audit advanced; stability-fix end-to-end audit advanced.` Mention any advisory items. For CONCERNS, surface the logged warning path (`.harness/audits/concerns-*.json`) and remind the CEO to review before commit. For WAIVED, surface the `waiver_reason`. Stage 6 complete.
+- **Exit 2 (FAIL)** — surface every blocking item verbatim. Halt. Stage 6 incomplete. The user addresses (typically by editing the fix, not the tests), then re-invokes `/test-fix`.
+- **Exit 1 (script error / Universal Core WAIVED rejected / missing waiver_reason / legacy verdict)** — surface stderr, halt.
 
 ## Step 6 — Escalation routing
 
@@ -260,12 +260,12 @@ If `routing_rounds` in the attempts file has reached **2**, only `[4] Manual tak
 
 - **Surface the test-fixer report verbatim.** No "test-fixer says it's fine, proceeding." The user sees `FIXES_APPLIED` in full, including every `suspicious` flag, before any verdict is computed.
 - **Auditor post-fix audit is unconditional on PASS.** No skipping the audit because "the diff looks fine." The skill has no judgment authority to bypass the gate.
-- **Verdict is parsed deterministically from the gate's exit code.** No prose interpretation.
-- **On disagreement** (test-fixer says PASS, auditor says REQUEST CHANGES): auditor wins by default. Surface both views. The user overrides explicitly if they disagree.
+- **Verdict is parsed deterministically from the gate's exit code.** No prose interpretation. The four verdicts are `PASS` (advance silently), `CONCERNS` (advance with logged warning at `.harness/audits/concerns-*.json` for CEO commit-time review), `FAIL` (halt), and `WAIVED` (CEO override only; rejected by the gate if any blocking item cites Universal Core). Note: in this skill, "PASS" appears in two distinct senses — the **test-fixer's** PASS/FAIL signal (tests passed) and the **auditor's** PASS verdict (one of the four). They are independent; both must be checked.
+- **On disagreement** (test-fixer says tests-PASS, auditor says FAIL): auditor wins by default. Surface both views. The user overrides explicitly if they disagree.
 
 ## Step 7 — Update implementation file "Scenario → automated test map"
 
-After APPROVE on every applicable auditor pass, update `{{implementation_dir}}<feature>-implementation.md`. The map lives in the implementation file, NOT the CEO spec — file paths and test descriptions are manager-domain. For each scenario classified `[Required automated test]` in the CEO spec, ensure the implementation file's "Scenario → automated test map" section has a subsection with the resolved test bindings:
+After every applicable auditor pass advances (PASS, CONCERNS, or WAIVED), update `{{implementation_dir}}<feature>-implementation.md`. The map lives in the implementation file, NOT the CEO spec — file paths and test descriptions are manager-domain. For each scenario classified `[Required automated test]` in the CEO spec, ensure the implementation file's "Scenario → automated test map" section has a subsection with the resolved test bindings:
 
 ```markdown
 ### Scenario 3.4 — <scenario name from CEO spec>
@@ -284,7 +284,7 @@ This closes the spec ↔ test mapping loop and makes regression triage tractable
 
 Stage 6 is complete when one of:
 
-- All tests pass AND the auditor post-fix audit returns `APPROVE` (Step 5: legitimacy + coverage + correctness + spec-vs-reality) AND, if Step 5b's condition holds, the stability-fix end-to-end audit returns `APPROVE`, AND the implementation file's "Scenario → automated test map" has a subsection populated for every `[Required automated test]` scenario in the CEO spec (Step 7).
+- All tests pass AND the auditor post-fix audit advances (`PASS`, `CONCERNS`, or `WAIVED` — Step 5: legitimacy + coverage + correctness + spec-vs-reality) AND, if Step 5b's condition holds, the stability-fix end-to-end audit advances (`PASS`, `CONCERNS`, or `WAIVED`), AND the implementation file's "Scenario → automated test map" has a subsection populated for every `[Required automated test]` scenario in the CEO spec (Step 7). CONCERNS warnings must be surfaced to the CEO before commit.
 - The user has explicitly accepted ESCALATE state and chosen `[4] Manual takeover` (Step 6d).
 
 Either outcome must be reported explicitly. No silent advancement to Stage 7 (smoke).
@@ -300,4 +300,4 @@ Either outcome must be reported explicitly. No silent advancement to Stage 7 (sm
 - Skipping the post-fix audit because the diff looks fine → mandatory by skill design
 - Stability-fix lane shipping changes with zero cross-model review → Step 5b fires whenever no prior Stage 5 auditor audit exists
 - Tests that cover-but-don't-name a scenario → auditor's scenario-coverage axis flags missing `// Verifies scenario X.Y` comments
-- Implementation file's "Scenario → automated test map" missing a subsection for any `[Required automated test]` scenario after auditor APPROVE → completion criteria forces the update
+- Implementation file's "Scenario → automated test map" missing a subsection for any `[Required automated test]` scenario after auditor advances (PASS / CONCERNS / WAIVED) → completion criteria forces the update

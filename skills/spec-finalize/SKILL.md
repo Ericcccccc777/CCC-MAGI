@@ -98,17 +98,17 @@ bash .harness/scripts/auditor-gate.sh review <feature> 2 \
 
 Read the gate's exit code:
 
-- **Exit 0 (APPROVE)** — surface `✓ Stage 2 complete: spec FINALIZED; auditor cross-check approved.` Mention any advisory items. Recommend the next step (`/db-schema <feature>` if the spec implies data-layer work AND `backend_db_type` is configured, otherwise `/execution-plan <feature>`).
-- **Exit 2 (REQUEST CHANGES)** — see Step 5.
-- **Exit 1 (script error)** — surface stderr, halt.
+- **Exit 0 (PASS / CONCERNS / WAIVED)** — surface `✓ Stage 2 complete: spec FINALIZED; auditor cross-check advanced.` Mention any advisory items. For CONCERNS, also surface the logged warning path (`.harness/audits/concerns-*.json`) and remind the CEO to review before commit. For WAIVED, surface the `waiver_reason`. Recommend the next step (`/db-schema <feature>` if the spec implies data-layer work AND `backend_db_type` is configured, otherwise `/execution-plan <feature>`).
+- **Exit 2 (FAIL)** — see Step 5.
+- **Exit 1 (script error / Universal Core WAIVED rejected / missing waiver_reason / legacy verdict)** — surface stderr, halt.
 
-## Step 5 — On REQUEST CHANGES
+## Step 5 — On FAIL
 
-Critical findings indicate Stage 1 left gaps a reasonable implementer could not resolve unilaterally.
+Blocking findings indicate Stage 1 left gaps a reasonable implementer could not resolve unilaterally.
 
-1. Surface every CRITICAL item from the auditor verbatim to the CEO.
+1. Surface every blocking item from the auditor verbatim to the CEO.
 2. **Roll back the FINALIZED line.** Replace `## Status: FINALIZED <date>` with `## Status: DRAFT <YYYY-MM-DD> (pending stage-2 fixes)`. The spec is not finalized after all; the rollback prevents stale-status drift.
-3. Append the critical findings to a `## Open questions` section as new numbered items, prefixed with `(from stage-2 auditor review)`. The CEO answers, the spec is updated, the user re-invokes `/spec-finalize`.
+3. Append the blocking findings to a `## Open questions` section as new numbered items, prefixed with `(from stage-2 auditor review)`. The CEO answers, the spec is updated, the user re-invokes `/spec-finalize`.
 4. Halt. No silent advance.
 
 This routes auditor findings back through the same loop the CEO used during Stage 1. The shape stays uniform: there is no separate "auditor feedback resolution" stage.
@@ -116,8 +116,8 @@ This routes auditor findings back through the same loop the CEO used during Stag
 ## Trust contract
 
 - **Auditor is unconditional.** Skill cannot skip the cross-check because "the spec looks fine." (Per Constitution § 1.)
-- **Verdict is parsed deterministically from the gate's exit code.** No prose interpretation.
-- **No silent finalize.** If the auditor returns REQUEST CHANGES, the FINALIZED line comes off — the spec does not retain a stale status.
+- **Verdict is parsed deterministically from the gate's exit code.** No prose interpretation. The four verdicts are `PASS` (advance silently), `CONCERNS` (advance with logged warning at `.harness/audits/concerns-*.json` for CEO commit-time review), `FAIL` (halt), and `WAIVED` (CEO override only; rejected by the gate if any blocking item cites Universal Core).
+- **No silent finalize.** If the auditor returns FAIL, the FINALIZED line comes off — the spec does not retain a stale status.
 - **Plain-language audit is enforced at Stage 2** (Step 2). Tech terms in the CEO file are caught here, not at smoke time.
 - **Implementation file is optional** — its absence is acceptable for simple features; its presence is checked only for cross-consistency with the CEO spec.
 
@@ -129,7 +129,7 @@ Stage 2 is complete when:
 - Every scenario in the Edge-case section is classified (`[Required automated test]` / `[Smoke test only]`)
 - The CEO spec is plain language end-to-end
 - `## Status: FINALIZED <date>` is present at the top of the CEO spec
-- `.harness/scripts/auditor-gate.sh` returned APPROVE
-- `.harness/state/auditor-approvals/<feature>-stage2.json` exists with `verdict: APPROVE`
+- `.harness/scripts/auditor-gate.sh` returned exit 0 (`PASS`, `CONCERNS`, or `WAIVED`)
+- `.harness/state/auditor-approvals/<feature>-stage2.json` exists with a non-FAIL `verdict`
 
 Next step: `/db-schema <feature>` (if the spec implies data-layer work AND `backend_db_type` is configured) or `/execution-plan <feature>`.
