@@ -237,10 +237,12 @@ function mergeJsonSettings(srcPath, dstPath) {
   // Merge a single event (e.g. UserPromptSubmit): keep user entries as-is,
   // append our entries unless all of their inner commands already exist in user.
   function mergeEvent(eventName) {
-    const userArr = (userJson.hooks && userJson.hooks[eventName]) || [];
-    const ourArr  = (ourJson.hooks  && ourJson.hooks[eventName])  || [];
+    const userRaw = (userJson.hooks && userJson.hooks[eventName]);
+    const ourRaw  = (ourJson.hooks  && ourJson.hooks[eventName]);
+    const userArr = Array.isArray(userRaw) ? userRaw : [];
+    const ourArr  = Array.isArray(ourRaw)  ? ourRaw  : [];
     const userCmds = new Set(commandsInEventArray(userArr));
-    const merged = Array.isArray(userArr) ? [...userArr] : [];
+    const merged = [...userArr];
     for (const ourEntry of ourArr) {
       const inner = (ourEntry && ourEntry.hooks) || [];
       const ourEntryCmds = inner
@@ -255,10 +257,16 @@ function mergeJsonSettings(srcPath, dstPath) {
     return merged;
   }
 
-  // Build merged hooks object (union of event names).
+  // Build merged hooks object — only override keys whose VALUES are arrays.
+  // Documentation keys like `_comment` (string value) are NOT events and must
+  // be preserved verbatim; the unfiltered Object.keys + Set approach would
+  // silently overwrite them with [].
   const userHooks = userJson.hooks || {};
   const ourHooks  = ourJson.hooks  || {};
-  const eventNames = new Set([...Object.keys(userHooks), ...Object.keys(ourHooks)]);
+  const eventNames = new Set([
+    ...Object.keys(userHooks).filter(k => Array.isArray(userHooks[k])),
+    ...Object.keys(ourHooks).filter(k => Array.isArray(ourHooks[k])),
+  ]);
   const mergedHooks = { ...userHooks };
   for (const ev of eventNames) {
     mergedHooks[ev] = mergeEvent(ev);

@@ -284,15 +284,17 @@ merge_json_settings() {
     # set of inner command strings it contains. Used for idempotency check.
     | def commands_in_array($arr):
         [ $arr[]? | (.hooks // [])[]? | .command // empty ];
-    # For a given event name, return user array with our entries appended
-    # iff none of their inner-command strings are already present in user.
-    | def merge_event($event):
-        # If the user has the key but it is not an array (malformed schema),
-        # fall back to [] so the merge still produces a valid array — mirrors
-        # the JS installer (Array.isArray(userArr) ? [...userArr] : []).
+      # For a given event name, return user array with our entries appended
+      # iff none of their inner-command strings are already present in user.
+      def merge_event($event):
+        # If the user has the key but it is not an array (malformed schema or
+        # a documentation key like _comment with a string value), fall back to
+        # [] so the merge still produces a valid array — mirrors the JS
+        # installer (Array.isArray(userArr) ? [...userArr] : []).
         ($user.hooks[$event] // []) as $raw
         | (if ($raw | type) == "array" then $raw else [] end) as $u
-        | ($o.hooks[$event] // []) as $oarr
+        | ($o.hooks[$event] // []) as $oraw
+        | (if ($oraw | type) == "array" then $oraw else [] end) as $oarr
         | commands_in_array($u) as $u_cmds
         | $u + [
             $oarr[]
@@ -305,9 +307,11 @@ merge_json_settings() {
               else $entry
               end
           ];
-    # Build merged hooks: union of event names from both sides.
-    | (($user.hooks // {}) | keys) as $u_events
-    | (($o.hooks // {}) | keys) as $o_events
+      # Build merged hooks: union of event names from both sides.
+      # Only include keys whose VALUES are arrays — documentation keys like
+      # `_comment` (string value) are NOT events and must be preserved verbatim.
+      (($user.hooks // {}) | to_entries | map(select(.value | type == "array") | .key)) as $u_events
+    | (($o.hooks // {}) | to_entries | map(select(.value | type == "array") | .key)) as $o_events
     | (($u_events + $o_events) | unique) as $all_events
     | (reduce $all_events[] as $ev (
         ($user.hooks // {});
