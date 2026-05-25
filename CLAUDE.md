@@ -220,9 +220,25 @@ Each skill lives at `.harness/skills/<name>/SKILL.md`. Skills with a `descriptio
 - `/implement <name>` — stage 5
 - `/test-fix` — stage 6 (skip if `test_required = false`)
 - `/commit` — stage 8
-- `/constitution-edit` — edit Section 2 of constitution (project identity); use for fixing individual L0 slots without full re-init
+- `/constitution-edit` — edit Section 2 / Section 3 / slot registry of constitution.md. Cannot modify Section 1 (Universal Core — harness-guaranteed invariants). Generates a versioned Sync Impact Report at the top of constitution.md (Spec-Kit-pattern audit trail).
 - `/add-constitution-clause` — append to Section 3 of constitution (new project-specific red line)
 - `/add-anti-flag` — grow the L2 anti-flag rules over time (in AGENTS.md)
+
+### Constitution versioning
+
+`constitution.md` follows semver. Edits via `/constitution-edit` prepend a Sync Impact Report HTML comment at the top of the file documenting:
+- Version bump (MAJOR / MINOR / PATCH)
+- What changed in which section
+- Downstream templates that may need review
+
+Ad-hoc edits (raw `vim constitution.md`) skip the report. Use `/constitution-edit` for material changes — the audit trail is worth it.
+
+Semver rules:
+- **MAJOR** — removes / substantively changes an existing principle or slot
+- **MINOR** — adds a new principle or slot
+- **PATCH** — typo / clarification / non-semantic rewording
+
+Section 1 (Universal Core) is harness-guaranteed and cannot be modified by `/constitution-edit`.
 
 ### Subagents (`.harness/agents/`)
 
