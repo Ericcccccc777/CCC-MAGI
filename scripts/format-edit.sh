@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+# Ensure brew-installed tools (jq, etc.) are on PATH even in non-interactive
+# shells where ~/.zprofile isn't loaded. macOS Apple Silicon path comes first.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # Edited file path is passed as $1 or via $CLAUDE_FILE_PATHS / stdin JSON
 FILE="${1:-}"
 if [ -z "$FILE" ]; then

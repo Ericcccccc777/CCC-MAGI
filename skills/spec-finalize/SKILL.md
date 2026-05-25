@@ -1,6 +1,6 @@
 ---
 name: spec-finalize
-description: This skill should be used at stage 2 of the feature workflow, after stage 1 has landed a CEO-confirmed plain-language spec (via /feature-draft for a new feature or /audit-spec for an existing one). Trigger it when the user invokes /spec-finalize, says "finalize the spec", "stage 2 done", or moves from spec discussion to schema design (or to execution-plan if no backend). It verifies the two-file model is in shape, every scenario is classified, the spec is plain-language end-to-end, marks the CEO spec FINALIZED, and runs a different-model auditor cross-check focused on integration consistency. Use this always to close stage 2 — spec errors caught here cost much less than spec errors caught during implementation.
+description: This skill should be used at stage 2 of the feature workflow, after stage 1 has landed a CEO-confirmed plain-language spec (via /feature-draft for a new feature or /audit-spec for an existing one). It verifies the two-file model is in shape, every scenario is classified, the spec is plain-language end-to-end, marks the CEO spec FINALIZED, and runs a different-model auditor cross-check focused on integration consistency. Use this always to close stage 2 — spec errors caught here cost much less than spec errors caught during implementation. Trigger when the user invokes /spec-finalize, says "finalize the spec", "mark spec as ready", "stage 2 done", or moves from spec discussion to schema design (or to execution-plan if no backend).
 argument-hint: [feature-name]
 ---
 

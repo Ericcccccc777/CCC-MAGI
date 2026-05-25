@@ -1,6 +1,6 @@
 ---
 name: commit
-description: This skill should be used at stage 8 of the feature workflow, after the user has completed their smoke test (stage 7) and wants to commit the changes. Trigger it when the user invokes /commit, says "commit this", "ship it", or "let's commit". It inspects the staged and unstaged diff, proposes a Conventional Commits message, and runs git commit — which in turn triggers the project's pre-commit hooks. Use this always for commits; do not commit freely without this skill.
+description: This skill should be used at stage 8 of the feature workflow, after the user has completed their smoke test (stage 7) and wants to commit the changes. It inspects the staged and unstaged diff, proposes a Conventional Commits message, and runs git commit — which in turn triggers the project's pre-commit hooks. Use this always for commits; do not commit freely without this skill. Trigger when the user invokes /commit, says "commit this", "ship it", "let's commit", or similar intent.
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git log:*), Read
 argument-hint: [optional-subject-override]
 ---

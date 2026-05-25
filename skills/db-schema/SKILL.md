@@ -1,6 +1,6 @@
 ---
 name: db-schema
-description: This skill should be used whenever the project's database schema is being designed, extended, or reviewed. Trigger it when /db-schema is called, when a feature spec introduces new data requirements, when writing or reviewing any file under the project's migration directory, when evaluating whether to add a column or create a new table, when designing access-control policies, or when deciding on indexes. The skill drives stage 3 of the feature workflow and pairs with the project's backend rule doc (referenced via {{rule_sources}}) and the detailed methodology in references/methodology.md.
+description: This skill should be used whenever the project's database schema is being designed, extended, or reviewed. The skill drives stage 3 of the feature workflow and pairs with the project's backend rule doc (referenced via {{rule_sources}}) and the detailed methodology in references/methodology.md. Trigger when the user invokes /db-schema, says "design the schema", "plan the database changes", when a feature spec introduces new data requirements, when writing or reviewing any file under the project's migration directory, when evaluating whether to add a column or create a new table, when designing access-control policies, or when deciding on indexes.
 argument-hint: [feature-name]
 optional: true
 requires: backend_db_type

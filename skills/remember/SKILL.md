@@ -1,6 +1,6 @@
 ---
 name: remember
-description: Append an observation, decision, or failure to .harness/memory/observations.jsonl for future Claude Code sessions to recall. Trigger when the user invokes /remember or says "remember this". Reads $ARGUMENTS as the summary text; asks the user to clarify kind / feature / details if missing.
+description: Append an observation, decision, or failure to .harness/memory/observations.jsonl for future Claude Code sessions to recall. Reads $ARGUMENTS as the summary text; asks the user to clarify kind / feature / details if missing. Trigger when the user invokes /remember, says "remember this", "note for later", "save this decision", "记一下", "记到 memory", or similar intent.
 allowed-tools: Bash(git rev-parse:*), Bash(git branch:*), Bash(git status:*), Bash(echo:*), Bash(mkdir:*), Bash(date:*), Bash(jq:*), Bash(cat:*), Read, Edit
 argument-hint: <summary text>
 ---

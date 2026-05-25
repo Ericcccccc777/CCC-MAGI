@@ -37,21 +37,26 @@ const TEMP_DIR = ".ccc-harness-temp";
 
 // File mapping: source path in harness repo → destination in user project
 // Mirrors `outcome/skills/init/SKILL.md § Step 4 — File mappings`.
+//
+// type: "dir-merge" — per-file install/preserve under the destination directory.
+// See dirMerge() below for the trade-off note. Protects user customizations
+// (e.g., a user-added skill at .harness/skills/custom/) while still delivering
+// new harness files (e.g., a newly-added /remember skill).
 const FILE_MAPPINGS = [
   { src: "constitution.md", dst: "constitution.md", type: "file" },
   { src: "CLAUDE.md",       dst: "CLAUDE.md",       type: "file" },
   { src: "AGENTS.md",       dst: "AGENTS.md",       type: "file" },
-  { src: "skills",          dst: ".harness/skills", type: "dir"  },
-  { src: "agents",          dst: ".harness/agents", type: "dir"  },
-  { src: "scripts",         dst: ".harness/scripts", type: "dir" },
+  { src: "skills",          dst: ".harness/skills", type: "dir-merge" },
+  { src: "agents",          dst: ".harness/agents", type: "dir-merge" },
+  { src: "scripts",         dst: ".harness/scripts", type: "dir-merge" },
   { src: "cli-configs/claude/settings.json", dst: ".claude/settings.json", type: "json-merge" },
+  { src: "cli-configs/claude/commands",      dst: ".claude/commands",      type: "dir-merge" },
   { src: "cli-configs/codex/config.toml",    dst: ".codex/config.toml",    type: "file" },
   { src: "cli-configs/codex/hooks.json",     dst: ".codex/hooks.json",     type: "json-merge" },
-  { src: "docs-harness",    dst: "docs-harness",    type: "dir"  },
-  // cli-configs/README.md MUST come AFTER the docs-harness dir mapping above.
-  // The dir mapping uses renameSync to move the whole directory; if a file mapping
-  // pre-created docs-harness/ first, the dir mapping would either skip (no --force)
-  // or wipe the pre-staged file (with --force). Order matters.
+  { src: "docs-harness",    dst: "docs-harness",    type: "dir-merge" },
+  // cli-configs/README.md MUST come AFTER the docs-harness dir-merge mapping above.
+  // The dir-merge mapping mirrors the whole tree per file; if a file mapping
+  // pre-created docs-harness/ first, file-level conflicts arise. Order matters.
   { src: "cli-configs/README.md",            dst: "docs-harness/cli-configs-README.md", type: "file" },
   { src: ".gitignore",      dst: ".gitignore",      type: "file", optional: true },
   { src: "README.md",       dst: "CCC_HARNESS_README.md", type: "file" }, // user's own README is preserved
@@ -155,6 +160,56 @@ function moveAll(srcDir, dstDir) {
     if (exists(dst)) rmSync(dst, { recursive: true, force: true });
     renameSync(src, dst);
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// dir-merge semantics: for each file in source, install if absent in dest,
+// preserve if present. This protects user customizations (e.g., a user-added
+// skill at .harness/skills/custom/) while still delivering new harness files
+// (e.g., a newly-added /remember skill).
+//
+// Trade-off: if the harness UPDATES an existing skill (e.g., /init gets
+// a bug fix), users with the old version installed will NOT get the update
+// unless they pass --force. This is conservative — better to underinstall
+// updates than silently overwrite user customizations. Long-term we may
+// add a content-hash check ("if file is unchanged from harness original,
+// safe to overwrite"), but v0.2 keeps it simple.
+//
+// Returns { copied, skipped } counts.
+// ─────────────────────────────────────────────────────────────────────
+function dirMerge(srcPath, dstPath, force) {
+  let copied = 0;
+  let skipped = 0;
+  ensureDir(dstPath);
+  const stack = [""];
+  while (stack.length > 0) {
+    const relDir = stack.pop();
+    const curSrc = relDir ? join(srcPath, relDir) : srcPath;
+    let entries;
+    try {
+      entries = readdirSync(curSrc, { withFileTypes: true });
+    } catch (e) {
+      continue;
+    }
+    for (const ent of entries) {
+      const relPath = relDir ? join(relDir, ent.name) : ent.name;
+      const srcFile = join(srcPath, relPath);
+      const dstFile = join(dstPath, relPath);
+      if (ent.isDirectory()) {
+        ensureDir(dstFile);
+        stack.push(relPath);
+      } else if (ent.isFile()) {
+        if (exists(dstFile) && !force) {
+          skipped++;
+        } else {
+          ensureDir(join(dstFile, ".."));
+          copyFileSync(srcFile, dstFile);
+          copied++;
+        }
+      }
+    }
+  }
+  return { copied, skipped };
 }
 
 function chmodExecutable(dir) {
@@ -435,6 +490,20 @@ function main() {
         log(`  ⚠ ${m.src.padEnd(36)} → ${m.dst}  (user file backed up to ${backupName})`);
         renameSync(src, dst);
         backedUpCount++;
+      }
+      continue;
+    }
+
+    // dir-merge: per-file install/preserve under the destination directory.
+    // See dirMerge() comment for trade-off note.
+    if (m.type === "dir-merge") {
+      const { copied, skipped } = dirMerge(src, dst, flags.force);
+      if (copied > 0 && skipped > 0) {
+        log(`  ⊕ ${m.src.padEnd(36)} → ${m.dst}/  (${copied} new, ${skipped} preserved)`);
+      } else if (copied > 0) {
+        log(`  ✓ ${m.src.padEnd(36)} → ${m.dst}/  (${copied} files)`);
+      } else {
+        log(`  = ${m.src.padEnd(36)} → ${m.dst}/  (all ${skipped} files already existed)`);
       }
       continue;
     }

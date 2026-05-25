@@ -211,6 +211,11 @@ Both bootstrap paths converge on invoking `/init` to fill project-specific value
 
 Each skill lives at `.harness/skills/<name>/SKILL.md`. Skills with a `description` are auto-discoverable and create the `/<name>` invocation.
 
+Skills are invokable two ways:
+
+- **Slash syntax**: `/<skill-name> <args>` (e.g., `/remember 这事很重要`). Forwarded via `.claude/commands/` shims to the actual skill at `.harness/skills/<name>/SKILL.md`.
+- **Natural language**: phrases listed in each skill's `description` field will trigger the same skill (e.g., "记一下: 这事很重要" triggers /remember). See individual SKILL.md `description` for accepted phrases.
+
 - `/init` — **Step 2** of harness setup: fills L0/L1 slots interactively, writes `.harness/state/install.json` as the canonical "configured" marker. Re-runnable for re-configuration with `--force`. Does NOT run detection — bootstrap handles that before /init is invoked.
 - `/feature-draft <name>` — stage 1, **new-feature mode**
 - `/audit-spec <name>` — stage 1, **audit mode**

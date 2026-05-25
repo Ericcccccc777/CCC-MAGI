@@ -1,6 +1,6 @@
 ---
 name: constitution-edit
-description: Edit the project constitution.md and update its Sync Impact Report. Use when the user wants to add, modify, or remove a principle in Section 2 (Project Identity), Section 3 (Project Red Lines), or the slot registry. CANNOT modify Section 1 (Universal Core) — those are harness-guaranteed invariants that no edit can remove. Generates a versioned Sync Impact Report at the top of constitution.md.
+description: Edit the project constitution.md and update its Sync Impact Report. Use when the user wants to add, modify, or remove a principle in Section 2 (Project Identity), Section 3 (Project Red Lines), or the slot registry. CANNOT modify Section 1 (Universal Core) — those are harness-guaranteed invariants that no edit can remove. Generates a versioned Sync Impact Report at the top of constitution.md. Trigger when the user invokes /constitution-edit, says "edit the constitution", "add a red line", "update project identity", or similar intent.
 allowed-tools: Read, Edit, Bash(date:*), Bash(grep:*), Bash(git diff:*), Bash(git status:*)
 argument-hint: <description of the change>
 ---

@@ -313,7 +313,10 @@ The CCC-Harness files are now ready, but project-specific values (L0 slots in `c
    
    Next, Step 2: fill in your project's identity (~16 questions, 5-10 minutes).
    
-   Start now? (yes / no — type no to run /init manually later)
+   Start now? 
+     yes / Y → invoke /init now
+     no  / N → skip this session; bootstrap will re-prompt next session
+     skip   → decline CCC-Harness entirely (treat as Step C option 3)
    ```
 2. **If user says yes**: invoke the `/init` skill (`.harness/skills/init/SKILL.md`). The /init skill handles L0 question flow, slot rendering, validation, and writes `install.json`.
 3. **If user says no**: do nothing further this session. Surface this explicit notice (display in user's locale):
@@ -329,6 +332,20 @@ The CCC-Harness files are now ready, but project-specific values (L0 slots in `c
      c. If you've decided against CCC-Harness, manually delete .harness/ and constitution.md, etc.
    ```
    The user keeps a clean partial-install state; per CCC_harness_flow.md decision 6 (Restart policy) this is expected and benign — bootstrap re-fires next session.
+4. **If user says skip**: treat exactly like Step C option 3 — decline CCC-Harness for this session. This branch is most relevant when Step E was reached via Step B's empty-confirmed-set jump (the user never saw the Step C menu and now wants to back out). Acknowledge (display in user's locale):
+   ```
+   OK, this session won't use CCC-Harness.
+   I'll proceed with your requests normally.
+   
+   Note: the CCC-Harness files are still in your project (.harness/, constitution.md, etc.).
+   On your next CLI session, I'll ask again whether you want to install.
+   To stop being prompted, manually delete the CCC-Harness files from your project.
+   ```
+   - **Stop running this bootstrap driver.**
+   - Continue the conversation normally — respond to whatever the user actually wants to do.
+   - **Do NOT invoke any `.harness/skills/*` skills this session.** Treat them as not present.
+   - **Do NOT write `.harness/state/install.json`** — leave it absent so next session re-prompts.
+   - **Do NOT output the success marker** — the user is staying in the same CLI session for actual work, so no terminal-close signal is needed in standalone mode.
 
 ---
 

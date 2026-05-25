@@ -1,6 +1,6 @@
 ---
 name: init
-description: Project configuration. Asks L0 slot questions, fills constitution.md, scaffolds .harness/ + .claude/ + .codex/ in the user's project, and writes the install.json that marks the harness as fully configured. Use when the user invokes /init, says "set up harness", "configure the harness", or arrives here from the bootstrap flow (standalone-bootstrap.md or CCC's bundled Step 1 driver). This skill assumes existing-harness detection has already been handled by the bootstrap; it does NOT run detection itself. Works in two modes — interactive (standalone CLI use) and CCC-driven (CCC's HarnessWizard invokes /init programmatically with pre-collected answers).
+description: Project configuration. Asks L0 slot questions, fills constitution.md, scaffolds .harness/ + .claude/ + .codex/ in the user's project, and writes the install.json that marks the harness as fully configured. This skill assumes existing-harness detection has already been handled by the bootstrap; it does NOT run detection itself. Works in two modes — interactive (standalone CLI use) and CCC-driven (CCC's HarnessWizard invokes /init programmatically with pre-collected answers). Trigger when the user invokes /init, says "set up the harness", "configure CCC-Harness", "fill the L0 questions", or arrives here from the bootstrap flow (standalone-bootstrap.md or CCC's bundled Step 1 driver).
 argument-hint: [--ccc-driven] [--config <yaml>] [--force]
 ---
 
@@ -176,44 +176,63 @@ All L0 slots from `constitution.md` § Slot registry must be filled. Total: **16
 
 Ask each L0 question fresh. Group them into thematic blocks to reduce fatigue:
 
+**Convention for every block below**: at the top of each block, tell the user once:
+`(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)`.
+Then individual questions DO NOT repeat the "press Enter to accept" reminder. Brief
+industry-common examples are inline (in parentheses) to help the user pick.
+
 #### Block A — Identity (4 questions)
 
 ```
-Q1. What's your project's name?
-    (will be written to the top of constitution.md and CLAUDE.md)
+─── Block A · Project Identity (4 questions) ───────────────────
+(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
 
-Q2. Describe this project in one sentence (plain language, no jargon):
+Q1. Project name (default: auto-detected from manifest)
+    e.g.: startup-finder / popout-market / morning-glow-cafe
 
-Q3. What stage is the project in?
+Q2. One-sentence description (plain language, no jargon)
+    e.g.: "WeChat-style local secondhand marketplace" / "B2B SaaS reporting tool"
+
+Q3. Project stage?
     a. early   — just starting, no users yet
     b. beta    — internal testing / small user group
     c. prod    — publicly released, has users
     d. scale   — at scale, operations-mature
+    (common: solo projects → usually a; team projects → usually b)
 
-Q4. Target scale (examples: "100 users" / "10k DAU" / "internal company use"):
+Q4. Target scale
+    e.g.: "100 users" / "10k DAU" / "internal company use"
 ```
 
 #### Block B — Scope + Discipline (3 questions)
 
 ```
+─── Block B · Scope + Discipline (3 questions) ─────────────────
+(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
+
 Q5. Team size?
     a. solo    — one developer (default)
     b. small   — 2-5 people
     c. large   — 6+ people
 
-Q6. What is this harness primarily protecting? (examples: stability, security, velocity, compliance)
+Q6. What is this harness primarily protecting?
+    e.g.: stability / security / velocity / compliance
 
 Q7. What is explicitly NOT in the harness's scope?
-    (examples: marketing copy / customer support / legal terms / server ops — one item per line)
+    e.g.: marketing copy / customer support / legal terms / server ops
+    (one item per line)
 ```
 
 #### Block C — Engine (2 questions)
 
 ```
+─── Block C · Engine (2 questions) ─────────────────────────────
+(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
+
 Q8. Single-engine or dual-engine?
     a. Dual-engine (recommended) — Claude writes code; a second model (default: Codex / gpt-5.5) independently audits.
-    b. Single-engine               — Only Claude; audit runs as a fresh-context Claude call (fallback).
-       Simpler but weaker bias-cancellation guarantee.
+    b. Single-engine             — Only Claude; audit runs as a fresh-context Claude call (fallback).
+                                   Simpler but weaker bias-cancellation guarantee.
 
 Q9. Conversation language style?
     a. plain        — plain language by default; AI strips jargon from prompts (recommended)
@@ -223,12 +242,15 @@ Q9. Conversation language style?
 #### Block D — Project identity (5 questions — these go to constitution Section 2)
 
 ```
+─── Block D · Project Identity / Red Lines (5 questions) ───────
+(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
+
 Q10. Who do you serve? (one sentence)
-     (examples: "independent writers", "small-business CRM users", "developers of developer tools")
+     e.g.: "independent writers" / "small-business CRM users" / "developers of developer tools"
 
 Q11. What do you deliberately NOT do? (project-identity-level "no")
-     (examples: "Never add collaboration features — this is a single-user tool",
-                "Never store user payment data — use Stripe")
+     e.g.: "Never add collaboration features — this is a single-user tool"
+           "Never store user payment data — use Stripe"
 
 Q12. Compliance / legal floors?
      a. GDPR (EU data protection)
@@ -238,23 +260,26 @@ Q12. Compliance / legal floors?
      e. other (please specify)
 
 Q13. Performance floors (non-negotiable)?
-     (examples: "cold start < 2s", "99.9% availability", "any user action < 200ms response")
-     Enter "none" if you don't have one yet.
+     e.g.: "cold start < 2s" / "99.9% availability" / "any user action < 200ms response"
+     Type "none" if you don't have one yet.
 
 Q14. Any other "if-violated-this-is-no-longer-this-project" statements?
-     (optional; skip if none)
+     (optional)
 ```
 
 #### Block E — Paths (2 questions, with defaults)
 
 ```
+─── Block E · Paths (2 questions) ──────────────────────────────
+(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
+
 Q15. Where should feature spec files live?
      Default: docs/features/
-     Press Enter to accept the default, or type a custom path:
+     e.g.: docs/features/ / specs/ / .specs/
 
 Q16. Where should implementation-notes files live?
      Default: docs/features/ (same directory as specs)
-     Press Enter to accept the default, or type a custom path:
+     e.g.: docs/features/ / docs/impl/
 ```
 
 ### Brownfield mode

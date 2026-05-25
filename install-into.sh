@@ -146,23 +146,30 @@ fi
 
 # ─────────────────────────────────────────────────────────────────────
 # File mappings (mirror of installer/bin.js FILE_MAPPINGS + /init Step 4)
-# Format: "<src-relative>|<dst-relative>|<type:file|dir>"
+# Format: "<src-relative>|<dst-relative>|<type:file|dir|dir-merge|json-merge>"
+#
+# dir-merge: for each file under the source directory, install if absent in
+# destination; preserve if present (skip). Protects user customizations
+# (e.g., a user-added skill at .harness/skills/custom/) while still
+# delivering new harness files (e.g., a newly-added /remember skill).
+# See merge_dir_recursive() below for the trade-off note.
 # ─────────────────────────────────────────────────────────────────────
 
 declare -a MAPPINGS=(
   "constitution.md|constitution.md|file"
   "CLAUDE.md|CLAUDE.md|file"
   "AGENTS.md|AGENTS.md|file"
-  "skills|.harness/skills|dir"
-  "agents|.harness/agents|dir"
-  "scripts|.harness/scripts|dir"
+  "skills|.harness/skills|dir-merge"
+  "agents|.harness/agents|dir-merge"
+  "scripts|.harness/scripts|dir-merge"
   "cli-configs/claude/settings.json|.claude/settings.json|json-merge"
+  "cli-configs/claude/commands|.claude/commands|dir-merge"
   "cli-configs/codex/config.toml|.codex/config.toml|file"
   "cli-configs/codex/hooks.json|.codex/hooks.json|json-merge"
   # docs-harness dir MUST come before cli-configs/README.md placement.
-  # Same reason as installer/bin.js: dir mapping moves the whole tree;
-  # if a file mapping pre-creates docs-harness/, the dir mapping conflicts.
-  "docs-harness|docs-harness|dir"
+  # Same reason as installer/bin.js: dir-merge mapping mirrors the whole tree;
+  # if a file mapping pre-creates docs-harness/, file-level conflicts arise.
+  "docs-harness|docs-harness|dir-merge"
   "cli-configs/README.md|docs-harness/cli-configs-README.md|file"
   ".gitignore|.gitignore|file"
   "README.md|CCC_HARNESS_README.md|file"
@@ -210,6 +217,45 @@ backup_existing() {
   fi
   mv "$dst_path" "$backup"
   echo "$(basename "$backup")"
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# dir-merge semantics: for each file in source, install if absent in dest,
+# preserve if present. This protects user customizations (e.g., a user-added
+# skill at .harness/skills/custom/) while still delivering new harness files
+# (e.g., a newly-added /remember skill).
+#
+# Trade-off: if the harness UPDATES an existing skill (e.g., /init gets
+# a bug fix), users with the old version installed will NOT get the update
+# unless they pass --force. This is conservative — better to underinstall
+# updates than silently overwrite user customizations. Long-term we may
+# add a content-hash check ("if file is unchanged from harness original,
+# safe to overwrite"), but v0.2 keeps it simple.
+#
+# Returns "<copied>:<skipped>" on stdout.
+# bash 3.2 compat: no declare -A, no mapfile; use find -print0 | while read -d ''.
+# ─────────────────────────────────────────────────────────────────────
+merge_dir_recursive() {
+  local src="$1"
+  local dst="$2"
+  local force="$3"
+  local copied=0
+  local skipped=0
+  mkdir -p "$dst"
+  # Use find to traverse the source; for each file, mirror to dst preserving structure.
+  while IFS= read -r -d '' src_file; do
+    local rel="${src_file#$src/}"
+    local dst_file="$dst/$rel"
+    local dst_dir="$(dirname "$dst_file")"
+    mkdir -p "$dst_dir"
+    if [ -e "$dst_file" ] && [ "$force" -ne 1 ]; then
+      skipped=$((skipped + 1))
+    else
+      cp "$src_file" "$dst_file"
+      copied=$((copied + 1))
+    fi
+  done < <(find "$src" -type f -print0)
+  echo "${copied}:${skipped}"
 }
 
 # ─────────────────────────────────────────────────────────────────────
@@ -381,6 +427,24 @@ for entry in "${MAPPINGS[@]}"; do
     cp "$SRC_PATH" "$DST_PATH"
     COPIED=$((COPIED + 1))
     BACKED_UP=$((BACKED_UP + 1))
+    continue
+  fi
+
+  # dir-merge: per-file install/preserve under the destination directory.
+  # See merge_dir_recursive() comment for trade-off note.
+  if [ "$type" = "dir-merge" ]; then
+    RESULT=$(merge_dir_recursive "$SRC_PATH" "$DST_PATH" "$FORCE")
+    COPIED_CT="${RESULT%:*}"
+    SKIPPED_CT="${RESULT#*:}"
+    if [ "$COPIED_CT" -gt 0 ] && [ "$SKIPPED_CT" -gt 0 ]; then
+      printf "   ⊕ %-40s → %s/ (%d new, %d preserved)\n" "$src" "$dst" "$COPIED_CT" "$SKIPPED_CT"
+    elif [ "$COPIED_CT" -gt 0 ]; then
+      printf "   ✓ %-40s → %s/ (%d files)\n" "$src" "$dst" "$COPIED_CT"
+    else
+      printf "   = %-40s → %s/ (all %d files already existed)\n" "$src" "$dst" "$SKIPPED_CT"
+    fi
+    COPIED=$((COPIED + COPIED_CT))
+    SKIPPED=$((SKIPPED + SKIPPED_CT))
     continue
   fi
 

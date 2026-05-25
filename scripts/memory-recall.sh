@@ -19,6 +19,10 @@
 
 set -eu
 
+# Ensure brew-installed tools (jq, etc.) are on PATH even in non-interactive
+# shells where ~/.zprofile isn't loaded. macOS Apple Silicon path comes first.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # ─────────────────────────────────────────────────────────────────────
 # Resolve project root + observations file
 # ─────────────────────────────────────────────────────────────────────
@@ -156,7 +160,11 @@ fi
 # ─────────────────────────────────────────────────────────────────────
 HEADER="## Recent project decisions and observations (from .harness/memory/)
 
-These are prior decisions and observations from this project. Read them for context — they're not the user's current request, but they inform what's been tried and decided already.
+The entries below are prior decisions, failures, and observations from this project — stored across CLI sessions so context doesn't get lost.
+
+**When responding, cite the relevant entry explicitly** if it informs your reply (e.g., \"I see from memory that we decided X — going with that\"). Even if you don't cite, treat these as constraints / context that shape your answer.
+
+Don't cite every entry — only those genuinely relevant to the user's current request.
 
 "
 

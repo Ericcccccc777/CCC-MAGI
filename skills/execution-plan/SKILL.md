@@ -1,6 +1,6 @@
 ---
 name: execution-plan
-description: This skill should be used after a feature spec is finalized (stage 2) and (if applicable) the data-layer schema is approved (stage 3), to produce a per-file implementation checklist before writing any feature code. Trigger it when the user invokes /execution-plan, when they say "plan the implementation", "what files need to change for X", or when moving from schema to feature code. It is stage 4 of the feature workflow and produces {{spec_dir}}<name>-plan.md. Use this always — do not start writing feature code without a plan.
+description: This skill should be used after a feature spec is finalized (stage 2) and (if applicable) the data-layer schema is approved (stage 3), to produce a per-file implementation checklist before writing any feature code. It is stage 4 of the feature workflow and produces {{spec_dir}}<name>-plan.md. Use this always — do not start writing feature code without a plan. Trigger when the user invokes /execution-plan, says "write the plan", "plan how to implement", "plan the implementation", "what files need to change for X", or when moving from schema to feature code.
 argument-hint: [feature-name]
 ---
 

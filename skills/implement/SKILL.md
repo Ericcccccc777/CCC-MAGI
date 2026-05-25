@@ -1,6 +1,6 @@
 ---
 name: implement
-description: This skill should be used at the end of stage 5 of the feature workflow, after the user has implemented the feature per the execution plan. Trigger it when the user invokes /implement, says "implementation done", "ready for review", or moves from coding to verification. It mechanically picks the required junior reviewers from `git diff` (no self-assessment), runs them in parallel, and on approval invokes a different-model auditor pass on the full diff. Use this always to close stage 5 — the gate prevents reviewer-skip mistakes and shared-model blind spots.
+description: This skill should be used at the end of stage 5 of the feature workflow, after the user has implemented the feature per the execution plan. It mechanically picks the required junior reviewers from `git diff` (no self-assessment), runs them in parallel, and on approval invokes a different-model auditor pass on the full diff. Use this always to close stage 5 — the gate prevents reviewer-skip mistakes and shared-model blind spots. Trigger when the user invokes /implement, says "implement this feature", "write the code per plan", "implementation done", "ready for review", or moves from coding to verification.
 argument-hint: [feature-name]
 ---
 

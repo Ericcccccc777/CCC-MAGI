@@ -1,6 +1,6 @@
 ---
 name: feature-draft
-description: This skill should be used when starting a new feature. Trigger it when the user says "start a new feature", "draft spec for X", "let's build <feature>", or invokes /feature-draft directly. It produces stage 1 (new-feature mode) of the dual-mode feature workflow — paraphrasing CEO intent, running an edge-case round using the configured `{{edge_case_categories}}`, and a different-model auditor external review — landing a plain-language spec at {{spec_dir}}<name>.md plus an optional implementation notes file. Always use this skill to start a feature rather than writing specs freely, so every feature enters the pipeline with the same shape.
+description: This skill should be used when starting a new feature. It produces stage 1 (new-feature mode) of the dual-mode feature workflow — paraphrasing CEO intent, running an edge-case round using the configured `{{edge_case_categories}}`, and a different-model auditor external review — landing a plain-language spec at {{spec_dir}}<name>.md plus an optional implementation notes file. Always use this skill to start a feature rather than writing specs freely, so every feature enters the pipeline with the same shape. Trigger when the user invokes /feature-draft, says "start a new feature", "draft a spec for X", "I want to build <feature>", "let's build <feature>", or similar intent.
 argument-hint: [feature-name]
 ---
 

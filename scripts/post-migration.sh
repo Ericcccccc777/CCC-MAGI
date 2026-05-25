@@ -13,6 +13,10 @@
 
 set -euo pipefail
 
+# Ensure brew-installed tools (jq, etc.) are on PATH even in non-interactive
+# shells where ~/.zprofile isn't loaded. macOS Apple Silicon path comes first.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # ─────────────────────────────────────────────────────────────────────
 # CUSTOMIZE: per-backend post-migration steps
 # ─────────────────────────────────────────────────────────────────────
