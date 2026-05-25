@@ -101,7 +101,7 @@ After `/init` completes, your project has:
 your-project/
 ├── constitution.md             ← project identity (filled with your answers to /init)
 ├── CLAUDE.md                   ← workflow rules (with Bootstrap Status Check at top)
-├── AGENTS.md                   ← auditor context
+├── AGENTS.md                   ← universal project context (AGENTS.md ecosystem standard) + auditor brief
 ├── CCC_HARNESS_README.md       ← this file, renamed at install time (your project's README is preserved)
 ├── CCC_HARNESS_LICENSE         ← MIT license, renamed (your project's LICENSE is preserved)
 ├── .harness/
@@ -151,7 +151,7 @@ For the full design rationale, see `docs-harness/design-spec.md`.
 | `README.md` (this file) | Quick start, what it is |
 | `constitution.md` | Project identity (filled by `/init`) + 5 universal core items |
 | `CLAUDE.md` | Workflow rules, lane definitions, doc-in-sync, tool map |
-| `AGENTS.md` | Auditor (Codex / other) role contract, anti-flag rules |
+| `AGENTS.md` | Universal project context (AGENTS.md ecosystem standard — read by Codex, Cursor, Cline, Aider, etc.) + auditor (Sam / Codex) role contract + anti-flag rules |
 | `docs-harness/README.md` | Index of the framework's own design docs |
 | `docs-harness/design-spec.md` | The architectural rationale (why two-file model, why three lanes, etc.) |
 | `docs-harness/adoption-playbook.md` | Step-by-step install guide (greenfield + brownfield + standalone + CCC paths) |

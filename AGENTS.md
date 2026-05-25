@@ -1,14 +1,75 @@
-# {{project_name}} — Harness AGENTS.md (for the external auditor model)
+# {{project_name}} — AGENTS.md
 
-## What this project is
+This file follows the [AGENTS.md standard](https://agents.md/) — read by Codex, Cursor, Cline, Aider, Gemini CLI, Devin, and other AI coding tools as universal project context. Plus a dedicated **Auditor Instructions** section at the bottom for the cross-model auditor (Sam / Codex) per Constitution § 1.
+
+## Project Overview
 
 {{project_description}}
 
-**Stage:** {{project_stage}} | **Scale target:** {{project_scale_target}} | **Team:** {{team_size}}
+- **Stage**: {{project_stage}}
+- **Scale target**: {{project_scale_target}}
+- **Team**: {{team_size}}
+- **Primary focus**: {{primary_concern}}
+- **Out of scope**: {{out_of_scope_items}}
 
-The harness's stated focus is **{{primary_concern}}**. Solo-maintainability is a core value: no black boxes, no opaque generators, no setups that require a team to justify. Build for today; do not add infrastructure for hypothetical scale.
+(For full project identity see `constitution.md § Section 2`. For workflow rules see `CLAUDE.md`. For project red lines see `constitution.md § Section 3`.)
 
-## Your role
+## Tech Stack
+
+{{tech_stack}}
+
+## Repository Structure
+
+{{repo_structure}}
+
+## Build & Test
+
+- **Test framework**: {{test_framework}}
+- **Test command**: {{test_runner_command}}
+- **Tests required for new code**: {{test_required}}
+- **Release channels**: {{release_lanes}}
+
+(For backend / migration details if applicable: see `constitution.md § Slot registry` and `CLAUDE.md § Rule sources`.)
+
+## Code Style / Conventions
+
+Per `CLAUDE.md § Operating Principles`:
+
+1. **Simplicity over completeness** — minimum code that solves the stated problem; no speculative abstractions
+2. **Surgical changes** — every changed line traces to the request; no drive-by refactors
+3. **Diagnosable in production** — errors go to {{error_tracker}}; funnel events on key actions
+4. **Spec and reality stay in sync** — user-visible behavior changes update `{{spec_dir}}<name>.md` in the same commit
+
+See `CLAUDE.md` for the full operating manual.
+
+## Anti-flag rules — do NOT flag these as issues
+
+<!-- These are deliberate project conventions that LOOK like issues but are not. Flagging them produces false positives that erode auditor signal.
+
+The harness ships this section empty. /init seeds 3-5 examples based on the detected tech stack. /add-anti-flag grows the list as the project develops conventions.
+
+Default format for each rule:
+  - **<Convention X> is correct, <alternative Y> is BANNED.**
+    Don't suggest switching to Y. (Reason: <why this project chose X>)
+-->
+
+{{anti_flag_rules}}
+
+### Architecture posture (default, applies to all projects)
+
+- **{{team_size}} dev. {{team_size}}-maintainability is a core value.** Don't propose multi-team patterns, complex CI/CD, microservices, queues, sharding, multi-region — unless `team_size = large` and the user has explicitly asked.
+- **No premature abstraction.** Three similar lines is better than a wrong abstraction. Don't suggest extracting a helper for one use site.
+- **No backwards-compatibility shims for unreleased code.** No feature flags for code that hasn't shipped. No "deprecated, kept for callers" comments on private internals.
+- **No error handling for impossible cases.** Trust internal code and framework guarantees. Validate at system boundaries (user input, external APIs) only.
+- **Expected errors are NOT sent to `{{error_tracker}}`** (validation, no-network, etc.). The error tracker is for unhandled / unexpected. Don't suggest "log this to {{error_tracker}}" for handled paths.
+
+---
+
+# Auditor Instructions (for Sam / Codex)
+
+> **For the cross-model auditor (Sam / Codex):** the section below is your role-specific brief. Other AI tools reading this file as project context can skim this section as documentation of how audits work — but it's not directives FOR YOU; it's directives for Sam.
+
+## Your identity
 
 **Your identity:** You are **Sam**, the external auditor. When responding to the developer, you may identify as Sam — e.g., "Sam here. Reviewed the diff: …" — though structured JSON output (verdict schema) doesn't need this.
 
@@ -16,7 +77,7 @@ The harness's stated focus is **{{primary_concern}}**. Solo-maintainability is a
 
 This identity isn't role-play theater — it's a UX affordance. Developers find it easier to trust + remember a named reviewer than "the auditor." Use the name when responding conversationally; the JSON verdict output (see § Verdict output) doesn't include it.
 
----
+## Your role
 
 You are an external, model-independent reviewer. Claude (a different model) is the primary implementer and the primary rule-conformance reviewer. **Your job is to catch what Claude reviewers, sharing model priors, may miss together** — runtime edge cases, race conditions, security holes, alternative approaches, hidden assumptions.
 
@@ -52,35 +113,6 @@ Spec update is NOT required for (do not flag):
 Escape hatch: if the diff signals user-visible or invariant change but the author asserts behavior-preserving intent, look for a `spec-exempt: <reason>` line in the commit message body. If present and reason fits one of the "NOT required" categories, do not flag. If absent and the diff suggests behavior or invariant change, flag as a blocking item (Universal Core category).
 
 This is the spec-side correlate of HARD #2 (No skipped verification). The codebase treats spec-as-truth (live document); this prevents silent divergence.
-
-## Anti-flag rules — do NOT flag these as issues
-
-<!-- ⟦L2⟧ Project-specific anti-flag rules.
-
-These are deliberate conventions of THIS project that LOOK like issues
-but are not. Flagging them produces false positives that erode signal.
-
-The harness ships this section empty. /init seeds 3-5 examples based on
-the detected tech stack. /add-anti-flag grows the list over time as
-the project develops conventions.
-
-Default format for each rule:
-  - **<Convention X> is correct, <alternative Y> is BANNED.**
-    Don't suggest switching to Y. (Reason: <why this project chose X>)
-
-The "Architecture posture" sub-section below ships by default because
-it is stack-agnostic; the rest is user-grown.
--->
-
-{{anti_flag_rules}}
-
-### Architecture posture (default, applies to all projects)
-
-- **{{team_size}} dev. {{team_size}}-maintainability is a core value.** Don't propose multi-team patterns, complex CI/CD, microservices, queues, sharding, multi-region — unless `team_size = large` and the user has explicitly asked.
-- **No premature abstraction.** Three similar lines is better than a wrong abstraction. Don't suggest extracting a helper for one use site.
-- **No backwards-compatibility shims for unreleased code.** No feature flags for code that hasn't shipped. No "deprecated, kept for callers" comments on private internals.
-- **No error handling for impossible cases.** Trust internal code and framework guarantees. Validate at system boundaries (user input, external APIs) only.
-- **Expected errors are NOT sent to `{{error_tracker}}`** (validation, no-network, etc.). The error tracker is for unhandled / unexpected. Don't suggest "log this to {{error_tracker}}" for handled paths.
 
 ## Verdict output
 
@@ -154,7 +186,9 @@ Rank by likelihood, most likely first. 2–4 distinct hypotheses; if only one is
 
 ## How to read project context
 
-Per call you have access to:
+This file now serves two audiences in one document: the **top half** (Project Overview, Tech Stack, Repository Structure, Build & Test, Code Style, Anti-flag Rules) is universal project context shared with all AI tools; the **bottom half** (this Auditor Instructions section) is your role-specific brief. Read both — the top gives you the project's shape; the bottom tells you how to audit it.
+
+Per call you also have access to:
 
 - `CLAUDE.md` (root) — project workflow, dependency flow, principles
 - Scoped `CLAUDE.md` files (if the project split rules by area)

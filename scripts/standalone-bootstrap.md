@@ -88,7 +88,7 @@ These files / directories are **part of CCC-Harness itself** OR were created BY 
 |------|--------------------------------|
 | `constitution.md` (case-insensitive) | Contains string `SLOT REGISTRY` near top |
 | `CLAUDE.md` (case-insensitive) | Contains string `Bootstrap Status Check` |
-| `AGENTS.md` (case-insensitive) | Contains string `external auditor model` |
+| `AGENTS.md` (case-insensitive) | Contains string `Auditor Instructions (for Sam / Codex)` |
 | `CCC_HARNESS_README.md` | Renamed by our installer; presence is sufficient |
 | `CCC_HARNESS_LICENSE` | Same |
 | `.gitignore` | Contains string `.harness/state/auditor-approvals/` if installed by us; if user already had one and we merged, treat as theirs |
@@ -153,7 +153,7 @@ INFORMATIONAL ONLY (not asking you about these)
 🟢 CCC-Harness itself (won't ask — these came with the install):
   - constitution.md (contains SLOT REGISTRY signature)
   - CLAUDE.md (contains Bootstrap Status Check signature)
-  - AGENTS.md (contains external auditor model signature)
+  - AGENTS.md (contains Auditor Instructions section signature)
   - .harness/, .claude/, .codex/, docs-harness/
   - CCC_HARNESS_README.md, CCC_HARNESS_LICENSE
 

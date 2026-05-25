@@ -79,7 +79,7 @@ User-facing menus and prompts in this driver are templates — translate when di
 - Layer 5: CCC-Harness owned files — ALWAYS filter out, surface separately in 🟢 section. In CCC mode (this driver), CCC-Harness should NOT yet be present since this driver runs BEFORE git clone. But on a re-run (e.g., user previously clicked Environment Detection then closed without finishing), the partial install may have placed our files; recognize them by name + signature:
   - `constitution.md` + signature `SLOT REGISTRY`
   - `CLAUDE.md` + signature `Bootstrap Status Check`
-  - `AGENTS.md` + signature `external auditor model`
+  - `AGENTS.md` + signature `Auditor Instructions (for Sam / Codex)`
   - `.harness/`, `.claude/`, `.codex/`, `docs-harness/` directories
   - `CCC_HARNESS_README.md`, `CCC_HARNESS_LICENSE`
 - Layer 6: User's original files backed up by us — pattern `*.pre-ccc-harness` (or `*.pre-ccc-harness.<timestamp>`). Content is the user's, filename is ours. Surface separately in 🟡 section; do NOT include in the 3-option menu set.

@@ -4,6 +4,22 @@ Step-by-step guide for installing the harness in a project. Works for greenfield
 
 > **`/init` is the fast path.** Once the harness is on disk and the bootstrap has run, `/init` asks you the questions in Phase 1 here and fills the slots automatically. This playbook is the full manual flow — useful when `/init` doesn't fit your situation, or when you want to understand what `/init` is doing under the hood.
 
+## File layout overview
+
+CCC-Harness ships TWO root-level "AI context" files plus the project constitution:
+
+| File | Read by | Contains |
+|---|---|---|
+| `AGENTS.md` | Codex / Cursor / Cline / Aider / Gemini CLI / Devin / etc. | Universal project context + auditor brief |
+| `CLAUDE.md` | Claude Code only (others ignore) | Claude-specific workflow, Bootstrap, Language Awareness |
+| `constitution.md` | Every AI agent (per § preamble) | Universal Core (5 invariants) + Project Identity + Red Lines + Slot Registry |
+
+If you use Claude Code, both `CLAUDE.md` and `AGENTS.md` are read by Claude — Claude Code natively reads `CLAUDE.md` and CCC's setup instructs it to also read `AGENTS.md` for project context.
+
+If you use Codex / Cursor / Cline / Aider, those tools read `AGENTS.md` natively. The `CLAUDE.md` file is also present but those tools ignore it.
+
+This dual setup means: any AI tool coming to the project gets the right context without manual configuration.
+
 ## Two installation paths
 
 The harness supports two install paths. Pick whichever fits your setup:

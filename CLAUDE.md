@@ -30,6 +30,10 @@ Or read `$LANG` directly. Common values:
 
 ---
 
+> **Project context** (build commands, tech stack, code style, anti-flag rules, auditor brief): see `./AGENTS.md` — that file is the AGENTS.md ecosystem-standard format, read by Codex, Cursor, Cline, Aider, and other AI tools alongside this file. Read `AGENTS.md` first for project-level context, then this file for Claude-specific workflow rules.
+
+---
+
 ## ⟦Bootstrap Status Check⟧ (perform first, every session)
 
 **Before any other work in this conversation**, check whether CCC-Harness has been configured for this project:
@@ -58,11 +62,11 @@ test -f .harness/state/install.json
 >
 > **Slot registry:** lives at the top of `./constitution.md` (single source of truth). This file uses slot names like `{{project_name}}` without re-declaring them.
 >
-> **Division of labor:** Constitution = *what this project stands for*. This file = *how to work in this project*.
+> **Division of labor:** Constitution = *what this project stands for*. `AGENTS.md` = *universal project context + auditor brief*. This file = *how to work in this project (Claude-specific)*.
 
-{{project_description}}
+**Project overview**: see `AGENTS.md § Project Overview`.
 
-**Current stage:** {{project_stage}}. **Eventual target:** {{project_scale_target}}. Build for today, don't add infrastructure you don't need yet (sharding, queue infra, partitioning, multi-region etc.), but don't take shortcuts that are painful to undo later.
+Build for today, don't add infrastructure you don't need yet (sharding, queue infra, partitioning, multi-region etc.), but don't take shortcuts that are painful to undo later.
 
 ## Scope of Claude's work
 
@@ -103,8 +107,7 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 
 ## Repo structure
 
-<!-- ⟦L1⟧ Filled by /init via AUTO(scan fs) + CONFIRM(user). Empty until init. -->
-{{repo_structure}}
+**Repo structure**: see `AGENTS.md § Repository Structure`.
 
 ## Dependency flow
 
