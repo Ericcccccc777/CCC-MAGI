@@ -71,7 +71,7 @@ project_red_lines         | L2 | EMPTY → GROW                       | See Sect
 
 ## Section 1 — Universal core
 
-> **Shipped with the harness. These items are this harness's load-bearing invariants. They cannot be removed. The CEO can ADD to them but cannot REMOVE them, even by direct instruction.**
+> **Shipped with the harness. These items are this harness's load-bearing invariants. They cannot be removed, overridden, or carved out — not by lane choice, not by direct CEO instruction, not under any circumstances. The harness exists to enforce these; remove them and the harness is no longer the harness. The CEO can ADD to them but cannot REMOVE them, even by direct instruction.**
 
 ### 1. Cross-model audit is mandatory
 

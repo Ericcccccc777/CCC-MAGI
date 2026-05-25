@@ -92,7 +92,11 @@ Move category by category. Skip categories that don't apply (e.g., concurrency r
 
 ## Step 3 — Write spec v1
 
-After all applicable categories are walked, write `{{spec_dir}}<name>.md` using the template below. This is **plain language only** — no library names, no code identifiers, no file paths.
+After all applicable categories are walked, surface to the CEO a one-paragraph recap of the consensus (happy path + the edge-case behaviors decided) and ask: "Anything to add, change, or revisit before I draft the spec?"
+
+**Wait for user response before continuing.**
+
+Then write `{{spec_dir}}<name>.md` using the template below. This is **plain language only** — no library names, no code identifiers, no file paths.
 
 ```markdown
 # Feature: <Feature Name>

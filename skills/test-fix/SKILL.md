@@ -127,6 +127,8 @@ Surface to the user:
 
 The user must see what the subagent actually did before any verdict computes.
 
+**Wait for user response before continuing.**
+
 ## Step 4 — Branch on STATUS
 
 - `STATUS: PASS` → Step 5 (auditor post-fix audit)

@@ -126,7 +126,9 @@ Determine required junior reviewers **mechanically** from path + content. The ma
 
 If the diff has no relevant paths, stop and report: "no reviewable changes detected; was implementation actually done?"
 
-Surface to the user the list of required reviewers and the reason each was selected (which path or content match triggered it). The user may not opt out of any selected reviewer — selection is mechanical.
+Surface to the user the list of required reviewers and the reason each was selected (which path or content match triggered it). The user may not opt out of any selected reviewer — selection is mechanical, but the user confirms the diff baseline and reviewer set looks right before spawn.
+
+**Wait for user response before continuing.**
 
 ## Step 3 — Verify version-sensitive APIs
 

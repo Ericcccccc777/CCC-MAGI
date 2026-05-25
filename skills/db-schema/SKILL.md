@@ -40,7 +40,7 @@ The CEO spec drives the data requirements (every persistent entity, access patte
 
 4. **Design per methodology** — follow steps 4–10 in `references/methodology.md`: new tables, indexes, access-control policies, storage, triggers, search-index sync (if applicable), PII flagging.
 
-5. **Present the proposal to the user** — tables to add, columns, indexes, access-control policies, PII comments. Wait for discussion and approval before writing files.
+5. **Present the proposal to the user** — tables to add, columns, indexes, access-control policies, PII comments. Wait for discussion and approval before writing files. **Wait for user response before continuing.**
 
 6. **On approval, write the migration file** — `{{migration_dir}}<timestamp>_$ARGUMENTS.<ext>` using the project's migration generator. Follow the file structure in `references/methodology.md` § 11.
 

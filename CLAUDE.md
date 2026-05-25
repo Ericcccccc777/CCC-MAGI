@@ -72,7 +72,7 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 
 ## Operating Principles
 
-> **HARD (non-negotiable) principles live in `./constitution.md § Section 1`** — they are not duplicated here. The principles below are **STRONG**: overridable by CEO with reasoning recorded in `## Decision history`.
+> **HARD (non-negotiable) principles live in `./constitution.md § Section 1`** — they are not duplicated here. Those Universal Core items cannot be removed, overridden, or carved out — not by lane choice, not by direct CEO instruction, not under any circumstances. The principles below are **STRONG**: overridable by CEO with reasoning recorded in `## Decision history`.
 
 ### STRONG (justify trade-offs)
 
@@ -99,7 +99,7 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 - Don't second-guess CEO intent at later stages. Paraphrase to confirm understanding (Stage 1) — never to challenge.
 - Don't ask the CEO technical questions; translate them to user-result questions, or decide internally and document the reasoning.
 - **Language mode is `{{language_mode}}`.** If `plain` (default), CEO-facing prompts strip jargon — every question and every confirmation phrased so a non-engineer can answer. If `professional`, technical terms allowed.
-- When the auditor disagrees with the CEO on a BLOCKING item, route through the escalation pattern: present both views, name the user/cost/security impact, then let the CEO decide. The CEO still has the final word (unless the disagreement is over a Universal Core item, in which case the constitution wins).
+- When Sam (the {{auditor_model}} auditor) disagrees with the CEO on a BLOCKING item, route through the escalation pattern: present both views, name the user/cost/security impact, then let the CEO decide. The CEO still has the final word (unless the disagreement is over a Universal Core item, in which case the constitution wins).
 
 ## Repo structure
 
@@ -115,7 +115,7 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 
 ## Workflow
 
-Two roles, three lanes. Roles are **CEO (you)** and **Tech Lead (Main Claude + {{auditor_model}})**; junior reviewers (plugins from `{{junior_reviewers}}`) enforce mechanical rules; the junior programmer (`test-fixer`) writes test code only. Judgment is the auditor's; rule enforcement is the subagents'; intent is yours.
+Two roles, three lanes. Roles are **CEO (you)** and **Tech Lead (Main Claude + Sam, the {{auditor_model}} auditor)**; junior reviewers (plugins from `{{junior_reviewers}}`) enforce mechanical rules; the junior programmer (`test-fixer`) writes test code only. Judgment is Sam's (the auditor's); rule enforcement is the subagents'; intent is yours.
 
 The workflow runs in two **modes** that share Stages 2–9. Stage 1 differs by mode:
 
@@ -195,7 +195,7 @@ Specs at `{{spec_dir}}<name>.md` are load-bearing only when they match reality. 
 
 **Plan files are transient.** `{{spec_dir}}<name>-plan.md` is the Stage 4 execution checklist. Once the implementation lands at Stage 8, the plan has done its job — delete it as part of the commit that ships the implementation. Stale plan files with un-ticked checkboxes mislead future-you.
 
-**Catching drift.** If you suspect a spec has drifted from reality, run `/audit-spec <name>` to produce a fresh as-built reading from code (fresh subagent author, auditor independent review), then iterate to a corrected canonical spec. The audit mechanism IS the maintenance mechanism.
+**Catching drift.** If you suspect a spec has drifted from reality, run `/audit-spec <name>` to produce a fresh as-built reading from code (fresh subagent author, Sam — the auditor — reviews independently), then iterate to a corrected canonical spec. The audit mechanism IS the maintenance mechanism.
 
 ## Tool map
 
@@ -252,7 +252,7 @@ Subagents enforce **mechanical rules only** — they do not exercise judgment, p
 **Core three (always present):**
 - **Planner** — turns CEO intent into a plain-language spec, then a per-file execution plan.
 - **Programmer** — implements per the plan.
-- **Reviewer** — judgment-based auditor (default model: {{auditor_model}}); single-engine fallback if no second model available.
+- **Reviewer (Sam)** — judgment-based auditor (default model: {{auditor_model}}), known as Sam in conversational mentions; single-engine fallback if no second model available.
 
 **Rule-enforcement plugins** (`{{junior_reviewers}}` — user picks at /init):
 <!-- ⟦L1⟧ Filled per project. Examples shipped: frontend-reviewer,

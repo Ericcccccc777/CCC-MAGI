@@ -94,7 +94,7 @@ If `context7` is unreachable or returns nothing useful for a library, do NOT gue
 
 5. **Flag any open design decisions** that surfaced while planning. Do not resolve them unilaterally — stop and ask the user.
 
-6. **Present the plan** — the user reviews and approves before auditor judgment audit (Step 7).
+6. **Present the plan** — the user reviews and approves before auditor judgment audit (Step 7). **Wait for user response before continuing.**
 
 7. **Auditor judgment audit on the plan.** Run after the user approves the file list and any open decisions are resolved:
 

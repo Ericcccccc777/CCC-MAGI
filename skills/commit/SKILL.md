@@ -129,6 +129,8 @@ Show the user:
 
 Wait for user approval before running `git commit`.
 
+**Wait for user response before continuing.**
+
 ### Step 4 — Commit
 
 On approval, run:

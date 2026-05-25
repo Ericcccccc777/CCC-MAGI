@@ -78,13 +78,23 @@ Confirm every scenario in the Edge-case section has a `Classification` line — 
 
 ## Step 3 — Mark the CEO spec FINALIZED
 
-When shape is right, plain language is clean, and every scenario is classified, replace the Status line with:
+When shape is right, plain language is clean, and every scenario is classified, surface the proposed change to the user:
 
 ```
-## Status: FINALIZED <YYYY-MM-DD>
+Proposing to replace the spec's Status line with:
+
+  ## Status: FINALIZED <YYYY-MM-DD>
+
+This marks Stage 2 closure (auditable). The auditor cross-check at Step 4 follows.
+
+Approve?
+  [a] approve
+  [b] cancel (return to drafting)
 ```
 
-Use today's date in ISO format. Write the file back. The FINALIZED line makes Stage 2 closure auditable.
+**Wait for user response before continuing.**
+
+On approval, replace the Status line with `## Status: FINALIZED <YYYY-MM-DD>` (today's date in ISO format) and write the file back. The FINALIZED line makes Stage 2 closure auditable.
 
 ## Step 4 — Auditor final cross-check
 

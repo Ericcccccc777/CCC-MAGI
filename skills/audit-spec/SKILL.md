@@ -228,6 +228,10 @@ Surface findings to the CEO, who decides whether the as-built needs corrections 
 
 ## Step 9 — Diff: intent vs as-built
 
+**Maximum 5 clarification questions.** If more than 5 ambiguities are surfaced by the audit, merge similar ones or drop low-priority ones to stay at or under 5. Asking many small questions creates user fatigue and produces lower-quality answers than asking few high-leverage ones.
+
+If the audit truly surfaces >5 distinct material ambiguities, the spec is likely too broad — propose splitting it into multiple specs before continuing.
+
 Now Main Claude reads BOTH:
 
 - `{{spec_dir}}<feature>.md` (the intent spec, Status: DRAFT (audit, intent phase))
@@ -265,6 +269,8 @@ For each delta, ask the CEO to choose one of four resolutions:
 - **b. Keep intent, modify code** — intent is right, code is wrong (Stage 3+ work)
 - **c. Both change** — neither side is right, define a new behavior (Stage 3+ work)
 - **d. Out of scope** — defer; record as known limitation
+
+**Wait for user response before continuing.**
 
 ## Step 10 — Integrate decisions into spec v2
 
