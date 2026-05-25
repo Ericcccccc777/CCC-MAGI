@@ -20,6 +20,7 @@ This directory holds:
 | `post-migration.sh` | Shell | `/db-schema` skill (manual invocation) | Backend cache refresh + typed-bindings regeneration | Only if `{{backend_db_type}}` configured |
 | `memory-recall.sh` | Shell hook | Claude/Codex `SessionStart` event | Reads `.harness/memory/observations.jsonl`, scores entries by relevance to the current git branch's feature, injects top-N entries into Claude's `additionalContext`. Silent no-op when memory file is missing or empty. | Yes if memory layer in use |
 | `memory-snapshot.sh` | Shell hook | Claude/Codex `PreCompaction` event | Injects an instruction telling Claude to summarize the session's key decisions into `.harness/memory/observations.jsonl` BEFORE context compaction proceeds. Creates the memory directory/file on first run. | Yes if memory layer in use |
+| `budget-monitor.sh` | Shell hook | Claude/Codex `UserPromptSubmit` event | Reads `transcript_path` from hook input, estimates token usage (bytes / 4), emits advisory `additionalContext` at 50% / 75% / 90% of `CCC_CONTEXT_BUDGET` (default 200000) instructing Claude to prefer cheaper models for subagents, skip Explore-type research, recommend `/compact`. Silent under 50%. Advisory-only — Claude Code doesn't expose runtime model switching to hooks. | Yes (P1.6) |
 
 ## Why no harness-detect.sh anymore
 

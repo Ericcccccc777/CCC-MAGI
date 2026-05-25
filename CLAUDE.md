@@ -273,6 +273,7 @@ Hooks are deterministic checks that run automatically.
 - **Pre-commit lint bans** — blocks commit if anti-flag patterns are found. Script: `scripts/lint-bans.sh`.
 - **Pre-commit cycles** — blocks commit if a dependency cycle is detected (enabled only if `dependency_flow` is non-empty). Script: `scripts/precommit-cycles.sh`.
 - **Post-edit format** — runs the project's formatter on edited files. Script: `scripts/format-edit.sh`.
+- **Budget pressure monitor** — `outcome/scripts/budget-monitor.sh` (UserPromptSubmit). Monitors transcript size; emits `additionalContext` at 50%/75%/90% of `CCC_CONTEXT_BUDGET` (default 200000 tokens) advising Claude to prefer cheaper models for subagents, skip Explore-type research, recommend `/compact`. Advisory-only; can't force model switch (Claude Code doesn't expose runtime model switching to hooks). Silent under 50%.
 
 ### Memory layer (`.harness/memory/`)
 

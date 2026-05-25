@@ -263,6 +263,24 @@ Optional: track progress in `.harness/audit-progress.md`:
 
 ---
 
+## Tuning
+
+### Tuning budget pressure
+
+CCC-Harness includes a budget-pressure hook (P1.6) that emits advisory warnings as the session context fills up. The threshold is 200,000 tokens by default — the Opus historical baseline.
+
+If you're using a 1M-context model variant, raise the budget so the hook doesn't fire prematurely:
+
+```bash
+export CCC_CONTEXT_BUDGET=1000000  # add to ~/.zprofile or ~/.bashrc
+```
+
+Below 50% of budget: hook is silent (zero token overhead).
+At 50-89%: advisory `additionalContext` (~200 tokens) suggesting model downgrade for subagents + narrower reads.
+At 90%+: stronger advisory + recommendation that the user run `/compact`.
+
+---
+
 ## Troubleshooting
 
 ### Q: A skill keeps invoking my old CLI's CLAUDE.md location

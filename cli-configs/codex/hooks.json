@@ -12,6 +12,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "_comment": "Mirror of claude/settings.json budget pressure monitor (P1.6). Reads transcript size, emits advisory additionalContext at 50%/75%/90% thresholds. Codex may not implement transcript_path semantics identically; if the hook can't parse stdin, it no-ops silently (harmless). Configurable via CCC_CONTEXT_BUDGET env var (default 200000).",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/budget-monitor.sh",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [
