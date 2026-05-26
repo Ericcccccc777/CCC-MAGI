@@ -1,7 +1,7 @@
 {
   "name": "create-ccc-harness",
-  "version": "0.1.0-mvp",
-  "description": "Install CCC-Harness into a project. Run via `npx create-ccc-harness@latest` in your project directory.",
+  "version": "0.8.0",
+  "description": "Install CCC-Harness into a project — generic AI development harness with cross-model audit, plain-language specs, persistent memory, EARS notation, and 3-section project constitution. Run via `npx create-ccc-harness@latest` in your project directory.",
   "type": "module",
   "bin": {
     "create-ccc-harness": "./bin.js"
@@ -11,7 +11,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "echo 'No tests yet — Round 3 MVP stub' && exit 0"
+    "test": "echo 'No tests yet' && exit 0"
   },
   "files": [
     "bin.js",
@@ -25,9 +25,16 @@
     "codex",
     "spec-driven-development",
     "cross-model-audit",
+    "constitution-driven",
+    "persistent-memory",
+    "ears-notation",
     "ccc"
   ],
   "license": "Apache-2.0",
+  "author": {
+    "name": "Eric Huang",
+    "email": "sooyoung.j@popoutmarket.com.au"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ericcccccc777/CCC-Harness.git"
@@ -36,8 +43,7 @@
   "bugs": {
     "url": "https://github.com/Ericcccccc777/CCC-Harness/issues"
   },
-  "_TODO_PRE_PUBLISH": [
-    "Bump version to 0.1.0 (drop -mvp suffix) when ready to publish to npm",
-    "Test the install flow end-to-end on a fresh clone target"
-  ]
+  "publishConfig": {
+    "access": "public"
+  }
 }
