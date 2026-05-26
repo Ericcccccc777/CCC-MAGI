@@ -188,10 +188,10 @@ industry-common examples are inline (in parentheses) to help the user pick.
 (Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
 
 Q1. Project name (default: auto-detected from manifest)
-    e.g.: startup-finder / popout-market / morning-glow-cafe
+    e.g.: acme-app / blog-site / dev-tool
 
 Q2. One-sentence description (plain language, no jargon)
-    e.g.: "WeChat-style local secondhand marketplace" / "B2B SaaS reporting tool"
+    e.g.: "team chat app with file sharing" / "B2B SaaS reporting tool"
 
 Q3. Project stage?
     a. early   — just starting, no users yet

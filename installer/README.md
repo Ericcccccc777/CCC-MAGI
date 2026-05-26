@@ -88,21 +88,21 @@ Total time: 5–15 minutes for a fresh project.
 
 **"Working tree has uncommitted changes"** — commit/stash your changes, or use `--force`.
 
-**Clone failed** — verify the harness repo URL in `bin.js` is published and reachable. (Pre-publish: the URL is a placeholder; see `_TODO_PRE_PUBLISH` in `package.json`.)
+**Clone failed** — verify network connectivity to GitHub. If you're behind a corporate proxy, ensure `git` is configured to use it. For private forks, use `--ref <branch-or-tag>` to target a specific reference your local credentials can reach.
 
 **Files already exist** — by default the installer preserves existing CCC-Harness files. Use `--force` to overwrite.
 
 ## License
 
-MIT — see `LICENSE` (same as the CCC-Harness repo itself).
+Apache-2.0 — see `LICENSE` (same as the CCC-Harness repo itself).
 
 ## Repo
 
-Source: https://github.com/<OWNER>/CCC-Harness (this `installer/` subdirectory)  
-Harness it installs: https://github.com/<OWNER>/CCC-Harness (the repo root)
+Source: https://github.com/Ericcccccc777/CCC-Harness (this `installer/` subdirectory)  
+Harness it installs: https://github.com/Ericcccccc777/CCC-Harness (the repo root)
 
-> Pre-publish decision: installer ships as a subdirectory of the harness repo, so a single `git clone` gets both. The installer's `package.json` `repository.url` reflects this. If the installer is later split into a separate npm package repo, update both this README and `package.json` consistently.
+The installer ships as a subdirectory of the harness repo, so a single `git clone` gets both. The installer's `package.json` `repository.url` reflects this.
 
 ## Version
 
-0.1.0-mvp — Round 3 MVP stub. The git clone URL in `bin.js` is currently a placeholder (`<OWNER>` literal). Update it pre-publish per the `_TODO_PRE_PUBLISH` checklist in `package.json`.
+0.8.0 — published to npm. Tracks CCC-Harness milestone versioning (v0.1 through v0.8). See the main CCC-Harness repo's release notes for what each milestone delivered.
