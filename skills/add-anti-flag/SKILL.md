@@ -7,7 +7,7 @@ argument-hint: <text describing the convention being flagged incorrectly>
 
 # /add-anti-flag
 
-Grow the L2 anti-flag rules in `AGENTS.md` over time. Each new rule tells the auditor (Sam / `{{auditor_model}}`) that a specific project-specific convention LOOKS like an issue but is deliberately how this project does it — don't flag it as a finding.
+Grow the L2 anti-flag rules in `AGENTS.md` over time. Each new rule tells the auditor (MAGI / `{{auditor_model}}`) that a specific project-specific convention LOOKS like an issue but is deliberately how this project does it — don't flag it as a finding.
 
 > *Companion to `/add-constitution-clause`. Anti-flag rules are area-level conventions; red lines are project-wide identity. Most "this is fine, stop flagging it" content belongs here, not in the constitution.*
 
@@ -161,7 +161,7 @@ Display to the user (in their locale):
 ```
 ✓ Anti-flag rule appended to AGENTS.md.
 
-The auditor (Sam / {{auditor_model}}) will skip this finding in future audits.
+The auditor (MAGI / {{auditor_model}}) will skip this finding in future audits.
 
   - <X> is correct, <Y> is BANNED.
 

@@ -1,13 +1,13 @@
 ---
 name: next
-description: Inspect the current workflow state and suggest the next CCC-Harness command. Use when the user doesn't know which skill to invoke next, or wants a sanity check on workflow progress. Reads constitution.md + spec_dir + git state; does NOT auto-invoke any other skill. Trigger when the user invokes /next, says "what's next", "where am I", "next step", "what should I do", or similar workflow-disambiguation intent.
+description: Inspect the current workflow state and suggest the next CCC-MAGI command. Use when the user doesn't know which skill to invoke next, or wants a sanity check on workflow progress. Reads constitution.md + spec_dir + git state; does NOT auto-invoke any other skill. Trigger when the user invokes /next, says "what's next", "where am I", "next step", "what should I do", or similar workflow-disambiguation intent.
 allowed-tools: Read, Bash(test:*), Bash(ls:*), Bash(git rev-parse:*), Bash(git status:*), Bash(git branch:*), Bash(grep:*), Bash(find:*)
 argument-hint: <optional feature name>
 ---
 
 # /next
 
-Inspect the current state of the project and the active feature, then **suggest** the next CCC-Harness command to run. This skill is a wayfinder — it never auto-invokes another skill, never modifies any file. Decision authority stays with the user.
+Inspect the current state of the project and the active feature, then **suggest** the next CCC-MAGI command to run. This skill is a wayfinder — it never auto-invokes another skill, never modifies any file. Decision authority stays with the user.
 
 > *Companion to the 9-stage workflow + 13 skills. The harness intentionally requires explicit confirmation at every stage; `/next` reduces the cognitive cost of figuring out which stage you're at without erasing the discipline.*
 
@@ -28,7 +28,7 @@ A single human-readable status block in the user's locale that:
 
 ---
 
-## Step 0 — Pre-flight: is CCC-Harness configured?
+## Step 0 — Pre-flight: is CCC-MAGI configured?
 
 Check `.harness/state/install.json` exists:
 
@@ -39,7 +39,7 @@ test -f .harness/state/install.json
 If it does NOT exist, print exactly:
 
 ```
-❌ CCC-Harness is not configured for this project (no .harness/state/install.json).
+❌ CCC-MAGI is not configured for this project (no .harness/state/install.json).
 
 Next: run /init to configure.
 ```
@@ -226,7 +226,7 @@ If the state was ambiguous, replace the `▶ Recommended next` line with:
 
 `/next` is complete when:
 
-- Step 0 has run (CCC-Harness presence verified, or skill halted with the install message).
+- Step 0 has run (CCC-MAGI presence verified, or skill halted with the install message).
 - Step 1 has resolved a feature name (either from `$ARGUMENTS`, auto-detection, or a user response).
 - Steps 2–4 have computed state and selected a recommendation (or flagged ambiguity).
 - Step 5 has displayed the report to the user and the skill has stopped without invoking any other command.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# memory-snapshot.sh — PreCompaction hook for CCC-Harness memory layer.
+# memory-snapshot.sh — PreCompaction hook for CCC-MAGI memory layer.
 #
 # Strategy: don't try to auto-summarize the session ourselves (that requires an
 # LLM call). Instead, inject an instruction telling Claude (whose context is

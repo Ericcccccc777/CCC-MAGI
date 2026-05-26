@@ -1,6 +1,6 @@
 ---
 name: init
-description: Project configuration. Asks L0 slot questions, fills constitution.md, scaffolds .harness/ + .claude/ + .codex/ in the user's project, and writes the install.json that marks the harness as fully configured. This skill assumes existing-harness detection has already been handled by the bootstrap; it does NOT run detection itself. Works in two modes — interactive (standalone CLI use) and CCC-driven (CCC's HarnessWizard invokes /init programmatically with pre-collected answers). Trigger when the user invokes /init, says "set up the harness", "configure CCC-Harness", "fill the L0 questions", or arrives here from the bootstrap flow (standalone-bootstrap.md or CCC's bundled Step 1 driver).
+description: Project configuration. Asks L0 slot questions, fills constitution.md, scaffolds .harness/ + .claude/ + .codex/ in the user's project, and writes the install.json that marks the harness as fully configured. This skill assumes existing-harness detection has already been handled by the bootstrap; it does NOT run detection itself. Works in two modes — interactive (standalone CLI use) and CCC-driven (CCC's HarnessWizard invokes /init programmatically with pre-collected answers). Trigger when the user invokes /init, says "set up the harness", "configure CCC-MAGI", "fill the L0 questions", or arrives here from the bootstrap flow (standalone-bootstrap.md or CCC's bundled Step 1 driver).
 argument-hint: [--ccc-driven] [--config <yaml>] [--force]
 ---
 
@@ -88,7 +88,7 @@ test -f .harness/state/install.json
 Surface to the user (display in user's locale):
 
 ```
-⚠️  Detected an existing CCC-Harness install:
+⚠️  Detected an existing CCC-MAGI install:
   - .harness/state/install.json (written <date>)
   - mode: <greenfield|brownfield>
   - version: <version>
@@ -448,7 +448,7 @@ If any check fails, report it but DO NOT auto-rollback. Tell the user the specif
 Display in user's locale:
 
 ```
-✅ CCC-Harness fully configured.
+✅ CCC-MAGI fully configured.
 
 Suggested next steps:
 

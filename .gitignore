@@ -1,4 +1,4 @@
-# CCC-Harness — files NOT to be tracked by users' git repos
+# CCC-MAGI — files NOT to be tracked by users' git repos
 #
 # This .gitignore ships with the harness and gets copied into the user's project
 # at /init time. It covers the harness's transient state files.
@@ -43,7 +43,7 @@
 old_version_harness/
 
 # Temp directories from installer
-.ccc-harness-temp/
+.ccc-magi-temp/
 
 # ─────────────────────────────────────────────────────────────────────
 # Memory layer — by default tracked (cross-session, valuable for team)

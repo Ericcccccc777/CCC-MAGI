@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# memory-recall.sh — SessionStart hook for CCC-Harness memory layer.
+# memory-recall.sh — SessionStart hook for CCC-MAGI memory layer.
 #
 # Reads .harness/memory/observations.jsonl, scores each entry for relevance to
 # the current git branch's feature, and injects the top-N entries into Claude's

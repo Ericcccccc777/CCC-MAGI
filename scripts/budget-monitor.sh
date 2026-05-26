@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# budget-monitor.sh — UserPromptSubmit hook for CCC-Harness (P1.6).
+# budget-monitor.sh — UserPromptSubmit hook for CCC-MAGI (P1.6).
 #
 # Monitors Claude Code session context size by reading the transcript file
 # Claude Code passes via stdin. At 50% / 75% / 90% of the configured budget,

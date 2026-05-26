@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-prereqs.sh — verify CCC-Harness prerequisites are installed.
+# check-prereqs.sh — verify CCC-MAGI prerequisites are installed.
 #
 # Called by install-into.sh at start. Fails fast if a hard prereq is missing,
 # warns on soft prereqs.
@@ -66,7 +66,7 @@ if ! command -v jq >/dev/null 2>&1; then
     echo "  Linux: install jq via your distro's package manager" >&2
   fi
   echo "" >&2
-  echo "  After install, re-run the CCC-Harness installer." >&2
+  echo "  After install, re-run the CCC-MAGI installer." >&2
   ERRORS=$((ERRORS + 1))
 fi
 

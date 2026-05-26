@@ -1,4 +1,4 @@
-# CCC-Harness
+# CCC-MAGI
 
 A generic, project-agnostic harness for AI-driven development workflows. Built to be installed in any codebase (greenfield or brownfield), regardless of language or framework, and to give AI coding assistants (Claude Code, Codex, etc.) the structured discipline they don't have out of the box: cross-model audit on every change, plain-language feature specs, mandatory human smoke tests, and a three-section project constitution that survives harness upgrades.
 
@@ -10,7 +10,7 @@ A generic, project-agnostic harness for AI-driven development workflows. Built t
 
 Most AI-coding harnesses (BMAD, SpecKit, OpenSpec, etc.) are excellent but ship project-coupled. You can't take BMAD's React Native conventions into a Python backend. You can't drop SpecKit's GitHub Issues integration into a project that doesn't use GitHub.
 
-CCC-Harness extracts the universal mechanics from these patterns:
+CCC-MAGI extracts the universal mechanics from these patterns:
 
 - **Cross-model audit** as a load-bearing invariant (not an optional layer)
 - **Two-file feature spec model** (CEO domain in plain language; manager domain with tech detail)
@@ -41,10 +41,10 @@ The `install-into.sh` script runs `outcome/scripts/check-prereqs.sh` at the star
 
 ```bash
 cd /path/to/your/project
-npx create-ccc-harness@latest
+npx create-ccc-magi@latest
 ```
 
-This downloads the harness, places files in canonical locations, sets script permissions, and tells you to open your AI CLI. Use `--dry-run` to preview without writing anything, or `--force` to overwrite existing CCC-Harness files.
+This downloads the harness, places files in canonical locations, sets script permissions, and tells you to open your AI CLI. Use `--dry-run` to preview without writing anything, or `--force` to overwrite existing CCC-MAGI files.
 
 Then open Claude Code:
 
@@ -60,8 +60,8 @@ If you need full control over file placement, do it explicitly (do NOT use a fla
 
 ```bash
 cd /path/to/your/project
-git clone https://github.com/<OWNER>/CCC-Harness.git .ccc-harness-temp
-cd .ccc-harness-temp
+git clone https://github.com/<OWNER>/CCC-MAGI.git .ccc-magi-temp
+cd .ccc-magi-temp
 
 # Move root files
 mv constitution.md CLAUDE.md AGENTS.md ../
@@ -79,12 +79,12 @@ mv cli-configs/codex/config.toml cli-configs/codex/hooks.json ../.codex/
 mv docs-harness ../
 mv cli-configs/README.md ../docs-harness/cli-configs-README.md   # NB: must come AFTER docs-harness move
 mv .gitignore ../   # if you don't already have one; otherwise merge manually
-mv README.md ../CCC_HARNESS_README.md
-mv LICENSE ../CCC_HARNESS_LICENSE
+mv README.md ../CCC_MAGI_README.md
+mv LICENSE ../CCC_MAGI_LICENSE
 
 # Clean up + permissions
 cd ..
-rm -rf .ccc-harness-temp
+rm -rf .ccc-magi-temp
 chmod +x .harness/scripts/*.sh
 ```
 
@@ -105,14 +105,14 @@ See `docs-harness/ccc-step1-driver-template.md` for the CCC integration spec.
 
 ### Path D — Via Anthropic Plugin Marketplace (future)
 
-CCC-Harness includes a `.claude-plugin/plugin.json` manifest. Once submitted to and accepted by the Anthropic `claude-community` marketplace (manual review process), users will be able to install via:
+CCC-MAGI includes a `.claude-plugin/plugin.json` manifest. Once submitted to and accepted by the Anthropic `claude-community` marketplace (manual review process), users will be able to install via:
 
 ```bash
 /plugin marketplace add anthropics/claude-plugins-community
-/plugin install @claude-community/ccc-harness
+/plugin install @claude-community/ccc-magi
 ```
 
-**Note**: plugin-only installation ships skills + commands; the full project-level harness (constitution.md, .harness/state/, slot rendering) still requires `install-into.sh` or `npx create-ccc-harness`. The plugin path is for users who want CCC-Harness's skills available globally across projects without per-project configuration.
+**Note**: plugin-only installation ships skills + commands; the full project-level harness (constitution.md, .harness/state/, slot rendering) still requires `install-into.sh` or `npx create-ccc-magi`. The plugin path is for users who want CCC-MAGI's skills available globally across projects without per-project configuration.
 
 Submission status: not yet submitted as of v0.7.
 
@@ -127,8 +127,8 @@ your-project/
 ├── constitution.md             ← project identity (filled with your answers to /init)
 ├── CLAUDE.md                   ← workflow rules (with Bootstrap Status Check at top)
 ├── AGENTS.md                   ← universal project context (AGENTS.md ecosystem standard) + auditor brief
-├── CCC_HARNESS_README.md       ← this file, renamed at install time (your project's README is preserved)
-├── CCC_HARNESS_LICENSE         ← MIT license, renamed (your project's LICENSE is preserved)
+├── CCC_MAGI_README.md       ← this file, renamed at install time (your project's README is preserved)
+├── CCC_MAGI_LICENSE         ← MIT license, renamed (your project's LICENSE is preserved)
 ├── .harness/
 │   ├── skills/                 ← /feature-draft, /audit-spec, /implement, /test-fix, /commit, ...
 │   ├── agents/                 ← frontend-reviewer, backend-reviewer, security-reviewer, test-fixer
@@ -140,7 +140,7 @@ your-project/
     └── cli-configs-README.md   ← documentation on the CLI integration layer
 ```
 
-The installer **renames** `README.md` → `CCC_HARNESS_README.md` and `LICENSE` → `CCC_HARNESS_LICENSE` so they don't overwrite your project's existing README / LICENSE.
+The installer **renames** `README.md` → `CCC_MAGI_README.md` and `LICENSE` → `CCC_MAGI_LICENSE` so they don't overwrite your project's existing README / LICENSE.
 
 ---
 
@@ -176,7 +176,7 @@ For the full design rationale, see `docs-harness/design-spec.md`.
 | `README.md` (this file) | Quick start, what it is |
 | `constitution.md` | Project identity (filled by `/init`) + 5 universal core items |
 | `CLAUDE.md` | Workflow rules, lane definitions, doc-in-sync, tool map |
-| `AGENTS.md` | Universal project context (AGENTS.md ecosystem standard — read by Codex, Cursor, Cline, Aider, etc.) + auditor (Sam / Codex) role contract + anti-flag rules |
+| `AGENTS.md` | Universal project context (AGENTS.md ecosystem standard — read by Codex, Cursor, Cline, Aider, etc.) + auditor (MAGI / Codex) role contract + anti-flag rules |
 | `docs-harness/README.md` | Index of the framework's own design docs |
 | `docs-harness/design-spec.md` | The architectural rationale (why two-file model, why three lanes, etc.) |
 | `docs-harness/adoption-playbook.md` | Step-by-step install guide (greenfield + brownfield + standalone + CCC paths) |

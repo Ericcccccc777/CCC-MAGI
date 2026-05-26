@@ -1,15 +1,15 @@
 {
-  "name": "ccc-harness",
+  "name": "ccc-magi",
   "version": "0.8.0",
   "description": "Generic AI development harness with cross-model audit, plain-language spec, persistent memory, EARS notation, three-section constitution, and locale-aware UX. Drop-in for any codebase (greenfield or brownfield).",
   "author": {
     "name": "Eric Cheng",
     "email": "Haizhou0807@gmail.com"
   },
-  "homepage": "https://github.com/Ericcccccc777/CCC-Harness",
+  "homepage": "https://github.com/Ericcccccc777/CCC-MAGI",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Ericcccccc777/CCC-Harness.git"
+    "url": "https://github.com/Ericcccccc777/CCC-MAGI.git"
   },
   "license": "Apache-2.0",
   "keywords": [
@@ -25,5 +25,5 @@
   "engines": {
     "claude-code": ">=2.0.0"
   },
-  "_note": "This manifest exists so CCC-Harness can be submitted to the Anthropic claude-community marketplace. The full CCC-Harness install (constitution.md, .harness/state/, slot rendering) requires the install-into.sh or npx create-ccc-harness path — plugin-only install would ship just the skills + shims, not the project-level harness."
+  "_note": "This manifest exists so CCC-MAGI can be submitted to the Anthropic claude-community marketplace. The full CCC-MAGI install (constitution.md, .harness/state/, slot rendering) requires the install-into.sh or npx create-ccc-magi path — plugin-only install would ship just the skills + shims, not the project-level harness."
 }

@@ -2,7 +2,7 @@
 
 ## ⟦Language Awareness⟧ (perform once at session start, before anything else)
 
-CCC-Harness's internal files (this CLAUDE.md, skills, agents, scripts, drivers, prompts) are written in English by design — it's stable, token-efficient, and what AI models follow most reliably. But when you talk to the **human user**, talk in their language.
+CCC-MAGI's internal files (this CLAUDE.md, skills, agents, scripts, drivers, prompts) are written in English by design — it's stable, token-efficient, and what AI models follow most reliably. But when you talk to the **human user**, talk in their language.
 
 **At the start of each session, detect the user's OS locale:**
 
@@ -36,20 +36,20 @@ Or read `$LANG` directly. Common values:
 
 ## ⟦Bootstrap Status Check⟧ (perform first, every session)
 
-**Before any other work in this conversation**, check whether CCC-Harness has been configured for this project:
+**Before any other work in this conversation**, check whether CCC-MAGI has been configured for this project:
 
 ```bash
 test -f .harness/state/install.json
 ```
 
-**If the file DOES NOT exist** → CCC-Harness has NOT been configured for this project yet.
+**If the file DOES NOT exist** → CCC-MAGI has NOT been configured for this project yet.
 
 - Read `.harness/scripts/standalone-bootstrap.md` and run that flow first, before any user request.
-- The bootstrap flow detects any existing harness configs in the project, presents a 3-option menu to the user, and either installs CCC-Harness (options 1/2) or yields control back to normal Claude Code workflow for this session (option 3).
-- If the user previously declined CCC-Harness **in this same conversation**, you may proceed with normal Claude Code workflow without invoking harness skills. Treat the user's decline as binding for the rest of this session; do NOT re-prompt within the same conversation.
+- The bootstrap flow detects any existing harness configs in the project, presents a 3-option menu to the user, and either installs CCC-MAGI (options 1/2) or yields control back to normal Claude Code workflow for this session (option 3).
+- If the user previously declined CCC-MAGI **in this same conversation**, you may proceed with normal Claude Code workflow without invoking harness skills. Treat the user's decline as binding for the rest of this session; do NOT re-prompt within the same conversation.
 - Re-prompt at the start of the **next** session (because `install.json` still won't exist).
 
-**If the file DOES exist** → CCC-Harness is fully configured. Proceed with normal harness workflow:
+**If the file DOES exist** → CCC-MAGI is fully configured. Proceed with normal harness workflow:
 
 - All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, plus `/init` for re-configuration, `/constitution-edit` for editing project identity, `/add-constitution-clause`, `/add-anti-flag`).
 - This file (CLAUDE.md) and `constitution.md` carry the operating rules.
@@ -103,7 +103,7 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 - Don't second-guess CEO intent at later stages. Paraphrase to confirm understanding (Stage 1) — never to challenge.
 - Don't ask the CEO technical questions; translate them to user-result questions, or decide internally and document the reasoning.
 - **Language mode is `{{language_mode}}`.** If `plain` (default), CEO-facing prompts strip jargon — every question and every confirmation phrased so a non-engineer can answer. If `professional`, technical terms allowed.
-- When Sam (the {{auditor_model}} auditor) disagrees with the CEO on a BLOCKING item, route through the escalation pattern: present both views, name the user/cost/security impact, then let the CEO decide. The CEO still has the final word (unless the disagreement is over a Universal Core item, in which case the constitution wins).
+- When MAGI (the {{auditor_model}} auditor) disagrees with the CEO on a BLOCKING item, route through the escalation pattern: present both views, name the user/cost/security impact, then let the CEO decide. The CEO still has the final word (unless the disagreement is over a Universal Core item, in which case the constitution wins).
 
 ## Repo structure
 
@@ -118,7 +118,7 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 
 ## Workflow
 
-Two roles, three lanes. Roles are **CEO (you)** and **Tech Lead (Main Claude + Sam, the {{auditor_model}} auditor)**; junior reviewers (plugins from `{{junior_reviewers}}`) enforce mechanical rules; the junior programmer (`test-fixer`) writes test code only. Judgment is Sam's (the auditor's); rule enforcement is the subagents'; intent is yours.
+Two roles, three lanes. Roles are **CEO (you)** and **Tech Lead (Main Claude + MAGI, the {{auditor_model}} auditor)**; junior reviewers (plugins from `{{junior_reviewers}}`) enforce mechanical rules; the junior programmer (`test-fixer`) writes test code only. Judgment is MAGI's (the auditor's); rule enforcement is the subagents'; intent is yours.
 
 The workflow runs in two **modes** that share Stages 2–9. Stage 1 differs by mode:
 
@@ -234,7 +234,7 @@ Specs at `{{spec_dir}}<name>.md` are load-bearing only when they match reality. 
 
 **Plan files are transient.** `{{spec_dir}}<name>-plan.md` is the Stage 4 execution checklist. Once the implementation lands at Stage 8, the plan has done its job — delete it as part of the commit that ships the implementation. Stale plan files with un-ticked checkboxes mislead future-you.
 
-**Catching drift.** If you suspect a spec has drifted from reality, run `/audit-spec <name>` to produce a fresh as-built reading from code (fresh subagent author, Sam — the auditor — reviews independently), then iterate to a corrected canonical spec. The audit mechanism IS the maintenance mechanism.
+**Catching drift.** If you suspect a spec has drifted from reality, run `/audit-spec <name>` to produce a fresh as-built reading from code (fresh subagent author, MAGI — the auditor — reviews independently), then iterate to a corrected canonical spec. The audit mechanism IS the maintenance mechanism.
 
 ## Tool map
 
@@ -292,7 +292,7 @@ Subagents enforce **mechanical rules only** — they do not exercise judgment, p
 **Core three (always present):**
 - **Planner** — turns CEO intent into a plain-language spec, then a per-file execution plan.
 - **Programmer** — implements per the plan.
-- **Reviewer (Sam)** — judgment-based auditor (default model: {{auditor_model}}), known as Sam in conversational mentions; single-engine fallback if no second model available.
+- **Reviewer (MAGI)** — judgment-based auditor (default model: {{auditor_model}}), known as MAGI in conversational mentions; single-engine fallback if no second model available.
 
 **Rule-enforcement plugins** (`{{junior_reviewers}}` — user picks at /init):
 <!-- ⟦L1⟧ Filled per project. Examples shipped: frontend-reviewer,

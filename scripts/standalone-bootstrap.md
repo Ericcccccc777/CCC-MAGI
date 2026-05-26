@@ -1,6 +1,6 @@
 # Standalone Bootstrap Driver
 
-**You are an AI assistant reading this file because the host project has CCC-Harness files present but `.harness/state/install.json` does not yet exist.** This means the user cloned CCC-Harness from GitHub but has not yet run the configuration flow.
+**You are an AI assistant reading this file because the host project has CCC-MAGI files present but `.harness/state/install.json` does not yet exist.** This means the user cloned CCC-MAGI from GitHub but has not yet run the configuration flow.
 
 Your task: walk the user through the bootstrap. Follow the steps **literally** — do not improvise, do not skip steps, do not change the menu options.
 
@@ -70,7 +70,7 @@ For each of these, if the directory exists, list every `.md` file inside (one le
 Any `*.md` file at project root that is NOT one of the obviously-unrelated names below:
 
 - Exclude: `README.md`, `LICENSE.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `NOTES.md` (if it's just personal notes)
-- Exclude ALSO: any file in the "Layer 5 — CCC-Harness owned" list below (don't double-flag)
+- Exclude ALSO: any file in the "Layer 5 — CCC-MAGI owned" list below (don't double-flag)
 
 For each remaining candidate, **read the first 80 lines** and judge:
 
@@ -78,9 +78,9 @@ For each remaining candidate, **read the first 80 lines** and judge:
 - Is it structured like instructions (numbered steps, sections like "When invoked", "Authoritative sources", "Workflow")?
 - Or is it just narrative prose / documentation / notes?
 
-### Layer 5 — CCC-Harness owned (NEVER flag these as "harness to handle")
+### Layer 5 — CCC-MAGI owned (NEVER flag these as "harness to handle")
 
-These files / directories are **part of CCC-Harness itself** OR were created BY CCC-Harness. They are NOT user harness configs. Always filter them out of the "candidate" list and surface them separately in a 🟢 informational section.
+These files / directories are **part of CCC-MAGI itself** OR were created BY CCC-MAGI. They are NOT user harness configs. Always filter them out of the "candidate" list and surface them separately in a 🟢 informational section.
 
 **Files we install** (identifiable by name + signature):
 
@@ -88,9 +88,9 @@ These files / directories are **part of CCC-Harness itself** OR were created BY 
 |------|--------------------------------|
 | `constitution.md` (case-insensitive) | Contains string `SLOT REGISTRY` near top |
 | `CLAUDE.md` (case-insensitive) | Contains string `Bootstrap Status Check` |
-| `AGENTS.md` (case-insensitive) | Contains string `Auditor Instructions (for Sam / Codex)` |
-| `CCC_HARNESS_README.md` | Renamed by our installer; presence is sufficient |
-| `CCC_HARNESS_LICENSE` | Same |
+| `AGENTS.md` (case-insensitive) | Contains string `Auditor Instructions (for MAGI / Codex)` |
+| `CCC_MAGI_README.md` | Renamed by our installer; presence is sufficient |
+| `CCC_MAGI_LICENSE` | Same |
 | `.gitignore` | Contains string `.harness/state/auditor-approvals/` if installed by us; if user already had one and we merged, treat as theirs |
 
 **Directories we install** (presence alone confirms ours):
@@ -106,14 +106,14 @@ These files / directories are **part of CCC-Harness itself** OR were created BY 
 
 | Pattern | What it is |
 |---------|------------|
-| `*.pre-ccc-harness` | A backup of a USER file that existed before we installed. The CONTENT is the user's; the FILENAME is ours. Surface these in the 🟡 "your original files (backed up)" section instead of either harness category. |
-| `*.pre-ccc-harness.<timestamp>` | Same, but a timestamped variant created when a primary backup name was already taken (e.g., re-install). |
+| `*.pre-ccc-magi` | A backup of a USER file that existed before we installed. The CONTENT is the user's; the FILENAME is ours. Surface these in the 🟡 "your original files (backed up)" section instead of either harness category. |
+| `*.pre-ccc-magi.<timestamp>` | Same, but a timestamped variant created when a primary backup name was already taken (e.g., re-install). |
 
 **Verification step**: for any file matching a name in the table above, if its signature is also present, mark it 🟢 (ours, do not handle). If a file has the name but signature does NOT match (e.g., user happened to have their own file called `constitution.md` with different content), it falls back to one of the other layers (probably Layer 4 — suspicious markdown).
 
 ### Layer 6 — User's original files backed up by us
 
-Distinct from Layers 1-4 (other harnesses) and Layer 5 (CCC-Harness self): any file matching `*.pre-ccc-harness` (or `*.pre-ccc-harness.<timestamp>`) is the USER's original file content, preserved automatically when we installed our load-bearing files. These should be surfaced to the user in a dedicated 🟡 section so they understand what those files are (and can decide whether to view / restore / delete them).
+Distinct from Layers 1-4 (other harnesses) and Layer 5 (CCC-MAGI self): any file matching `*.pre-ccc-magi` (or `*.pre-ccc-magi.<timestamp>`) is the USER's original file content, preserved automatically when we installed our load-bearing files. These should be surfaced to the user in a dedicated 🟡 section so they understand what those files are (and can decide whether to view / restore / delete them).
 
 Do NOT include these in the 3-option menu set (Step C). The 3-option menu is for "what to do with the user's prior harness configs"; the backups are already preserved and need no archive/delete action. If the user later wants to restore one, that's a manual step.
 
@@ -150,20 +150,20 @@ INFORMATIONAL ONLY (not asking you about these)
 ✅ Confirmed unrelated (won't ask):
   - README.md, LICENSE.md (standard project docs)
 
-🟢 CCC-Harness itself (won't ask — these came with the install):
+🟢 CCC-MAGI itself (won't ask — these came with the install):
   - constitution.md (contains SLOT REGISTRY signature)
   - CLAUDE.md (contains Bootstrap Status Check signature)
   - AGENTS.md (contains Auditor Instructions section signature)
   - .harness/, .claude/, .codex/, docs-harness/
-  - CCC_HARNESS_README.md, CCC_HARNESS_LICENSE
+  - CCC_MAGI_README.md, CCC_MAGI_LICENSE
 
 🟡 Backups of your original files (won't ask — your content was auto-backed-up):
-  - CLAUDE.md.pre-ccc-harness  ← contains your original claude.md content
-  - (any other .pre-ccc-harness files)
+  - CLAUDE.md.pre-ccc-magi  ← contains your original claude.md content
+  - (any other .pre-ccc-magi files)
   
-  Note: when CCC-Harness was installed, we overwrote your CLAUDE.md / AGENTS.md / 
-  constitution.md files and auto-backed-up your originals with the .pre-ccc-harness 
-  suffix. To view your original content: `cat CLAUDE.md.pre-ccc-harness`. 
+  Note: when CCC-MAGI was installed, we overwrote your CLAUDE.md / AGENTS.md / 
+  constitution.md files and auto-backed-up your originals with the .pre-ccc-magi 
+  suffix. To view your original content: `cat CLAUDE.md.pre-ccc-magi`. 
   To remove the backups when you no longer need them: `rm` manually. 
   Bootstrap will NOT touch these files.
 
@@ -203,7 +203,7 @@ Acknowledge this to the user before jumping (display in user's locale):
 
 ```
 You confirmed there are no existing harness configs to handle.
-Proceeding directly to Step 2 — CCC-Harness configuration.
+Proceeding directly to Step 2 — CCC-MAGI configuration.
 ```
 
 Then proceed to Step E.
@@ -220,17 +220,17 @@ How would you like to handle these harness files?
   [1] Take over + archive (recommended ★)
       → Create old_version_harness/ at project root
       → Move the confirmed files/dirs into it
-      → Then start CCC-Harness configuration (/init flow)
+      → Then start CCC-MAGI configuration (/init flow)
       → Lowest risk: your old files are preserved and reviewable anytime
 
   [2] Take over + delete
       → Permanently delete the confirmed files/dirs
-      → CCC-Harness takes over the project
+      → CCC-MAGI takes over the project
       → Warning: deletion is not recoverable
 
-  [3] Skip CCC-Harness this session
-      → For this conversation only, treat CCC-Harness as not present and continue with the user's request
-      → On the next CLI session, this prompt will appear again (until the user picks 1/2 or removes CCC-Harness files manually)
+  [3] Skip CCC-MAGI this session
+      → For this conversation only, treat CCC-MAGI as not present and continue with the user's request
+      → On the next CLI session, this prompt will appear again (until the user picks 1/2 or removes CCC-MAGI files manually)
 
 Please enter 1 / 2 / 3:
 ```
@@ -281,12 +281,12 @@ Wait for user response.
 
 1. Acknowledge (display in user's locale):
    ```
-   OK, this session won't use CCC-Harness.
+   OK, this session won't use CCC-MAGI.
    I'll proceed with your requests normally.
    
-   Note: the CCC-Harness files are still in your project (.harness/, constitution.md, etc.).
+   Note: the CCC-MAGI files are still in your project (.harness/, constitution.md, etc.).
    On your next CLI session, I'll ask again whether you want to install.
-   To stop being prompted, manually delete the CCC-Harness files from your project.
+   To stop being prompted, manually delete the CCC-MAGI files from your project.
    ```
 2. **Stop running this bootstrap driver.**
 3. Continue the conversation normally — respond to whatever the user actually wants to do.
@@ -300,15 +300,15 @@ Repeat the 3-option menu. Do not improvise variants.
 
 ---
 
-## Step E — Trigger CCC-Harness configuration
+## Step E — Trigger CCC-MAGI configuration
 
 **Reached if**: user picked 1 or 2 in Step C, OR confirmed-set was empty (Step B special case).
 
-The CCC-Harness files are now ready, but project-specific values (L0 slots in `constitution.md`) need to be filled. This is what `/init` skill does. Invoke it:
+The CCC-MAGI files are now ready, but project-specific values (L0 slots in `constitution.md`) need to be filled. This is what `/init` skill does. Invoke it:
 
 1. Tell the user (display in user's locale; pick the line matching the path that led here):
    ```
-   ✓ Step 1 complete (environment cleaned + CCC-Harness in place).     ← if came from Step C option 1/2
+   ✓ Step 1 complete (environment cleaned + CCC-MAGI in place).     ← if came from Step C option 1/2
    ✓ Environment is clean — proceeding directly to configuration.       ← if came from Step B empty-set
    
    Next, Step 2: fill in your project's identity (~16 questions, 5-10 minutes).
@@ -316,7 +316,7 @@ The CCC-Harness files are now ready, but project-specific values (L0 slots in `c
    Start now? 
      yes / Y → invoke /init now
      no  / N → skip this session; bootstrap will re-prompt next session
-     skip   → decline CCC-Harness entirely (treat as Step C option 3)
+     skip   → decline CCC-MAGI entirely (treat as Step C option 3)
    ```
 2. **If user says yes**: invoke the `/init` skill (`.harness/skills/init/SKILL.md`). The /init skill handles L0 question flow, slot rendering, validation, and writes `install.json`.
 3. **If user says no**: do nothing further this session. Surface this explicit notice (display in user's locale):
@@ -329,17 +329,17 @@ The CCC-Harness files are now ready, but project-specific values (L0 slots in `c
    To avoid being prompted next time, you can:
      a. Answer yes now to complete Step 2
      b. Run /init manually later to complete configuration (writes install.json)
-     c. If you've decided against CCC-Harness, manually delete .harness/ and constitution.md, etc.
+     c. If you've decided against CCC-MAGI, manually delete .harness/ and constitution.md, etc.
    ```
    The user keeps a clean partial-install state; per CCC_harness_flow.md decision 6 (Restart policy) this is expected and benign — bootstrap re-fires next session.
-4. **If user says skip**: treat exactly like Step C option 3 — decline CCC-Harness for this session. This branch is most relevant when Step E was reached via Step B's empty-confirmed-set jump (the user never saw the Step C menu and now wants to back out). Acknowledge (display in user's locale):
+4. **If user says skip**: treat exactly like Step C option 3 — decline CCC-MAGI for this session. This branch is most relevant when Step E was reached via Step B's empty-confirmed-set jump (the user never saw the Step C menu and now wants to back out). Acknowledge (display in user's locale):
    ```
-   OK, this session won't use CCC-Harness.
+   OK, this session won't use CCC-MAGI.
    I'll proceed with your requests normally.
    
-   Note: the CCC-Harness files are still in your project (.harness/, constitution.md, etc.).
+   Note: the CCC-MAGI files are still in your project (.harness/, constitution.md, etc.).
    On your next CLI session, I'll ask again whether you want to install.
-   To stop being prompted, manually delete the CCC-Harness files from your project.
+   To stop being prompted, manually delete the CCC-MAGI files from your project.
    ```
    - **Stop running this bootstrap driver.**
    - Continue the conversation normally — respond to whatever the user actually wants to do.

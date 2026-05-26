@@ -4,7 +4,7 @@ This directory holds:
 
 1. **Shell-script templates** that get copied into the user's project at `/init` time (target: `.harness/scripts/`). Each script is a **starter** — the user customizes the parts marked `# CUSTOMIZE:` based on their stack.
 
-2. **Standalone bootstrap driver** (`standalone-bootstrap.md`) — an AI-instruction file that runs when the user has cloned CCC-Harness from GitHub directly (no CCC), the first time they open a CLI in the project.
+2. **Standalone bootstrap driver** (`standalone-bootstrap.md`) — an AI-instruction file that runs when the user has cloned CCC-MAGI from GitHub directly (no CCC), the first time they open a CLI in the project.
 
 ## File inventory
 

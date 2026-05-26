@@ -1,6 +1,6 @@
 # Memory Layer (`.harness/memory/`)
 
-Cross-session persistence for CCC-Harness. File-based, hooks-driven, zero external dependencies, zero network calls.
+Cross-session persistence for CCC-MAGI. File-based, hooks-driven, zero external dependencies, zero network calls.
 
 ## What it does
 
@@ -119,7 +119,7 @@ Explicit non-features so you can calibrate expectations:
 
 ## Comparison to mem0 / claude-mem
 
-| Property | mem0 | claude-mem | CCC-Harness memory |
+| Property | mem0 | claude-mem | CCC-MAGI memory |
 |----------|------|------------|---------------------|
 | Storage | Cloud (managed) or self-hosted vector DB | Local SQLite + embeddings | Plain files (`.jsonl` + `.md`) |
 | Retrieval | Vector similarity | Hybrid (keyword + vector) | Feature + recency scoring |
@@ -130,6 +130,6 @@ Explicit non-features so you can calibrate expectations:
 | Schema control | Library-defined | Library-defined | User-readable JSONL — grep-able, hand-editable |
 | Lock-in | Yes | Partial | None (just text files) |
 
-See `harness-2026-deep-comparison.md` for the longer-form comparison of CCC-Harness vs. mem0 / claude-mem / Cursor Rules / etc.
+See `harness-2026-deep-comparison.md` for the longer-form comparison of CCC-MAGI vs. mem0 / claude-mem / Cursor Rules / etc.
 
 The design tradeoff: we accept weaker retrieval (no semantic search) to keep the layer dependency-free, security-trivial, and version-controllable.

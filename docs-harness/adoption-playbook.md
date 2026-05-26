@@ -6,7 +6,7 @@ Step-by-step guide for installing the harness in a project. Works for greenfield
 
 ## File layout overview
 
-CCC-Harness ships TWO root-level "AI context" files plus the project constitution:
+CCC-MAGI ships TWO root-level "AI context" files plus the project constitution:
 
 | File | Read by | Contains |
 |---|---|---|
@@ -33,17 +33,17 @@ If you use **CCC (Claude Code Controller)** as your desktop session manager:
 3. In the HarnessWizard window, click "Environment Detection".
 4. Confirm token usage warning → CCC opens a terminal at your session path with your AI CLI running.
 5. The AI walks you through:
-   - **Step 1** (Bootstrap): detect existing harness configs, present 3-option menu, archive/delete other configs, **pull CCC-Harness from GitHub** to your project.
+   - **Step 1** (Bootstrap): detect existing harness configs, present 3-option menu, archive/delete other configs, **pull CCC-MAGI from GitHub** to your project.
    - **Step 2** (`/init`): fill 16 L0 questions, write `.harness/state/install.json`.
 6. CCC HarnessWizard shows ✅ Step 1 / ✅ Step 2 / ✅ All configuration complete.
 
-CCC users do NOT need to manually clone CCC-Harness — Step 1 pulls it for you. See `CCC_harness_flow.md` (in this repo) for the full spec.
+CCC users do NOT need to manually clone CCC-MAGI — Step 1 pulls it for you. See `CCC_harness_flow.md` (in this repo) for the full spec.
 
 ### Path B — Standalone (no CCC)
 
 If you DON'T use CCC, or want full manual control:
 
-1. `git clone <CCC-Harness-repo> .ccc-harness-temp` in your project (you do this yourself).
+1. `git clone <CCC-MAGI-repo> .ccc-magi-temp` in your project (you do this yourself).
 2. Move contents into the right locations (see Step 1.1 below for the file mapping).
 3. Open your AI CLI (`claude` or `codex`) at the project root.
 4. The CLI reads `CLAUDE.md`, sees the **Bootstrap Status Check** block, sees `.harness/state/install.json` doesn't exist → AI reads `.harness/scripts/standalone-bootstrap.md` and walks you through:
@@ -267,19 +267,19 @@ Optional: track progress in `.harness/audit-progress.md`:
 
 ### `--force-load-bearing` (rare; explicit reset)
 
-LOAD_BEARING files (`CLAUDE.md`, `AGENTS.md`, `constitution.md`) carry user-rendered slot values from `/init` and accumulated `/constitution-edit` Section 3 red lines. The default content-hash detection in `install-into.sh` / `npx create-ccc-harness` preserves these whenever the file's current hash differs from the last-shipped hash (treated as "user-modified").
+LOAD_BEARING files (`CLAUDE.md`, `AGENTS.md`, `constitution.md`) carry user-rendered slot values from `/init` and accumulated `/constitution-edit` Section 3 red lines. The default content-hash detection in `install-into.sh` / `npx create-ccc-magi` preserves these whenever the file's current hash differs from the last-shipped hash (treated as "user-modified").
 
-Pass `--force-load-bearing` only when you explicitly want to discard local LOAD_BEARING modifications and reinstall the shipped version. The original file is backed up with the `.pre-ccc-harness` suffix before being overwritten. Use cases:
+Pass `--force-load-bearing` only when you explicitly want to discard local LOAD_BEARING modifications and reinstall the shipped version. The original file is backed up with the `.pre-ccc-magi` suffix before being overwritten. Use cases:
 
 - You're starting over after a botched `/init` run
 - Your `constitution.md` got corrupted by an editor mishap
-- You want to compare your customizations against the latest shipped template (look at the `.pre-ccc-harness` backup afterward)
+- You want to compare your customizations against the latest shipped template (look at the `.pre-ccc-magi` backup afterward)
 
 `--force` (existing flag) implies `--force-load-bearing`. For day-to-day re-installs (delivering harness updates), do NOT pass either flag — the content-hash registry at `.harness/state/shipped-hashes.json` auto-updates files you haven't modified while preserving everything else.
 
 ### Tuning budget pressure
 
-CCC-Harness includes a budget-pressure hook (P1.6) that emits advisory warnings as the session context fills up. The threshold is 200,000 tokens by default — the Opus historical baseline.
+CCC-MAGI includes a budget-pressure hook (P1.6) that emits advisory warnings as the session context fills up. The threshold is 200,000 tokens by default — the Opus historical baseline.
 
 If you're using a 1M-context model variant, raise the budget so the hook doesn't fire prematurely:
 
@@ -354,20 +354,20 @@ The full Phase 0 → 2 install is typically a single afternoon for a solo develo
 
 ## Submitting to Anthropic Plugin Marketplace
 
-CCC-Harness ships a plugin manifest at `.claude-plugin/plugin.json` so it can be submitted to Anthropic's `claude-community` marketplace.
+CCC-MAGI ships a plugin manifest at `.claude-plugin/plugin.json` so it can be submitted to Anthropic's `claude-community` marketplace.
 
 ### Process (manual, external)
 
 1. **Verify the manifest is current**: bump `version` in `outcome/.claude-plugin/plugin.json` to match the new release
 2. **Tag the release**: `git tag v0.X.Y && git push --tags`
 3. **Fork** `anthropics/claude-plugins-community` on GitHub
-4. **Add CCC-Harness** to their `marketplace.json` (or whatever submission format they use at submission time — check current docs)
+4. **Add CCC-MAGI** to their `marketplace.json` (or whatever submission format they use at submission time — check current docs)
 5. **Open a PR** with the addition
 6. **Wait for Anthropic review** (typically 1-2 weeks per their docs)
-7. **Once merged**, users can install via `/plugin install @claude-community/ccc-harness`
+7. **Once merged**, users can install via `/plugin install @claude-community/ccc-magi`
 
 ### Trade-off note
 
 Plugin-only installation gives users the skills (e.g., `/feature-draft`, `/audit-spec`) globally — but NOT the constitution.md, slot registry, or `.harness/state/install.json` (those require per-project installation).
 
-For full CCC-Harness experience: `install-into.sh` or `npx create-ccc-harness` remains the recommended primary path. The plugin marketplace is the "I want the skills, not the discipline" lightweight option.
+For full CCC-MAGI experience: `install-into.sh` or `npx create-ccc-magi` remains the recommended primary path. The plugin marketplace is the "I want the skills, not the discipline" lightweight option.
