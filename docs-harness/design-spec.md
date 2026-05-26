@@ -156,6 +156,10 @@ The CEO spec is **banned from these categorical content types** (translate to be
 
 When `/audit-spec` produces deltas (code-vs-spec reconciliation), the ledger goes in `{{implementation_dir}}<name>-implementation.md`, never in the CEO spec. By definition the ledger tracks how code matches spec — that is manager-domain content.
 
+### 3.4 EARS notation for manager-domain functional requirements
+
+**Manager-domain functional requirements use EARS notation** — see `CLAUDE.md § Two-file feature spec model > EARS notation` for the full guide. CEO-domain files stay plain prose; EARS is manager-only.
+
 ---
 
 ## 4. The 9-stage workflow

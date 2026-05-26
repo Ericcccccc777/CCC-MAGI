@@ -58,6 +58,10 @@ If shape is wrong, halt and surface the issue:
 - CEO spec contains an `#### Automated test ID` block or any `scenario-X-Y — <path>` test-mapping line → halt; the test-ID index is manager-domain and belongs in the implementation file's "Scenario → automated test map" section
 - Implementation file missing for a complex feature → recommend producing one (not blocking; CEO can override)
 
+**Manager-file functional requirements**: When the manager file has a "Functional requirements" section, ensure each requirement uses EARS notation per `CLAUDE.md § Two-file feature spec model > EARS notation`. The primary pattern is `WHEN [trigger] THE SYSTEM SHALL [response]`. Other variants (Ubiquitous / Unwanted / State-driven / Optional) are available — see CLAUDE.md for the full table.
+
+If existing functional requirements in the file are in prose form, do NOT rewrite them aggressively. Surface to the user: "The manager file has N prose-style functional requirements. Convert them to EARS now (recommended for testability), or leave as-is (acceptable for legacy)?" Wait for user response before continuing.
+
 ## Step 2 — Plain-language and classification check
 
 Skim the CEO spec for tech-term creep. Categorical bans per Constitution + CLAUDE.md "Two-file feature spec model":

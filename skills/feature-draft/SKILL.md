@@ -222,6 +222,10 @@ If the feature has tech detail worth recording (routing, components, state, acce
 <code-location map per {{feature_folder_pattern}}>
 ```
 
+**For complex features with a manager-domain file**: When drafting the initial `<name>-implementation.md`, write functional requirements in **EARS notation** from the start. See `CLAUDE.md § Two-file feature spec model > EARS notation` for the format and variants.
+
+Don't retroactively EARS-ify simple features (those without a manager file) — EARS is for the manager domain only, and simple features may not need one.
+
 Surface both files to the CEO before invoking the auditor.
 
 ## Step 4 — Auditor external review

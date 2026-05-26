@@ -33,6 +33,13 @@ The comment ties the test to a scenario ID in `{{spec_dir}}<feature>.md`. Tests 
 
 When tests pass and the auditor advances (PASS, CONCERNS, or WAIVED), the resolved test bindings (file path + test name) are recorded in the implementation file's "Scenario → automated test map" section, NOT in the CEO spec.
 
+**EARS-formatted requirements**: When the manager file has EARS-formatted requirements (`WHEN X THE SYSTEM SHALL Y`), each SHALL clause maps directly to a test assertion. The mapping is:
+- The `WHEN` clause → the test's `Arrange` step (setup the trigger condition)
+- The `THE SYSTEM SHALL` clause → the test's `Assert` step (verify the response)
+- Verify the timing constraint if present (e.g., "within 500ms" → assert response time < 500ms)
+
+For prose-style requirements (pre-EARS or simple features), interpret naturally — no special handling.
+
 ## Authoritative sources
 
 1. The project's testing convention (`{{test_framework}}`, assertion rules)

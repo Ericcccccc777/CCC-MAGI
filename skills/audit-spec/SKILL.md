@@ -286,6 +286,10 @@ Update Status to `FINALIZED <YYYY-MM-DD>` once the integration is done.
 
 If the feature warrants tech detail (routing, components, access-control policies, library decisions, i18n keys), produce `{{implementation_dir}}<feature>-implementation.md` based on the as-built reading. Same shape as new-feature mode. Skip for simple features.
 
+**EARS notation in manager file**: When auditing a manager-domain `<name>-implementation.md` file, recognize EARS-formatted requirements (`WHEN [trigger] THE SYSTEM SHALL [response]`) as functional-requirement statements. Surface drift between EARS requirements and code — if a SHALL clause makes a claim that the code doesn't honor, that's a delta to flag.
+
+If the manager file has prose-style functional requirements (no EARS), do NOT flag this as a defect — EARS is a v0.6+ convention and pre-existing files may not use it. But surface to the user as an advisory: "Manager file has N prose-style requirements; consider promoting to EARS for testability."
+
 ## Step 12 — Auditor final pass on integrated spec
 
 After deltas are resolved, run a final auditor pass on the integrated CEO spec with the spec-tuned adversarial preset:
