@@ -58,6 +58,7 @@ const FILE_MAPPINGS = [
   // The dir-merge mapping mirrors the whole tree per file; if a file mapping
   // pre-created docs-harness/ first, file-level conflicts arise. Order matters.
   { src: "cli-configs/README.md",            dst: "docs-harness/cli-configs-README.md", type: "file" },
+  { src: ".claude-plugin/plugin.json", dst: ".claude-plugin/plugin.json", type: "file" },
   { src: ".gitignore",      dst: ".gitignore",      type: "file", optional: true },
   { src: "README.md",       dst: "CCC_HARNESS_README.md", type: "file" }, // user's own README is preserved
   { src: "LICENSE",         dst: "CCC_HARNESS_LICENSE",   type: "file" }, // user's own LICENSE is preserved

@@ -256,6 +256,7 @@ Skills are invokable two ways:
 - **Natural language**: phrases listed in each skill's `description` field will trigger the same skill (e.g., "记一下: 这事很重要" triggers /remember). See individual SKILL.md `description` for accepted phrases.
 
 - `/init` — **Step 2** of harness setup: fills L0/L1 slots interactively, writes `.harness/state/install.json` as the canonical "configured" marker. Re-runnable for re-configuration with `--force`. Does NOT run detection — bootstrap handles that before /init is invoked.
+- `/next` — workflow state inspector: detects current feature progress and suggests next command. Doesn't auto-invoke; pure wayfinder. Use when unsure which skill to run.
 - `/feature-draft <name>` — stage 1, **new-feature mode**
 - `/audit-spec <name>` — stage 1, **audit mode**
 - `/spec-finalize <name>` — stage 2

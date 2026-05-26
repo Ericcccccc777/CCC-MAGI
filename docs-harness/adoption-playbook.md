@@ -337,3 +337,25 @@ Phase 3 (gradual adoption): per-feature, asynchronous, on your own schedule
 ```
 
 The full Phase 0 → 2 install is typically a single afternoon for a solo developer on a clean project.
+
+---
+
+## Submitting to Anthropic Plugin Marketplace
+
+CCC-Harness ships a plugin manifest at `.claude-plugin/plugin.json` so it can be submitted to Anthropic's `claude-community` marketplace.
+
+### Process (manual, external)
+
+1. **Verify the manifest is current**: bump `version` in `outcome/.claude-plugin/plugin.json` to match the new release
+2. **Tag the release**: `git tag v0.X.Y && git push --tags`
+3. **Fork** `anthropics/claude-plugins-community` on GitHub
+4. **Add CCC-Harness** to their `marketplace.json` (or whatever submission format they use at submission time — check current docs)
+5. **Open a PR** with the addition
+6. **Wait for Anthropic review** (typically 1-2 weeks per their docs)
+7. **Once merged**, users can install via `/plugin install @claude-community/ccc-harness`
+
+### Trade-off note
+
+Plugin-only installation gives users the skills (e.g., `/feature-draft`, `/audit-spec`) globally — but NOT the constitution.md, slot registry, or `.harness/state/install.json` (those require per-project installation).
+
+For full CCC-Harness experience: `install-into.sh` or `npx create-ccc-harness` remains the recommended primary path. The plugin marketplace is the "I want the skills, not the discipline" lightweight option.

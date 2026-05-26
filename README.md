@@ -91,6 +91,19 @@ If you use CCC as your desktop session manager:
 
 See `docs-harness/ccc-step1-driver-template.md` for the CCC integration spec.
 
+### Path D — Via Anthropic Plugin Marketplace (future)
+
+CCC-Harness includes a `.claude-plugin/plugin.json` manifest. Once submitted to and accepted by the Anthropic `claude-community` marketplace (manual review process), users will be able to install via:
+
+```bash
+/plugin marketplace add anthropics/claude-plugins-community
+/plugin install @claude-community/ccc-harness
+```
+
+**Note**: plugin-only installation ships skills + commands; the full project-level harness (constitution.md, .harness/state/, slot rendering) still requires `install-into.sh` or `npx create-ccc-harness`. The plugin path is for users who want CCC-Harness's skills available globally across projects without per-project configuration.
+
+Submission status: not yet submitted as of v0.7.
+
 ---
 
 ## What you get

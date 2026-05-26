@@ -171,6 +171,7 @@ declare -a MAPPINGS=(
   # if a file mapping pre-creates docs-harness/, file-level conflicts arise.
   "docs-harness|docs-harness|dir-merge"
   "cli-configs/README.md|docs-harness/cli-configs-README.md|file"
+  ".claude-plugin/plugin.json|.claude-plugin/plugin.json|file"
   ".gitignore|.gitignore|file"
   "README.md|CCC_HARNESS_README.md|file"
   "LICENSE|CCC_HARNESS_LICENSE|file"
