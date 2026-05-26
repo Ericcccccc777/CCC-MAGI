@@ -162,9 +162,11 @@ HEADER="## Recent project decisions and observations (from .harness/memory/)
 
 The entries below are prior decisions, failures, and observations from this project — stored across CLI sessions so context doesn't get lost.
 
-**When responding, cite the relevant entry explicitly** if it informs your reply (e.g., \"I see from memory that we decided X — going with that\"). Even if you don't cite, treat these as constraints / context that shape your answer.
+**When the user's request involves a feature, code design, or implementation decision, EXPLICITLY cite any relevant memory entry** (\"I see from memory that we decided X — going with that\"). For casual conversation (greetings, off-topic questions), citation is unnecessary.
 
-Don't cite every entry — only those genuinely relevant to the user's current request.
+The bar is: would a future engineer reading the session log learn something useful from the citation? If yes, cite. If no (e.g., the entry is unrelated), don't bring it up.
+
+Even if you don't cite, treat memory as load-bearing context that shapes your answer.
 
 "
 

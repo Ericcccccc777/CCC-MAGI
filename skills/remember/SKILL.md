@@ -103,6 +103,8 @@ If the summary is self-explanatory (e.g., "FlashList is 5x faster than FlatList 
 
 ## Step 6 — Confirm the proposed entry with the user
 
+**Path resolution**: use `${CLAUDE_PROJECT_DIR:-$(pwd)}` (not raw `$CLAUDE_PROJECT_DIR`) for all filesystem paths in this skill — the env var may be empty in some Bash subshell contexts.
+
 Display the full proposed JSON entry in the user's locale, formatted for human reading:
 
 ```
@@ -138,7 +140,7 @@ On `[1]`:
 1. Ensure the directory exists:
 
    ```bash
-   mkdir -p "$CLAUDE_PROJECT_DIR/.harness/memory"
+   mkdir -p "${CLAUDE_PROJECT_DIR:-$(pwd)}/.harness/memory"
    ```
 
 2. Compute the ISO 8601 UTC timestamp:
@@ -164,7 +166,7 @@ On `[1]`:
 4. Append:
 
    ```bash
-   echo "$ENTRY" >> "$CLAUDE_PROJECT_DIR/.harness/memory/observations.jsonl"
+   echo "$ENTRY" >> "${CLAUDE_PROJECT_DIR:-$(pwd)}/.harness/memory/observations.jsonl"
    ```
 
 5. Confirm to the user (in their locale):

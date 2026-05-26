@@ -23,6 +23,18 @@ CCC-Harness extracts the universal mechanics from these patterns:
 
 ---
 
+## Prerequisites
+
+Before installing, ensure your system has:
+
+- **git** — required (used by the installer and most harness hooks)
+- **bash 3.2+** — macOS default supported; Linux distributions ship 4+ typically
+- **jq** — required (used for safe JSON merging of `.claude/settings.json` and `.codex/hooks.json`)
+
+The `install-into.sh` script runs `outcome/scripts/check-prereqs.sh` at the start and provides platform-aware install hints if any hard prereq is missing (Homebrew detection on macOS, `apt` / `yum` / `pacman` hints on Linux). Soft prereqs like `python3` are flagged as warnings only.
+
+---
+
 ## Quick start
 
 ### Path A — Via npx installer (recommended)

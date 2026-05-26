@@ -4,10 +4,11 @@
 // Install CCC-Harness into the current working directory.
 //
 // USAGE:
-//   npx create-ccc-harness@latest             # install into cwd
-//   npx create-ccc-harness@latest --dry-run   # show what would be done; don't write files
-//   npx create-ccc-harness@latest --force     # overwrite existing CCC-Harness files
-//   npx create-ccc-harness@latest --ref <tag> # install a specific tag/branch (default: main)
+//   npx create-ccc-harness@latest                       # install into cwd
+//   npx create-ccc-harness@latest --dry-run             # show what would be done; don't write files
+//   npx create-ccc-harness@latest --force               # overwrite existing CCC-Harness files (implies --force-load-bearing)
+//   npx create-ccc-harness@latest --force-load-bearing  # reset LOAD_BEARING files even if user-modified (backs them up)
+//   npx create-ccc-harness@latest --ref <tag>           # install a specific tag/branch (default: main)
 //
 // FLOW:
 //   1. Sanity checks (git installed, working dir is a git repo, working tree clean)
@@ -15,17 +16,15 @@
 //      run the AI-driven 3-option menu; that's the bootstrap's job AFTER files
 //      are on disk. We just give the user a heads-up.)
 //   3. Download CCC-Harness from GitHub
-//   4. Move files to canonical locations
+//   4. Move files to canonical locations (content-hash detection guards user changes)
 //   5. Set executable permissions on shell scripts
 //   6. Print next-steps prompt (open Claude Code; AI will run bootstrap automatically)
-//
-// This is a Round-3 MVP stub. The git clone URL is a placeholder until the
-// CCC-Harness repo is published. See `_TODO_PRE_PUBLISH` in package.json.
 
 import { execSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, chmodSync, writeFileSync, copyFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, join, resolve, dirname } from "node:path";
 import { argv, cwd, exit, stderr, stdout } from "node:process";
+import { createHash } from "node:crypto";
 
 // ─────────────────────────────────────────────────────────────────────
 // Constants — UPDATE when publishing
@@ -34,6 +33,7 @@ import { argv, cwd, exit, stderr, stdout } from "node:process";
 const HARNESS_REPO = "https://github.com/Ericcccccc777/CCC-Harness.git";
 const DEFAULT_REF = "main";
 const TEMP_DIR = ".ccc-harness-temp";
+const HARNESS_VERSION = "0.8.0";
 
 // File mapping: source path in harness repo → destination in user project
 // Mirrors `outcome/skills/init/SKILL.md § Step 4 — File mappings`.
@@ -77,16 +77,20 @@ const KNOWN_HARNESS_MARKERS = [
   ".github/copilot-instructions.md",
 ];
 
+// Load-bearing files — preserved unless --force-load-bearing.
+const LOAD_BEARING = ["constitution.md", "CLAUDE.md", "AGENTS.md"];
+
 // ─────────────────────────────────────────────────────────────────────
 // CLI argument parsing (minimal — no external deps)
 // ─────────────────────────────────────────────────────────────────────
 
 function parseArgs() {
-  const flags = { dryRun: false, force: false, ref: DEFAULT_REF, help: false };
+  const flags = { dryRun: false, force: false, forceLoadBearing: false, ref: DEFAULT_REF, help: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--dry-run") flags.dryRun = true;
-    else if (a === "--force") flags.force = true;
+    else if (a === "--force") { flags.force = true; flags.forceLoadBearing = true; }
+    else if (a === "--force-load-bearing") flags.forceLoadBearing = true;
     else if (a === "--ref") flags.ref = argv[++i] ?? DEFAULT_REF;
     else if (a === "--help" || a === "-h") flags.help = true;
     else {
@@ -101,10 +105,11 @@ function printHelp() {
   stdout.write(`create-ccc-harness — install CCC-Harness into your project
 
 Usage:
-  npx create-ccc-harness@latest             Install into current directory
-  npx create-ccc-harness@latest --dry-run   Show what would be done (no writes)
-  npx create-ccc-harness@latest --force     Overwrite existing CCC-Harness files
-  npx create-ccc-harness@latest --ref <tag> Install a specific git tag/branch (default: main)
+  npx create-ccc-harness@latest                       Install into current directory
+  npx create-ccc-harness@latest --dry-run             Show what would be done (no writes)
+  npx create-ccc-harness@latest --force               Overwrite existing CCC-Harness files (implies --force-load-bearing)
+  npx create-ccc-harness@latest --force-load-bearing  Reset LOAD_BEARING files even if user-modified (backs them up)
+  npx create-ccc-harness@latest --ref <tag>           Install a specific git tag/branch (default: main)
 
 After installation, open Claude Code (or your AI CLI) in this directory.
 The AI will detect that CCC-Harness needs configuration and walk you through it.
@@ -153,34 +158,132 @@ function ensureDir(path) {
   if (!exists(path)) mkdirSync(path, { recursive: true });
 }
 
-function moveAll(srcDir, dstDir) {
-  ensureDir(dstDir);
-  for (const entry of readdirSync(srcDir)) {
-    const src = join(srcDir, entry);
-    const dst = join(dstDir, entry);
-    if (exists(dst)) rmSync(dst, { recursive: true, force: true });
-    renameSync(src, dst);
+// ─────────────────────────────────────────────────────────────────────
+// Content-hash registry helpers
+//
+// .harness/state/shipped-hashes.json records SHA-256 of every file the
+// installer shipped. On re-install, we compare:
+//   dest_hash vs recorded_hash → "has the user modified this file since last install?"
+//   dest_hash vs src_hash      → "is the file already at the new version?"
+// This lets us safely deliver harness updates without clobbering user changes.
+// ─────────────────────────────────────────────────────────────────────
+
+const REGISTRY_PATH = (target) => join(target, ".harness/state/shipped-hashes.json");
+
+function sha256OfFile(path) {
+  const content = readFileSync(path);
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function ensureRegistry(target) {
+  const path = REGISTRY_PATH(target);
+  ensureDir(dirname(path));
+  if (!exists(path)) {
+    writeFileSync(path, JSON.stringify({
+      harness_version: HARNESS_VERSION,
+      shipped_at: "",
+      hashes: {},
+    }, null, 2) + "\n");
   }
 }
 
+function getRecordedHash(target, dstPath) {
+  try {
+    const registry = JSON.parse(readFileSync(REGISTRY_PATH(target), "utf8"));
+    return registry.hashes[dstPath] || null;
+  } catch {
+    return null;
+  }
+}
+
+function recordHash(target, dstPath, hashValue) {
+  const path = REGISTRY_PATH(target);
+  let registry;
+  try {
+    registry = JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    registry = { harness_version: HARNESS_VERSION, shipped_at: "", hashes: {} };
+  }
+  registry.shipped_at = new Date().toISOString();
+  registry.harness_version = HARNESS_VERSION;
+  registry.hashes[dstPath] = hashValue;
+  writeFileSync(path, JSON.stringify(registry, null, 2) + "\n");
+}
+
+function backupExisting(dstPath) {
+  let backup = `${dstPath}.pre-ccc-harness`;
+  if (exists(backup)) {
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+    backup = `${dstPath}.pre-ccc-harness.${ts}`;
+  }
+  renameSync(dstPath, backup);
+  return backup;
+}
+
+// Unified content-hash decision tree for a single src→dst file pair.
+// Returns one of: "new", "updated", "current", "preserved", "forced".
+// `dstRel` is the relative path used as the registry key.
+function installFileWithHash(target, srcFile, dstRel, dstPath, forceLoadBearing) {
+  ensureDir(dirname(dstPath));
+
+  if (!exists(dstPath)) {
+    copyFileSync(srcFile, dstPath);
+    const h = sha256OfFile(srcFile);
+    recordHash(target, dstRel, h);
+    return "new";
+  }
+
+  const destHash = sha256OfFile(dstPath);
+  const srcHash  = sha256OfFile(srcFile);
+
+  if (destHash === srcHash) {
+    // Already current; ensure registry has it.
+    recordHash(target, dstRel, destHash);
+    return "current";
+  }
+
+  const recorded = getRecordedHash(target, dstRel);
+  if (recorded) {
+    if (destHash === recorded) {
+      // User hasn't modified since last install → safe to overwrite.
+      copyFileSync(srcFile, dstPath);
+      recordHash(target, dstRel, srcHash);
+      return "updated";
+    } else {
+      // User modified → preserve, unless --force-load-bearing + LOAD_BEARING file
+      // (the explicit "reset everything" escape hatch).
+      if (forceLoadBearing && LOAD_BEARING.includes(dstRel)) {
+        backupExisting(dstPath);
+        copyFileSync(srcFile, dstPath);
+        recordHash(target, dstRel, srcHash);
+        return "forced";
+      }
+      // Don't update registry — preserves "user-modified" detection.
+      return "preserved";
+    }
+  }
+
+  // No registry entry — first v0.8 install on old environment. Be safe:
+  // record current dest hash, but don't overwrite (unless force-load-bearing
+  // is set AND this is a LOAD_BEARING file).
+  recordHash(target, dstRel, destHash);
+  if (forceLoadBearing && LOAD_BEARING.includes(dstRel)) {
+    backupExisting(dstPath);
+    copyFileSync(srcFile, dstPath);
+    recordHash(target, dstRel, srcHash);
+    return "forced";
+  }
+  return "preserved";
+}
+
 // ─────────────────────────────────────────────────────────────────────
-// dir-merge semantics: for each file in source, install if absent in dest,
-// preserve if present. This protects user customizations (e.g., a user-added
-// skill at .harness/skills/custom/) while still delivering new harness files
-// (e.g., a newly-added /remember skill).
+// dir-merge with content-hash semantics.
 //
-// Trade-off: if the harness UPDATES an existing skill (e.g., /init gets
-// a bug fix), users with the old version installed will NOT get the update
-// unless they pass --force. This is conservative — better to underinstall
-// updates than silently overwrite user customizations. Long-term we may
-// add a content-hash check ("if file is unchanged from harness original,
-// safe to overwrite"), but v0.2 keeps it simple.
-//
-// Returns { copied, skipped } counts.
+// For each file in source: invoke installFileWithHash. Returns counters.
+// Protects user customizations while still delivering new/updated harness files.
 // ─────────────────────────────────────────────────────────────────────
-function dirMerge(srcPath, dstPath, force) {
-  let copied = 0;
-  let skipped = 0;
+function dirMerge(target, srcPath, dstPath, dstPrefix, forceLoadBearing) {
+  let newCt = 0, updCt = 0, presCt = 0;
   ensureDir(dstPath);
   const stack = [""];
   while (stack.length > 0) {
@@ -196,21 +299,19 @@ function dirMerge(srcPath, dstPath, force) {
       const relPath = relDir ? join(relDir, ent.name) : ent.name;
       const srcFile = join(srcPath, relPath);
       const dstFile = join(dstPath, relPath);
+      const dstRel  = `${dstPrefix}/${relPath}`;
       if (ent.isDirectory()) {
         ensureDir(dstFile);
         stack.push(relPath);
       } else if (ent.isFile()) {
-        if (exists(dstFile) && !force) {
-          skipped++;
-        } else {
-          ensureDir(join(dstFile, ".."));
-          copyFileSync(srcFile, dstFile);
-          copied++;
-        }
+        const result = installFileWithHash(target, srcFile, dstRel, dstFile, forceLoadBearing);
+        if (result === "new") newCt++;
+        else if (result === "updated" || result === "forced") updCt++;
+        else presCt++; // current or preserved
       }
     }
   }
-  return { copied, skipped };
+  return { newCt, updCt, presCt };
 }
 
 function chmodExecutable(dir) {
@@ -434,30 +535,13 @@ function main() {
   // Strip the cloned repo's .git so we don't end up with a nested repo
   rmSync(join(tempPath, ".git"), { recursive: true, force: true });
 
+  // Initialize the hash registry before doing any work.
+  ensureRegistry(targetDir);
+
   // ── Move files to canonical locations ──────────────────────────
-  // Load-bearing files carry the Bootstrap Status Check block + other entry-point logic.
-  // If we skip these due to a name collision (e.g., macOS case-insensitive FS treating
-  // `claude.md` and `CLAUDE.md` as the same file), the harness simply doesn't work.
-  // Strategy: back up the user's file to <name>.pre-ccc-harness, then install ours.
-  const LOAD_BEARING = ["constitution.md", "CLAUDE.md", "AGENTS.md"];
-  const SIGNATURES = {
-    "CLAUDE.md": "Bootstrap Status Check",
-    "constitution.md": "SLOT REGISTRY",
-    "AGENTS.md": "external auditor model",
-  };
-
-  function backupExisting(dstPath) {
-    let backup = `${dstPath}.pre-ccc-harness`;
-    if (exists(backup)) {
-      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
-      backup = `${dstPath}.pre-ccc-harness.${ts}`;
-    }
-    renameSync(dstPath, backup);
-    return backup;
-  }
-
   log("\nPlacing files...");
-  let backedUpCount = 0;
+  let copiedCount = 0, updatedCount = 0, preservedCount = 0, backedUpCount = 0;
+
   for (const m of FILE_MAPPINGS) {
     const src = join(tempPath, m.src);
     const dst = join(targetDir, m.dst);
@@ -471,41 +555,28 @@ function main() {
       continue;
     }
 
-    // Special handling: load-bearing files always install, with backup
-    if (LOAD_BEARING.includes(m.dst) && exists(dst)) {
-      const sig = SIGNATURES[m.dst];
-      let isOurVersion = false;
-      if (sig) {
-        try {
-          const content = readFileSync(dst, "utf8");
-          isOurVersion = content.includes(sig);
-        } catch { /* ignore */ }
-      }
-      if (isOurVersion) {
-        log(`  ↻ ${m.src.padEnd(36)} → ${m.dst}  (existing CCC-Harness version; reinstalling fresh)`);
-        rmSync(dst, { force: true });
-        renameSync(src, dst);
-      } else {
-        const backupPath = backupExisting(dst);
-        const backupName = basename(backupPath);
-        log(`  ⚠ ${m.src.padEnd(36)} → ${m.dst}  (user file backed up to ${backupName})`);
-        renameSync(src, dst);
-        backedUpCount++;
-      }
-      continue;
-    }
-
-    // dir-merge: per-file install/preserve under the destination directory.
-    // See dirMerge() comment for trade-off note.
+    // dir-merge: per-file install/preserve under the destination directory
+    // using content-hash decisions.
     if (m.type === "dir-merge") {
-      const { copied, skipped } = dirMerge(src, dst, flags.force);
-      if (copied > 0 && skipped > 0) {
-        log(`  ⊕ ${m.src.padEnd(36)} → ${m.dst}/  (${copied} new, ${skipped} preserved)`);
-      } else if (copied > 0) {
-        log(`  ✓ ${m.src.padEnd(36)} → ${m.dst}/  (${copied} files)`);
+      const { newCt, updCt, presCt } = dirMerge(targetDir, src, dst, m.dst, flags.forceLoadBearing);
+      if (newCt > 0 && updCt > 0 && presCt > 0) {
+        log(`  ⊕ ${m.src.padEnd(36)} → ${m.dst}/  (${newCt} new, ${updCt} updated, ${presCt} preserved)`);
+      } else if (newCt > 0 && updCt > 0) {
+        log(`  ⊕ ${m.src.padEnd(36)} → ${m.dst}/  (${newCt} new, ${updCt} updated)`);
+      } else if (newCt > 0 && presCt > 0) {
+        log(`  ⊕ ${m.src.padEnd(36)} → ${m.dst}/  (${newCt} new, ${presCt} preserved)`);
+      } else if (updCt > 0 && presCt > 0) {
+        log(`  ↗ ${m.src.padEnd(36)} → ${m.dst}/  (${updCt} updated, ${presCt} preserved)`);
+      } else if (newCt > 0) {
+        log(`  ✓ ${m.src.padEnd(36)} → ${m.dst}/  (${newCt} new)`);
+      } else if (updCt > 0) {
+        log(`  ↗ ${m.src.padEnd(36)} → ${m.dst}/  (${updCt} updated)`);
       } else {
-        log(`  = ${m.src.padEnd(36)} → ${m.dst}/  (all ${skipped} files already existed)`);
+        log(`  = ${m.src.padEnd(36)} → ${m.dst}/  (${presCt} already current/preserved)`);
       }
+      copiedCount += newCt;
+      updatedCount += updCt;
+      preservedCount += presCt;
       continue;
     }
 
@@ -514,34 +585,67 @@ function main() {
     if (m.type === "json-merge") {
       try {
         const result = mergeJsonSettings(src, dst);
+        // Record post-merge hash so future content-hash checks see "user-modified"
+        // when the user touches it later.
+        const h = sha256OfFile(dst);
+        recordHash(targetDir, m.dst, h);
         if (result === "created") {
-          log(`  ${m.src.padEnd(36)} → ${m.dst}  (new)`);
+          log(`  ✓ ${m.src.padEnd(36)} → ${m.dst}  (new)`);
+          copiedCount++;
         } else if (result === "merged-backedup") {
           log(`  ⊕ ${m.src.padEnd(36)} → ${m.dst}  (merged; user file backed up to ${basename(dst)}.pre-ccc-harness)`);
           backedUpCount++;
+          updatedCount++;
         } else {
           log(`  ⊕ ${m.src.padEnd(36)} → ${m.dst}  (re-merged; idempotent)`);
+          updatedCount++;
         }
       } catch (e) {
         warn(`  ${m.dst} — JSON merge failed: ${e.message}. Skipping.`);
+        preservedCount++;
       }
       continue;
     }
 
-    // Non-load-bearing: preserve existing unless --force
-    if (exists(dst) && !flags.force) {
-      warn(`  ${m.dst} — already exists at destination; preserving (use --force to overwrite)`);
+    // dir type (rare; not currently used in mappings, but supported)
+    if (m.type === "dir") {
+      const { newCt, updCt, presCt } = dirMerge(targetDir, src, dst, m.dst, flags.forceLoadBearing);
+      log(`  ✓ ${m.src.padEnd(36)} → ${m.dst}/  (${newCt} new, ${updCt} updated, ${presCt} preserved)`);
+      copiedCount += newCt;
+      updatedCount += updCt;
+      preservedCount += presCt;
       continue;
     }
 
-    ensureDir(join(dst, ".."));
-    if (m.type === "dir") {
-      if (exists(dst)) rmSync(dst, { recursive: true, force: true });
-      renameSync(src, dst);
-    } else {
-      renameSync(src, dst);
+    // type = "file" → unified content-hash file install.
+    const result = installFileWithHash(targetDir, src, m.dst, dst, flags.forceLoadBearing);
+    switch (result) {
+      case "new":
+        log(`  ✓ ${m.src.padEnd(36)} → ${m.dst}  (new)`);
+        copiedCount++;
+        break;
+      case "updated":
+        log(`  ↗ ${m.src.padEnd(36)} → ${m.dst}  (updated; unchanged since last install)`);
+        updatedCount++;
+        break;
+      case "current":
+        log(`  = ${m.src.padEnd(36)} → ${m.dst}  (already current)`);
+        preservedCount++;
+        break;
+      case "preserved":
+        if (LOAD_BEARING.includes(m.dst)) {
+          log(`  = ${m.src.padEnd(36)} → ${m.dst}  (preserved; local modifications — use --force-load-bearing to reset)`);
+        } else {
+          log(`  = ${m.src.padEnd(36)} → ${m.dst}  (preserved; local modifications)`);
+        }
+        preservedCount++;
+        break;
+      case "forced":
+        log(`  ⚠ ${m.src.padEnd(36)} → ${m.dst}  (force-overwritten; original backed up)`);
+        updatedCount++;
+        backedUpCount++;
+        break;
     }
-    log(`  ${m.src.padEnd(36)} → ${m.dst}`);
   }
   if (backedUpCount > 0) {
     log(`\n  ⚠ ${backedUpCount} user file(s) had pre-existing content and were backed up with .pre-ccc-harness suffix.`);
@@ -561,7 +665,7 @@ function main() {
 
   // ── Next steps ──────────────────────────────────────────────────
   log("\n────────────────────────────────────────────────────────────────");
-  log("✅ CCC-Harness installed.");
+  log(`✅ CCC-Harness installed. (${copiedCount} new, ${updatedCount} updated, ${preservedCount} preserved)`);
   log("────────────────────────────────────────────────────────────────");
   log("");
   log("Next steps:");

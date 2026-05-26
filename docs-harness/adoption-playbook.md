@@ -265,6 +265,18 @@ Optional: track progress in `.harness/audit-progress.md`:
 
 ## Tuning
 
+### `--force-load-bearing` (rare; explicit reset)
+
+LOAD_BEARING files (`CLAUDE.md`, `AGENTS.md`, `constitution.md`) carry user-rendered slot values from `/init` and accumulated `/constitution-edit` Section 3 red lines. The default content-hash detection in `install-into.sh` / `npx create-ccc-harness` preserves these whenever the file's current hash differs from the last-shipped hash (treated as "user-modified").
+
+Pass `--force-load-bearing` only when you explicitly want to discard local LOAD_BEARING modifications and reinstall the shipped version. The original file is backed up with the `.pre-ccc-harness` suffix before being overwritten. Use cases:
+
+- You're starting over after a botched `/init` run
+- Your `constitution.md` got corrupted by an editor mishap
+- You want to compare your customizations against the latest shipped template (look at the `.pre-ccc-harness` backup afterward)
+
+`--force` (existing flag) implies `--force-load-bearing`. For day-to-day re-installs (delivering harness updates), do NOT pass either flag — the content-hash registry at `.harness/state/shipped-hashes.json` auto-updates files you haven't modified while preserving everything else.
+
 ### Tuning budget pressure
 
 CCC-Harness includes a budget-pressure hook (P1.6) that emits advisory warnings as the session context fills up. The threshold is 200,000 tokens by default — the Opus historical baseline.

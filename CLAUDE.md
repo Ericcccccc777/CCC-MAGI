@@ -312,6 +312,8 @@ Hooks are deterministic checks that run automatically.
 - **Post-edit format** — runs the project's formatter on edited files. Script: `scripts/format-edit.sh`.
 - **Budget pressure monitor** — `outcome/scripts/budget-monitor.sh` (UserPromptSubmit). Monitors transcript size; emits `additionalContext` at 50%/75%/90% of `CCC_CONTEXT_BUDGET` (default 200000 tokens) advising Claude to prefer cheaper models for subagents, skip Explore-type research, recommend `/compact`. Advisory-only; can't force model switch (Claude Code doesn't expose runtime model switching to hooks). Silent under 50%.
 
+> **Install-time registry**: `.harness/state/shipped-hashes.json` records SHA-256 of every file the installer shipped, so re-installs can content-hash-detect "user-modified" vs "unmodified" files and safely deliver harness updates without clobbering local changes.
+
 ### Memory layer (`.harness/memory/`)
 
 Cross-session persistence. The harness keeps a small notebook of prior decisions, failures, and observations so each new Claude Code session starts with relevant context instead of blank.

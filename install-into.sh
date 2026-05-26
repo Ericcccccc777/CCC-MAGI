@@ -8,8 +8,9 @@
 #
 # USAGE:
 #   bash install-into.sh <target-dir>
-#   bash install-into.sh <target-dir> --force        # overwrite existing CCC-Harness files
-#   bash install-into.sh <target-dir> --dry-run      # show what would be done
+#   bash install-into.sh <target-dir> --force                  # overwrite existing CCC-Harness files (implies --force-load-bearing)
+#   bash install-into.sh <target-dir> --force-load-bearing     # reset LOAD_BEARING files even if user-modified (backs them up)
+#   bash install-into.sh <target-dir> --dry-run                # show what would be done
 #
 # EXAMPLES:
 #   bash install-into.sh ~/Desktop/test-harness-demo
@@ -17,13 +18,17 @@
 
 set -eu
 
+# Ensure brew-installed tools (jq, etc.) are on PATH even in non-interactive
+# shells where ~/.zprofile isn't loaded. macOS Apple Silicon path comes first.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # ─────────────────────────────────────────────────────────────────────
 # Args
 # ─────────────────────────────────────────────────────────────────────
 
 if [ $# -lt 1 ]; then
   cat <<EOF
-Usage: bash install-into.sh <target-dir> [--force] [--dry-run]
+Usage: bash install-into.sh <target-dir> [--force] [--force-load-bearing] [--dry-run]
 
 Installs CCC-Harness from this repo's outcome/ into <target-dir>.
 
@@ -38,11 +43,13 @@ TARGET="$1"
 shift
 
 FORCE=0
+FORCE_LOAD_BEARING=0
 DRY=0
 for arg in "$@"; do
   case "$arg" in
-    --force)   FORCE=1 ;;
-    --dry-run) DRY=1 ;;
+    --force)               FORCE=1; FORCE_LOAD_BEARING=1 ;;
+    --force-load-bearing)  FORCE_LOAD_BEARING=1 ;;
+    --dry-run)             DRY=1 ;;
     *) echo "Unknown arg: $arg" >&2; exit 1 ;;
   esac
 done
@@ -67,7 +74,19 @@ if [ ! -d "$SOURCE" ]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────
-# Prerequisite checks
+# Run prereq check — fail fast if hard prereqs missing
+# ─────────────────────────────────────────────────────────────────────
+PREREQ_SCRIPT="$SCRIPT_DIR/scripts/check-prereqs.sh"
+if [ ! -f "$PREREQ_SCRIPT" ]; then
+  # Fall back to outcome/scripts/ in dev mode
+  PREREQ_SCRIPT="$SCRIPT_DIR/outcome/scripts/check-prereqs.sh"
+fi
+if [ -f "$PREREQ_SCRIPT" ]; then
+  bash "$PREREQ_SCRIPT" || exit 1
+fi
+
+# ─────────────────────────────────────────────────────────────────────
+# Prerequisite checks (safety net — check-prereqs.sh above should catch this)
 # ─────────────────────────────────────────────────────────────────────
 
 # jq is required for merging .claude/settings.json and .codex/hooks.json with
@@ -109,9 +128,58 @@ echo ""
 echo "📦 install-into.sh"
 echo "   source: $SOURCE"
 echo "   target: $TARGET"
-[ "$FORCE" -eq 1 ] && echo "   mode:   FORCE (will overwrite existing files)"
-[ "$DRY"   -eq 1 ] && echo "   mode:   DRY RUN (no writes)"
+[ "$FORCE" -eq 1 ]              && echo "   mode:   FORCE (will overwrite existing files; implies --force-load-bearing)"
+[ "$FORCE_LOAD_BEARING" -eq 1 ] && [ "$FORCE" -eq 0 ] && echo "   mode:   FORCE-LOAD-BEARING (will reset LOAD_BEARING files with backup)"
+[ "$DRY"   -eq 1 ]              && echo "   mode:   DRY RUN (no writes)"
 echo ""
+
+# ─────────────────────────────────────────────────────────────────────
+# Content-hash registry helpers
+#
+# .harness/state/shipped-hashes.json records SHA-256 of every file the
+# installer shipped. On re-install, we compare:
+#   dest_hash vs recorded_hash → "has the user modified this file since last install?"
+#   dest_hash vs src_hash      → "is the file already at the new version?"
+# This lets us safely deliver harness updates without clobbering user changes.
+# ─────────────────────────────────────────────────────────────────────
+
+REGISTRY_DIR="$TARGET/.harness/state"
+REGISTRY_FILE="$REGISTRY_DIR/shipped-hashes.json"
+
+# Compute SHA-256 of a file. Use shasum on macOS, sha256sum on Linux.
+sha256_of() {
+  local file="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$file" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | awk '{print $1}'
+  else
+    echo "ERROR: neither sha256sum nor shasum available" >&2
+    return 1
+  fi
+}
+
+ensure_registry() {
+  mkdir -p "$REGISTRY_DIR"
+  if [ ! -f "$REGISTRY_FILE" ]; then
+    echo '{"harness_version":"0.8.0","shipped_at":"","hashes":{}}' > "$REGISTRY_FILE"
+  fi
+}
+
+get_recorded_hash() {
+  local dst_path="$1"
+  jq -r --arg p "$dst_path" '.hashes[$p] // empty' "$REGISTRY_FILE" 2>/dev/null
+}
+
+record_hash() {
+  local dst_path="$1"
+  local hash_value="$2"
+  local tmp
+  tmp="$(mktemp -t ccc-registry.XXXXXX)" || return 1
+  jq --arg p "$dst_path" --arg h "$hash_value" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+     '.shipped_at = $ts | .harness_version = "0.8.0" | .hashes[$p] = $h' \
+     "$REGISTRY_FILE" > "$tmp" && mv "$tmp" "$REGISTRY_FILE"
+}
 
 # ─────────────────────────────────────────────────────────────────────
 # Pre-install detection (lightweight — full AI-driven detection happens
@@ -192,13 +260,13 @@ if [ "$DRY" -eq 1 ]; then
   exit 0
 fi
 
+# Initialize the hash registry before doing any work.
+ensure_registry
+
 # Load-bearing files — these carry the Bootstrap Status Check block and other
-# entry-point logic. If we skip installing them due to a name collision, the
-# harness simply doesn't work (the user's existing file has no bootstrap trigger).
-# Strategy: back up the user's existing file to <name>.pre-ccc-harness, then install ours.
-# Note: on case-insensitive filesystems (macOS default), `claude.md` and `CLAUDE.md`
-# are THE SAME FILE — the backup approach handles this correctly because the
-# backup name has a unique `.pre-ccc-harness` suffix.
+# entry-point logic. Special handling under --force-load-bearing: even if user
+# has modified them, back them up and overwrite. Otherwise content-hash logic
+# applies (preserve user-modified files; auto-update unmodified ones).
 LOAD_BEARING_FILES=("CLAUDE.md" "AGENTS.md" "constitution.md")
 
 is_load_bearing() {
@@ -221,42 +289,111 @@ backup_existing() {
 }
 
 # ─────────────────────────────────────────────────────────────────────
-# dir-merge semantics: for each file in source, install if absent in dest,
-# preserve if present. This protects user customizations (e.g., a user-added
-# skill at .harness/skills/custom/) while still delivering new harness files
-# (e.g., a newly-added /remember skill).
+# install_file_with_hash — unified content-hash decision tree for a single
+# src→dst file pair. Updates the hash registry and the COPIED/UPDATED/SKIPPED
+# counters. Used by both top-level file mappings and dir-merge recursion.
 #
-# Trade-off: if the harness UPDATES an existing skill (e.g., /init gets
-# a bug fix), users with the old version installed will NOT get the update
-# unless they pass --force. This is conservative — better to underinstall
-# updates than silently overwrite user customizations. Long-term we may
-# add a content-hash check ("if file is unchanged from harness original,
-# safe to overwrite"), but v0.2 keeps it simple.
+# Args: <src_file> <dst_relative_path> <abs_dst_path> <force_lb_flag>
+# Returns (via stdout): one of NEW / UPDATED / CURRENT / PRESERVED / FORCED
+# ─────────────────────────────────────────────────────────────────────
+install_file_with_hash() {
+  local src_file="$1"
+  local dst_rel="$2"
+  local dst_path="$3"
+  local force_lb="$4"
+
+  mkdir -p "$(dirname "$dst_path")"
+
+  if [ ! -e "$dst_path" ]; then
+    cp "$src_file" "$dst_path"
+    local h
+    h="$(sha256_of "$src_file")"
+    record_hash "$dst_rel" "$h"
+    echo "NEW"
+    return 0
+  fi
+
+  local dest_hash src_hash
+  dest_hash="$(sha256_of "$dst_path")"
+  src_hash="$(sha256_of "$src_file")"
+
+  if [ "$dest_hash" = "$src_hash" ]; then
+    # No change needed; ensure registry has it
+    record_hash "$dst_rel" "$dest_hash"
+    echo "CURRENT"
+    return 0
+  fi
+
+  local recorded
+  recorded="$(get_recorded_hash "$dst_rel")"
+
+  if [ -n "$recorded" ]; then
+    if [ "$dest_hash" = "$recorded" ]; then
+      # User hasn't modified since last install → safe to overwrite
+      cp "$src_file" "$dst_path"
+      record_hash "$dst_rel" "$src_hash"
+      echo "UPDATED"
+      return 0
+    else
+      # User modified → preserve, unless --force-load-bearing + LOAD_BEARING file
+      # (the explicit "reset everything" escape hatch).
+      if [ "$force_lb" -eq 1 ] && is_load_bearing "$dst_rel"; then
+        backup_existing "$dst_path" >/dev/null
+        cp "$src_file" "$dst_path"
+        record_hash "$dst_rel" "$src_hash"
+        echo "FORCED"
+        return 0
+      fi
+      # Don't update registry — preserves "user-modified" detection
+      echo "PRESERVED"
+      return 0
+    fi
+  else
+    # No registry entry — first v0.8 install on old environment.
+    # Be SAFE: record current dest hash so future installs work.
+    record_hash "$dst_rel" "$dest_hash"
+    if [ "$force_lb" -eq 1 ] && is_load_bearing "$dst_rel"; then
+      backup_existing "$dst_path" >/dev/null
+      cp "$src_file" "$dst_path"
+      record_hash "$dst_rel" "$src_hash"
+      echo "FORCED"
+      return 0
+    else
+      echo "PRESERVED"
+      return 0
+    fi
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# dir-merge with content-hash semantics.
 #
-# Returns "<copied>:<skipped>" on stdout.
+# For each file in source: invoke install_file_with_hash. Returns "<new>:<updated>:<preserved>".
 # bash 3.2 compat: no declare -A, no mapfile; use find -print0 | while read -d ''.
 # ─────────────────────────────────────────────────────────────────────
 merge_dir_recursive() {
   local src="$1"
   local dst="$2"
-  local force="$3"
-  local copied=0
-  local skipped=0
+  local dst_prefix="$3"   # relative path prefix for registry keys (e.g., ".harness/skills")
+  local new_ct=0
+  local upd_ct=0
+  local pres_ct=0
   mkdir -p "$dst"
-  # Use find to traverse the source; for each file, mirror to dst preserving structure.
   while IFS= read -r -d '' src_file; do
     local rel="${src_file#$src/}"
     local dst_file="$dst/$rel"
-    local dst_dir="$(dirname "$dst_file")"
-    mkdir -p "$dst_dir"
-    if [ -e "$dst_file" ] && [ "$force" -ne 1 ]; then
-      skipped=$((skipped + 1))
-    else
-      cp "$src_file" "$dst_file"
-      copied=$((copied + 1))
-    fi
+    local dst_rel="$dst_prefix/$rel"
+    local result
+    result="$(install_file_with_hash "$src_file" "$dst_rel" "$dst_file" "$FORCE_LOAD_BEARING")"
+    case "$result" in
+      NEW)       new_ct=$((new_ct + 1)) ;;
+      UPDATED)   upd_ct=$((upd_ct + 1)) ;;
+      PRESERVED) pres_ct=$((pres_ct + 1)) ;;
+      CURRENT)   pres_ct=$((pres_ct + 1)) ;;
+      FORCED)    upd_ct=$((upd_ct + 1)) ;;
+    esac
   done < <(find "$src" -type f -print0)
-  echo "${copied}:${skipped}"
+  echo "${new_ct}:${upd_ct}:${pres_ct}"
 }
 
 # ─────────────────────────────────────────────────────────────────────
@@ -392,7 +529,8 @@ merge_json_settings() {
 
 echo "Installing..."
 COPIED=0
-SKIPPED=0
+UPDATED=0
+PRESERVED=0
 BACKED_UP=0
 for entry in "${MAPPINGS[@]}"; do
   IFS='|' read -r src dst type <<< "$entry"
@@ -401,51 +539,35 @@ for entry in "${MAPPINGS[@]}"; do
 
   if [ ! -e "$SRC_PATH" ]; then
     echo "   $src → (not in source; skipping)"
-    SKIPPED=$((SKIPPED + 1))
     continue
   fi
 
-  # Special handling for load-bearing files: always install, but back up existing first.
-  if is_load_bearing "$dst" && [ -e "$DST_PATH" ]; then
-    # Check whether the existing file is already our version (e.g., re-running install).
-    # Signature: our CLAUDE.md contains "Bootstrap Status Check"; constitution.md contains "SLOT REGISTRY";
-    # AGENTS.md contains "external auditor model". If signature matches, just reinstall fresh (no backup needed).
-    SIG=""
-    case "$dst" in
-      "CLAUDE.md")       SIG="Bootstrap Status Check" ;;
-      "constitution.md") SIG="SLOT REGISTRY" ;;
-      "AGENTS.md")       SIG="external auditor model" ;;
-    esac
-    if [ -n "$SIG" ] && grep -q "$SIG" "$DST_PATH" 2>/dev/null; then
-      printf "   ↻ %-40s → %s (existing CCC-Harness version; reinstalling fresh)\n" "$src" "$dst"
-      cp "$SRC_PATH" "$DST_PATH"
-      COPIED=$((COPIED + 1))
-      continue
-    fi
-    # Existing file is the user's — back it up before overwriting.
-    BACKUP_NAME=$(backup_existing "$DST_PATH")
-    printf "   ⚠ %-40s → %s (existing user file backed up to %s)\n" "$src" "$dst" "$BACKUP_NAME"
-    cp "$SRC_PATH" "$DST_PATH"
-    COPIED=$((COPIED + 1))
-    BACKED_UP=$((BACKED_UP + 1))
-    continue
-  fi
-
-  # dir-merge: per-file install/preserve under the destination directory.
-  # See merge_dir_recursive() comment for trade-off note.
+  # dir-merge: per-file install/preserve under the destination directory
+  # using content-hash decisions.
   if [ "$type" = "dir-merge" ]; then
-    RESULT=$(merge_dir_recursive "$SRC_PATH" "$DST_PATH" "$FORCE")
-    COPIED_CT="${RESULT%:*}"
-    SKIPPED_CT="${RESULT#*:}"
-    if [ "$COPIED_CT" -gt 0 ] && [ "$SKIPPED_CT" -gt 0 ]; then
-      printf "   ⊕ %-40s → %s/ (%d new, %d preserved)\n" "$src" "$dst" "$COPIED_CT" "$SKIPPED_CT"
-    elif [ "$COPIED_CT" -gt 0 ]; then
-      printf "   ✓ %-40s → %s/ (%d files)\n" "$src" "$dst" "$COPIED_CT"
+    RESULT=$(merge_dir_recursive "$SRC_PATH" "$DST_PATH" "$dst")
+    NEW_CT="${RESULT%%:*}"
+    REST="${RESULT#*:}"
+    UPD_CT="${REST%%:*}"
+    PRES_CT="${REST##*:}"
+    if [ "$NEW_CT" -gt 0 ] && [ "$UPD_CT" -gt 0 ] && [ "$PRES_CT" -gt 0 ]; then
+      printf "   ⊕ %-40s → %s/ (%d new, %d updated, %d preserved)\n" "$src" "$dst" "$NEW_CT" "$UPD_CT" "$PRES_CT"
+    elif [ "$NEW_CT" -gt 0 ] && [ "$UPD_CT" -gt 0 ]; then
+      printf "   ⊕ %-40s → %s/ (%d new, %d updated)\n" "$src" "$dst" "$NEW_CT" "$UPD_CT"
+    elif [ "$NEW_CT" -gt 0 ] && [ "$PRES_CT" -gt 0 ]; then
+      printf "   ⊕ %-40s → %s/ (%d new, %d preserved)\n" "$src" "$dst" "$NEW_CT" "$PRES_CT"
+    elif [ "$UPD_CT" -gt 0 ] && [ "$PRES_CT" -gt 0 ]; then
+      printf "   ↗ %-40s → %s/ (%d updated, %d preserved)\n" "$src" "$dst" "$UPD_CT" "$PRES_CT"
+    elif [ "$NEW_CT" -gt 0 ]; then
+      printf "   ✓ %-40s → %s/ (%d new)\n" "$src" "$dst" "$NEW_CT"
+    elif [ "$UPD_CT" -gt 0 ]; then
+      printf "   ↗ %-40s → %s/ (%d updated)\n" "$src" "$dst" "$UPD_CT"
     else
-      printf "   = %-40s → %s/ (all %d files already existed)\n" "$src" "$dst" "$SKIPPED_CT"
+      printf "   = %-40s → %s/ (%d already current/preserved)\n" "$src" "$dst" "$PRES_CT"
     fi
-    COPIED=$((COPIED + COPIED_CT))
-    SKIPPED=$((SKIPPED + SKIPPED_CT))
+    COPIED=$((COPIED + NEW_CT))
+    UPDATED=$((UPDATED + UPD_CT))
+    PRESERVED=$((PRESERVED + PRES_CT))
     continue
   fi
 
@@ -455,42 +577,73 @@ for entry in "${MAPPINGS[@]}"; do
     mkdir -p "$(dirname "$DST_PATH")"
     if [ ! -e "$DST_PATH" ]; then
       cp "$SRC_PATH" "$DST_PATH"
+      H=$(sha256_of "$DST_PATH")
+      record_hash "$dst" "$H"
       printf "   ✓ %-40s → %s (new)\n" "$src" "$dst"
       COPIED=$((COPIED + 1))
     else
       MERGE_RESULT=$(merge_json_settings "$SRC_PATH" "$DST_PATH") || {
-        SKIPPED=$((SKIPPED + 1))
+        PRESERVED=$((PRESERVED + 1))
         continue
       }
+      # Record post-merge hash so future content-hash checks see "user-modified".
+      H=$(sha256_of "$DST_PATH")
+      record_hash "$dst" "$H"
       if [ "$MERGE_RESULT" = "BACKED_UP" ]; then
         printf "   ⊕ %-40s → %s (merged; user file backed up to %s.pre-ccc-harness)\n" "$src" "$dst" "$(basename "$dst")"
         BACKED_UP=$((BACKED_UP + 1))
       else
         printf "   ⊕ %-40s → %s (re-merged; idempotent)\n" "$src" "$dst"
       fi
-      COPIED=$((COPIED + 1))
+      UPDATED=$((UPDATED + 1))
     fi
     continue
   fi
 
-  # Non-load-bearing files: preserve existing unless --force
-  if [ -e "$DST_PATH" ] && [ "$FORCE" -ne 1 ]; then
-    echo "   $dst (already exists; preserving — use --force to overwrite)"
-    SKIPPED=$((SKIPPED + 1))
+  # All remaining types (file, dir) → unified content-hash file install.
+  if [ "$type" = "dir" ]; then
+    # dir type: treat as a recursive copy, but apply per-file hash logic via merge.
+    RESULT=$(merge_dir_recursive "$SRC_PATH" "$DST_PATH" "$dst")
+    NEW_CT="${RESULT%%:*}"
+    REST="${RESULT#*:}"
+    UPD_CT="${REST%%:*}"
+    PRES_CT="${REST##*:}"
+    printf "   ✓ %-40s → %s/ (%d new, %d updated, %d preserved)\n" "$src" "$dst" "$NEW_CT" "$UPD_CT" "$PRES_CT"
+    COPIED=$((COPIED + NEW_CT))
+    UPDATED=$((UPDATED + UPD_CT))
+    PRESERVED=$((PRESERVED + PRES_CT))
     continue
   fi
 
-  # Ensure parent dir exists
-  mkdir -p "$(dirname "$DST_PATH")"
-
-  if [ "$type" = "dir" ]; then
-    [ -e "$DST_PATH" ] && rm -rf "$DST_PATH"
-    cp -R "$SRC_PATH" "$DST_PATH"
-  else
-    cp "$SRC_PATH" "$DST_PATH"
-  fi
-  printf "   ✓ %-40s → %s\n" "$src" "$dst"
-  COPIED=$((COPIED + 1))
+  # type = file
+  RESULT=$(install_file_with_hash "$SRC_PATH" "$dst" "$DST_PATH" "$FORCE_LOAD_BEARING")
+  case "$RESULT" in
+    NEW)
+      printf "   ✓ %-40s → %s (new)\n" "$src" "$dst"
+      COPIED=$((COPIED + 1))
+      ;;
+    UPDATED)
+      printf "   ↗ %-40s → %s (updated; unchanged since last install)\n" "$src" "$dst"
+      UPDATED=$((UPDATED + 1))
+      ;;
+    CURRENT)
+      printf "   = %-40s → %s (already current)\n" "$src" "$dst"
+      PRESERVED=$((PRESERVED + 1))
+      ;;
+    PRESERVED)
+      if is_load_bearing "$dst"; then
+        printf "   = %-40s → %s (preserved; local modifications — use --force-load-bearing to reset)\n" "$src" "$dst"
+      else
+        printf "   = %-40s → %s (preserved; local modifications)\n" "$src" "$dst"
+      fi
+      PRESERVED=$((PRESERVED + 1))
+      ;;
+    FORCED)
+      printf "   ⚠ %-40s → %s (force-overwritten; original backed up)\n" "$src" "$dst"
+      UPDATED=$((UPDATED + 1))
+      BACKED_UP=$((BACKED_UP + 1))
+      ;;
+  esac
 done
 
 # chmod +x on shell scripts
@@ -507,14 +660,13 @@ fi
 echo ""
 echo "────────────────────────────────────────────────────────────────"
 if [ "$BACKED_UP" -gt 0 ]; then
-  echo "✅ Installed. ($COPIED copied, $SKIPPED skipped, $BACKED_UP user file(s) backed up)"
+  echo "✅ Installed. ($COPIED new, $UPDATED updated, $PRESERVED preserved, $BACKED_UP file(s) backed up)"
   echo ""
   echo "Note: $BACKED_UP existing file(s) at the target had pre-existing user content."
   echo "They were backed up with .pre-ccc-harness suffix before CCC-Harness's"
-  echo "versions were installed. The bootstrap flow (inside Claude Code) will"
-  echo "ask you what to do with the user content."
+  echo "versions were installed."
 else
-  echo "✅ Installed. ($COPIED copied, $SKIPPED skipped)"
+  echo "✅ Installed. ($COPIED new, $UPDATED updated, $PRESERVED preserved)"
 fi
 echo "────────────────────────────────────────────────────────────────"
 echo ""
