@@ -310,3 +310,23 @@ Either outcome must be reported explicitly. No silent advancement to Stage 7 (sm
 - Stability-fix lane shipping changes with zero cross-model review → Step 5b fires whenever no prior Stage 5 auditor audit exists
 - Tests that cover-but-don't-name a scenario → auditor's scenario-coverage axis flags missing `// Verifies scenario X.Y` comments
 - Implementation file's "Scenario → automated test map" missing a subsection for any `[Required automated test]` scenario after auditor advances (PASS / CONCERNS / WAIVED) → completion criteria forces the update
+
+---
+
+## Checkpoint + decision-log integration (MAGI Archivist)
+
+After all required tests are green + post-fix auditor-gate passes:
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --stage 7 \
+  --stage-complete 6 \
+  --append-audit "$(jq -c '{stage:6, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage6.json)"
+
+# If MAGI Tester needed escalation (3 iterations exhausted) and CEO took over:
+.harness/scripts/decision-log-append.sh \
+  --feature <feature-slug> --stage 6 --by "CEO" \
+  --decision "manual takeover after test-fixer exhausted 3 iterations" \
+  --evidence ".harness/state/test-fix/<feature>-attempts.json"
+```

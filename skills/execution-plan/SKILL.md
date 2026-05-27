@@ -204,3 +204,23 @@ Stage 4 is complete when:
 - `.harness/scripts/auditor-gate.sh` returned exit 0 for stage 4 (`PASS`, `CONCERNS`, or `WAIVED`) — `.harness/state/auditor-approvals/<feature>-stage4.json` exists with a non-FAIL `verdict`. CONCERNS advances but the logged warning must be surfaced to the CEO before commit.
 
 Do not start writing feature code during Stage 4. The plan is the Stage 4 artifact; code is Stage 5.
+
+---
+
+## Checkpoint + decision-log integration (MAGI Archivist)
+
+After auditor-gate passes for Stage 4:
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --stage 5 \
+  --stage-complete 4 \
+  --artifact-plan docs/features/<feature-slug>-plan.md \
+  --append-audit "$(jq -c '{stage:4, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage4.json)"
+
+# Log any material trade-off the plan made (e.g., chose technique X over Y):
+.harness/scripts/decision-log-append.sh \
+  --feature <feature-slug> --stage 4 --by "CEO" \
+  --decision "<e.g. 'chose pessimistic lock over optimistic; reads are 10x more common'>"
+```

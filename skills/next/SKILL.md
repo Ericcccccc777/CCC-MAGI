@@ -101,8 +101,21 @@ Compute these state booleans for the resolved feature. Use the resolved director
 - `SCHEMA_DOC_EXISTS` — heuristic: `test -f "${implementation_dir}${feature}-schema.md"` OR any file matching `${implementation_dir}${feature}-schema*.md`. If uncertain after these checks, treat as `false` and note the uncertainty in the report rather than guessing.
 - `GIT_HAS_CHANGES` — `git status --porcelain` returns at least one line.
 - `STATE_AUDITS_EXIST` — `test -d .harness/state/auditor-approvals` AND `ls .harness/state/auditor-approvals/${feature}-*.json 2>/dev/null` returns ≥1 entry.
+- `CHECKPOINT_EXISTS` — `test -f .harness/state/workflow-checkpoints/${feature}.json`
+- `CHECKPOINT_DATA` — if `CHECKPOINT_EXISTS`: parse with `jq '.current_stage, .stages_completed, .stages_skipped, .last_activity_at, .stage_in_progress'` for state cross-check.
 
 If any check errors out (e.g., directories don't exist yet), treat the corresponding boolean as `false` and continue.
+
+### Step 3a — Cross-check filesystem state vs checkpoint (MAGI Archivist)
+
+If `CHECKPOINT_EXISTS`, the checkpoint is the **canonical truth** for workflow state. Filesystem booleans serve as drift detection:
+
+- If checkpoint says `current_stage = 5` but `SPEC_EXISTS = false` → drift; surface to CEO ("Checkpoint expects spec at `${spec_dir}${feature}.md` but it's missing. Suggest /resume to inspect, or /feature-draft to restart").
+- If checkpoint says `stages_skipped: [3]` and reason is "no backend" → skip Stage 3 in the recommendation.
+- If checkpoint's `stage_in_progress.files_done_list` is non-empty → the user is mid-Stage-5; suggest `/resume` instead of `/implement` (resume picks up at the right file).
+- If `last_activity_at` is > 7 days ago → add a flag: "Last activity 8 days ago — `/resume` for context recall recommended."
+
+Without checkpoint, fall back to pure filesystem inference (existing logic below).
 
 ---
 

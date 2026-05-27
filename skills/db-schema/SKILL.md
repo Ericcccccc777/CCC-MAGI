@@ -97,3 +97,29 @@ See `references/methodology.md` § "Anti-patterns to reject" for the full list. 
 - "We'll add access-control later"
 - Renaming a column in place (always additive)
 - Business logic in triggers when the app layer can do it
+
+---
+
+## Checkpoint + decision-log integration (MAGI Archivist)
+
+If schema work happened:
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --stage 4 \
+  --stage-complete 3 \
+  --artifact-schema <path-to-migration-file> \
+  --append-audit "$(jq -c '{stage:3, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage3.json)"
+```
+
+If skipped (no backend configured):
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --stage 4 \
+  --stage-skip 3 --skip-reason "no backend_db_type configured"
+```
+
+MAGI Archivist surfaces skipped stages in the `/resume` report so users can see deliberate skips vs forgotten stages.

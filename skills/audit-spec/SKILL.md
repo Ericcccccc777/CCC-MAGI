@@ -342,3 +342,29 @@ Stage 1 in audit mode is complete when:
 - The auditor's final pass returned no new BLOCKING/STRONG findings
 - CEO has declared "OK, proceed"
 - The next step is `/spec-finalize <feature>` (formality), then `/db-schema` or `/execution-plan` if Section 9 has actionable deltas
+
+---
+
+## Checkpoint + decision-log integration (MAGI Archivist)
+
+At successful completion, write the checkpoint with `mode: audit`:
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --create-if-missing \
+  --mode audit \
+  --lane <full|stability-fix|trivial> \
+  --stage 2 \
+  --stage-complete 1 \
+  --artifact-spec docs/features/<feature-slug>.md \
+  --artifact-implementation docs/features/<feature-slug>-implementation.md
+
+# Each accepted delta is a CEO decision worth logging:
+.harness/scripts/decision-log-append.sh \
+  --feature <feature-slug> --stage 1 --by "CEO" \
+  --decision "<e.g. 'accept delta D-3 (login OTP timing changed to 60s)'>" \
+  --evidence ".harness/audits/<feature>-as-built-<date>.md"
+```
+
+**MAGI Archivist requires this** for `/resume` to know audit-mode features exist.

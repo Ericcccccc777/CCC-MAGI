@@ -51,7 +51,7 @@ test -f .harness/state/install.json
 
 **If the file DOES exist** → CCC-MAGI is fully configured. Proceed with normal harness workflow:
 
-- All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/resume`, `/next`, `/remember`, plus `/init` for re-configuration, `/constitution-edit` for editing project identity, `/add-constitution-clause`, `/add-anti-flag`).
+- All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/resume`, `/abandon`, `/next`, `/remember`, plus `/init` for re-configuration, `/constitution-edit` for editing project identity, `/add-constitution-clause`, `/add-anti-flag`).
 - This file (CLAUDE.md) and `constitution.md` carry the operating rules.
 
 > **Belt-and-suspenders design**: this Bootstrap Status Check block is the "employee handbook" layer — it tells Claude *what* to do. The actual *enforcement* lives in the UserPromptSubmit hook at `.harness/scripts/bootstrap-check.sh`, wired in `.claude/settings.json`. The hook fires deterministically on every user prompt regardless of whether Claude reads this block. Together = robust against any single failure mode (e.g., this block missing because CLAUDE.md was overwritten by an earlier session's edit).
@@ -266,6 +266,7 @@ Skills are invokable two ways:
 - `/init` — **Step 2** of harness setup: fills L0/L1 slots interactively, writes `.harness/state/install.json` as the canonical "configured" marker. Re-runnable for re-configuration with `--force`. Does NOT run detection — bootstrap handles that before /init is invoked.
 - `/next` — workflow state inspector: detects current feature progress and suggests next command. Doesn't auto-invoke; pure wayfinder. Use when unsure which skill to run.
 - `/resume` — session resume: reads `.harness/state/workflow-checkpoints/<feature>.json` and restores stage / artifact / progress state. Auto-surfaced at SessionStart if a checkpoint matches the current git branch. Use after multi-day breaks, cross-device work, or context-compaction loss.
+- `/abandon` — mark a feature dead: moves checkpoint to `_archived/`, logs reason to decision-log. Does NOT touch git or source code (CEO's job). Use when CEO rejects a feature post-spec or when cleaning dormant features from `/resume --list`.
 - `/feature-draft <name>` — stage 1, **new-feature mode**
 - `/audit-spec <name>` — stage 1, **audit mode**
 - `/spec-finalize <name>` — stage 2

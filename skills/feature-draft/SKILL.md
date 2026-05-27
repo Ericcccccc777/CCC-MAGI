@@ -321,3 +321,28 @@ Stage 1 in new-feature mode is complete when:
 - The auditor's most recent round returned no new BLOCKING / STRONG findings
 - CEO has declared "OK, proceed"
 - The next step is `/spec-finalize <feature>`
+
+---
+
+## Checkpoint + decision-log integration (MAGI Archivist)
+
+At successful completion, write the checkpoint (first stage = bootstraps the file):
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --create-if-missing \
+  --mode new-feature \
+  --lane <full|stability-fix|trivial> \
+  --stage 2 \
+  --stage-complete 1 \
+  --artifact-spec docs/features/<feature-slug>.md \
+  [--artifact-implementation docs/features/<feature-slug>-implementation.md]
+
+# If CEO made a material intent decision during paraphrase or edge-case rounds:
+.harness/scripts/decision-log-append.sh \
+  --feature <feature-slug> --stage 1 --by "CEO" \
+  --decision "<one-line summary, e.g. 'edge case #3 race-condition is in scope'>"
+```
+
+**Skipping this step breaks `/resume`** — MAGI Archivist depends on every stage writing here.

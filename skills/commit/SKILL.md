@@ -205,3 +205,39 @@ Stage 8 is complete when:
 - All pre-commit hooks passed (or the user explicitly overrode them with a documented reason)
 - The user has seen the resulting commit hash and message
 - (If pushing) The push happened only after both the CEO smoke test and the auditor audit passed
+
+---
+
+## Checkpoint + decision-log integration (MAGI Archivist)
+
+After the commit is created and (if applicable) pushed, **archive the checkpoint** — the feature is done, no more `/resume` needed:
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --stage-complete 8 \
+  --archive
+```
+
+This moves `.harness/state/workflow-checkpoints/<feature>.json` → `.harness/state/workflow-checkpoints/_archived/<feature>-<timestamp>.json`. The archived file is gitignored but kept locally for audit / retrospective.
+
+Log the commit decision:
+
+```bash
+.harness/scripts/decision-log-append.sh \
+  --feature <feature-slug> --stage 8 --by "CEO" \
+  --decision "shipped <feature>" \
+  --evidence "$(git rev-parse --short HEAD)"
+```
+
+If you smoke-tested and decided NOT to ship (rollback / defer), do NOT archive — leave the checkpoint open so resume works:
+
+```bash
+.harness/scripts/decision-log-append.sh \
+  --feature <feature-slug> --stage 7 --by "CEO" \
+  --decision "smoke test failed: <symptom>; reverting to Stage 5 to fix"
+
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> --stage 5
+  # (resets current_stage; preserves audit history + stages_completed)
+```

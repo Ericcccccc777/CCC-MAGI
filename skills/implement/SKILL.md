@@ -256,3 +256,52 @@ The user should be able to proceed to `/test-fix <feature>` immediately after.
 - Skipping the auditor because "junior reviewers already approved" → auditor unconditional
 - Treating auditor disagreement as noise → halt, user explicitly overrides if needed
 - Sequential reviewer spawn (lets earlier verdicts color later prompts) → all required reviewers in a single parallel batch
+
+---
+
+## Checkpoint + decision-log integration (MAGI Archivist) — including mid-flight
+
+Stage 5 differs from other stages: it can take hours and edit many files. MAGI Archivist tracks progress **at the file level**, not just at stage end. This is what enables `/resume` to pick up at "5/8 files done" instead of "Stage 5 incomplete".
+
+### At Stage 5 START — declare the file plan
+
+After reading the execution plan but before writing any code:
+
+```bash
+TOTAL_FILES=$(grep -cE '^\s*-\s+\`?[^[:space:]\`]+' docs/features/<feature>-plan.md | tr -d ' ')
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --stage 5 \
+  --stage-in-progress "$(jq -nc --argjson total "$TOTAL_FILES" '{stage_number:5, files_total:$total, files_done_list:[], files_remaining_list:[], last_action:"Stage 5 started", resume_hint:"Run /implement to begin"}')"
+```
+
+### MID-FLIGHT — after each file's Edit/Write completes
+
+```bash
+# Call this AFTER every file the implementer fully completes (not on partial edits)
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --file-done <path/to/file>
+```
+
+This makes `/resume` reports show: *"3/8 files done — continue at src/auth/middleware.ts (next)"*.
+
+### At Stage 5 END — close out + audit verdict
+
+After all files complete + reviewer chain + auditor-gate passes:
+
+```bash
+.harness/scripts/checkpoint-write.sh \
+  --feature <feature-slug> \
+  --stage 6 \
+  --stage-complete 5 \
+  --stage-in-progress 'null' \
+  --append-audit "$(jq -c '{stage:5, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage5.json)"
+
+# Log any escalation or override:
+.harness/scripts/decision-log-append.sh \
+  --feature <feature-slug> --stage 5 --by "CEO" \
+  --decision "<e.g. 'override frontend-reviewer false positive on FlashList ref'>"
+```
+
+**Without mid-flight tracking, a crash at file 4/8 makes `/resume` think Stage 5 hasn't started.**
