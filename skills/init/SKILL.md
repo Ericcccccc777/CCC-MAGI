@@ -1,7 +1,18 @@
 ---
 name: init
-description: Project configuration. Asks L0 slot questions, fills constitution.md, scaffolds .harness/ + .claude/ + .codex/ in the user's project, and writes the install.json that marks the harness as fully configured. This skill assumes existing-harness detection has already been handled by the bootstrap; it does NOT run detection itself. Works in two modes — interactive (standalone CLI use) and CCC-driven (CCC's HarnessWizard invokes /init programmatically with pre-collected answers). Trigger when the user invokes /init, says "set up the harness", "configure CCC-MAGI", "fill the L0 questions", or arrives here from the bootstrap flow (standalone-bootstrap.md or CCC's bundled Step 1 driver).
-argument-hint: [--ccc-driven] [--config <yaml>] [--force]
+description: |
+  Project configuration. Fills constitution.md, scaffolds .harness/ + .claude/ + .codex/, writes install.json (the "configured" marker). Supports two onboarding modes:
+  - **Simple** (5 questions, ~3 min) — defaults for 11 slots; great for solo / hackathon / side project
+  - **Pro** (16 questions, ~15 min) — full identity contract for serious + team projects
+  
+  After description is captured, runs a **suggestion engine** that pre-fills sensible defaults for remaining slots based on what the user just described.
+  
+  Trigger when the user:
+  - Invokes /init, /init --simple, /init --pro, /init --upgrade-to-pro
+  - Says "set up the harness" / "配置 CCC-MAGI" / "harness 설치"
+  - Says "I want to upgrade to pro mode" / "升级到专业版" / "切到专业模式" / "现在我想答完所有问题" / "プロモードに切り替える" / "프로 모드로 업그레이드" → invoke `/init --upgrade-to-pro`
+  - Arrives from the bootstrap flow (standalone-bootstrap.md or CCC's bundled Step 1 driver)
+argument-hint: [--simple | --pro | --upgrade-to-pro] [--ccc-driven] [--config <yaml>] [--force]
 ---
 
 # /init
@@ -67,11 +78,43 @@ Existing harness present?
 
 ## Modes
 
-| Mode | How it's triggered | Behavior |
-|------|---------------------|----------|
-| **Interactive (default)** | User runs `/init` in CLI | Asks each L0 question; user types answers |
-| **CCC-driven** | CCC's HarnessWizard invokes `/init --ccc-driven --config <yaml>` | Reads answers from `<yaml>`; only asks for missing fields or confirmations |
-| **Force re-init** | `/init --force` | Overrides the "already configured" guard at Step 0. Re-runs the full flow, overwriting the prior install. |
+| Mode | How it's triggered | What it asks | Time | Defaults |
+|------|---------------------|----|----|----|
+| **Simple (default)** | `/init` or `/init --simple` | **5 questions** (identity essentials + audit + tests) | ~3 min | 11 slots get smart defaults from description + auto-detect |
+| **Pro** | `/init --pro` or user picks Pro at the mode prompt | **16 questions** (full identity contract) | ~15 min | 0 — every L0 slot explicitly answered |
+| **Upgrade Simple → Pro** | `/init --upgrade-to-pro` or user says "升级到专业版"/"upgrade to pro" | The **11 questions Simple skipped** (5 already-answered ones stay) | ~10 min | Reads existing install.json; appends instead of overwriting |
+| **CCC-driven** | CCC's HarnessWizard invokes `/init --ccc-driven --config <yaml>` | Reads answers from `<yaml>`; only asks for missing fields | varies | per yaml |
+| **Force re-init** | `/init --force` | Bypasses "already configured" guard; re-runs full Simple or Pro flow | 3-15 min | overwrites prior install |
+
+### Picking mode at run time
+
+When `/init` is invoked WITHOUT explicit `--simple` / `--pro` flag, **ask the user once at the very start** (in their OS locale):
+
+```
+─── Choose onboarding mode ─────────────────────────────────────
+
+Welcome to CCC-MAGI. Pick how thorough you want the setup:
+
+  [1] Simple  — 5 questions, ~3 minutes
+                Smart defaults for everything else. Great for:
+                  • Solo / side projects
+                  • Hackathons / weekend hacks
+                  • "Just want to try it"
+                You can upgrade to Pro later anytime.
+
+  [2] Pro     — 16 questions, ~15 minutes
+                Full project identity contract. Great for:
+                  • Team projects (3+ devs)
+                  • Long-term maintenance projects
+                  • Compliance-sensitive work (GDPR / HIPAA / PCI)
+                  • Anything you'll explain to a stakeholder later
+
+> 
+```
+
+If user says "1" / "simple" / "简单" / "シンプル" → Simple mode.
+If user says "2" / "pro" / "professional" / "专业" / "プロ" → Pro mode.
+If user picks Simple, remind once at the end: *"You can upgrade to Pro anytime by saying 'upgrade to pro' or running `/init --upgrade-to-pro`."*
 
 ---
 
@@ -170,147 +213,249 @@ Record the result as `project_mode`. The Step 2 question flow uses different def
 
 ## Step 2 — L0 slot question flow
 
-All L0 slots from `constitution.md` § Slot registry must be filled. Total: **16 L0 slots**.
+The slot inventory and ordering live in `constitution.md` § Slot registry (17 L0 slots — Block A through Block E below). What changes between modes is **how many of those 17 get explicitly asked vs defaulted**.
 
-### Greenfield mode
+### Question inventory (full Pro mode = 16 asked + 1 auto)
 
-Ask each L0 question fresh. Group them into thematic blocks to reduce fatigue:
+| # | Slot | Block | Mode coverage | Default if skipped (Simple mode) |
+|---|---|---|---|---|
+| Q1 | `project_name` | A | Simple + Pro | auto-detect from manifest |
+| Q2 | `project_description` | A | **Simple + Pro** (always) | — (required, no default) |
+| Q3 | `project_stage` | A | Pro only | `early` |
+| Q4 | `project_scale_target` | A | Pro only | "small / personal" (from description) |
+| Q5 | `team_size` | B | Simple + Pro | `solo` |
+| Q6 | `primary_concern` | B | Pro only | inferred from description (keyword extract) |
+| Q7 | `out_of_scope_items` | B | Pro only | `[]` (empty) |
+| Q8 | `auditor_model` | C | Simple + Pro | (asked; see CLI detection below) |
+| Q9 | `language_mode` | C | Pro only | `plain` |
+| Q10 | `project_audience` | D | Pro only | "general users of {{project_name}}" |
+| Q11 | `project_non_goals` | D | Pro only | `[]` (empty) |
+| Q12 | `project_compliance` | D | Pro only | `none` |
+| Q13 | `project_performance_floor` | D | Pro only | "no formal floor yet" |
+| Q14 | `project_identity_other` | D | Pro only | `[]` (empty) |
+| Q15 | `spec_dir` | E | Pro only | `docs/features/` |
+| Q16 | `implementation_dir` | E | Pro only | `docs/features/` |
+| L1.test | `test_required` | — | Simple + Pro | `true` |
 
-**Convention for every block below**: at the top of each block, tell the user once:
-`(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)`.
-Then individual questions DO NOT repeat the "press Enter to accept" reminder. Brief
-industry-common examples are inline (in parentheses) to help the user pick.
+**Simple mode = 5 asked**: Q1 + Q2 + Q5 + Q8 + L1.test (test_required)  
+**Pro mode = 16 asked**: all 16 above  
+**Upgrade Simple→Pro = 11 asked**: everything except the 5 Simple already covered
 
-#### Block A — Identity (4 questions)
+---
+
+### Step 2A — Suggestion engine (fires after Q2 — description capture)
+
+After the user answers Q2 (`project_description`), pause the question flow and run a **suggestion engine** before continuing:
+
+> **Internal prompt** (do NOT show to user — runs in your head before the next question): *"Based on the project description '<their answer>', what are sensible default values for: project_stage, project_scale_target, primary_concern, project_audience, project_non_goals, project_compliance, project_performance_floor? Give 2-3 concrete options for each. Mark the most likely with ⭐."*
+
+Generate the suggestions in **one pass** (all slots at once — saves tokens and reveals AI's understanding consistency to user).
+
+Then for each subsequent question (Q3-Q16), present the question + show the suggestion:
+
+#### Pattern A — Fixed-options question (multiple choice with highlighted default)
 
 ```
-─── Block A · Project Identity (4 questions) ───────────────────
-(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
-
-Q1. Project name (default: auto-detected from manifest)
-    e.g.: acme-app / blog-site / dev-tool
-
-Q2. One-sentence description (plain language, no jargon)
-    e.g.: "team chat app with file sharing" / "B2B SaaS reporting tool"
-
 Q3. Project stage?
-    a. early   — just starting, no users yet
-    b. beta    — internal testing / small user group
-    c. prod    — publicly released, has users
-    d. scale   — at scale, operations-mature
-    (common: solo projects → usually a; team projects → usually b)
-
-Q4. Target scale
-    e.g.: "100 users" / "10k DAU" / "internal company use"
+    Based on your description, I'd guess: ⭐ early
+    
+    [a] early   — just starting, no users yet               ⭐ suggested
+    [b] beta    — internal testing / small user group
+    [c] prod    — publicly released, has users
+    [d] scale   — at scale, operations-mature
+    > [Enter to accept ⭐ / type a-d for different / type "?" for why]
 ```
 
-#### Block B — Scope + Discipline (3 questions)
+If user types `?`, show the reasoning: *"You said '<description>' — the words 'just starting' / 'side project' / similar suggest pre-launch state. If users are already using it, pick beta or prod."*
+
+#### Pattern B — Open-ended question (3-5 example values + free input)
 
 ```
-─── Block B · Scope + Discipline (3 questions) ─────────────────
-(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
-
-Q5. Team size?
-    a. solo    — one developer (default)
-    b. small   — 2-5 people
-    c. large   — 6+ people
-
 Q6. What is this harness primarily protecting?
-    e.g.: stability / security / velocity / compliance
-
-Q7. What is explicitly NOT in the harness's scope?
-    e.g.: marketing copy / customer support / legal terms / server ops
-    (one item per line)
+    Based on your description, the most likely concerns are:
+    
+    [A] data integrity (no lost messages / files)
+    [B] real-time sync reliability (multi-device consistency)
+    [C] user privacy (chat content stays private)
+    [D] velocity (ship features fast)              ← uncommon for this kind of project
+    [E] write your own
+    
+    Can pick multiple (e.g., "A+B") or single. > 
 ```
 
-#### Block C — Engine (2 questions)
+User picks letters, types free text, or combinations like `A+C`.
+
+#### Pattern C — Confirmatory question (suggested value pre-filled, edit if needed)
 
 ```
-─── Block C · Engine (2 questions) ─────────────────────────────
-(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
-
-Q8. Single-engine or dual-engine?
-    a. Dual-engine (recommended) — Claude writes code; a second model (default: Codex / gpt-5.5) independently audits.
-    b. Single-engine             — Only Claude; audit runs as a fresh-context Claude call (fallback).
-                                   Simpler but weaker bias-cancellation guarantee.
-
-Q9. Conversation language style?
-    a. plain        — plain language by default; AI strips jargon from prompts (recommended)
-    b. professional — technical terms allowed
-```
-
-#### Block D — Project identity (5 questions — these go to constitution Section 2)
-
-```
-─── Block D · Project Identity / Red Lines (5 questions) ───────
-(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
-
 Q10. Who do you serve? (one sentence)
-     e.g.: "independent writers" / "small-business CRM users" / "developers of developer tools"
-
-Q11. What do you deliberately NOT do? (project-identity-level "no")
-     e.g.: "Never add collaboration features — this is a single-user tool"
-           "Never store user payment data — use Stripe"
-
-Q12. Compliance / legal floors?
-     a. GDPR (EU data protection)
-     b. HIPAA (US healthcare)
-     c. PCI   (payment cards)
-     d. none  (no mandatory regulations)
-     e. other (please specify)
-
-Q13. Performance floors (non-negotiable)?
-     e.g.: "cold start < 2s" / "99.9% availability" / "any user action < 200ms response"
-     Type "none" if you don't have one yet.
-
-Q14. Any other "if-violated-this-is-no-longer-this-project" statements?
-     (optional)
+     ⭐ Suggested based on description: 
+       "remote engineering teams at 5-50 person companies"
+     
+     > [Enter to accept / type your own]
 ```
 
-#### Block E — Paths (2 questions, with defaults)
+### Step 2B — Simple mode (5 questions)
+
+After mode pick = Simple, run only the 5 essential questions, but still run the suggestion engine after Q2.
+
+Display in user's locale:
 
 ```
-─── Block E · Paths (2 questions) ──────────────────────────────
-(Per question: [Enter] = accept default / type a new value / type "skip <Qn>" to skip)
+─── Simple Setup · 5 questions, ~3 minutes ─────────────────────
 
-Q15. Where should feature spec files live?
-     Default: docs/features/
-     e.g.: docs/features/ / specs/ / .specs/
+Q1/5. Project name
+      Detected from manifest: "my-app"
+      > [Enter to accept / type new]
 
-Q16. Where should implementation-notes files live?
-     Default: docs/features/ (same directory as specs)
-     e.g.: docs/features/ / docs/impl/
+Q2/5. One-sentence project description (plain language, no jargon)
+      e.g.: "team chat app with file sharing for remote engineers"
+      > 
+
+[Suggestion engine runs here — produces defaults for the 11 skipped slots]
+
+Q3/5. Team size?
+      Based on description, suggesting: ⭐ small (2-5 people)
+      [a] solo  [b] small ⭐  [c] large
+      > 
+
+Q4/5. Auto-write tests when implementing features?
+      [Y] Yes (recommended — MAGI Tester runs at Stage 6)
+      [n] No  (skip Stage 6 entirely)
+      > 
+
+Q5/5. Cross-model auditor (MAGI Verdict)?
+      [CLI detection results here — see Step 2C below]
+      > 
+
+✓ Done. 11 other slots set to smart defaults. Run /init --upgrade-to-pro 
+  anytime (or say "upgrade to pro") to answer them properly.
 ```
 
-### Brownfield mode
+### Step 2C — CLI detection for the auditor question (Q5/Q8)
 
-Same questions, but auto-detect defaults before asking:
+Run this detection logic before asking the auditor question:
 
-- **Q1 (project_name)**: scan `package.json:name`, `pyproject.toml:name`, `Cargo.toml:name`, `go.mod`, `composer.json:name` → propose as default
-- **Q2 (project_description)**: scan README.md first paragraph → propose
-- **Q3 (project_stage)**: heuristic — if git log < 30 commits AND no test files: early; if has tests + CI but no production marker: beta; otherwise: prod (low confidence — confirm)
-- **Q5 (team_size)**: count distinct git authors in last 90 days → propose
-- Q4, Q6-Q14 must be asked (no reliable auto-detect)
+```bash
+HAS_CLAUDE=$(command -v claude >/dev/null && echo yes || echo no)
+HAS_CODEX=$(command -v codex >/dev/null && echo yes || echo no)
+HAS_GEMINI=$(command -v gemini >/dev/null && echo yes || echo no)
+CURRENT_CLI=  # detect parent process — likely claude or codex
+```
 
-For each auto-detected default, show (in user's locale):
+Branch on results:
+
+**Branch 1 — Both Claude + Codex installed** (Tier 1 ideal):
+```
+You have both Claude Code and Codex CLI. Recommended setup:
+  [1] ⭐ Cross-model: Claude writes, Codex audits (Tier 1 — best bias cancellation)
+  [2] Single-engine: just Claude with fresh-context fallback (Tier 2)
+  [3] Skip audit entirely (⚠️ violates Universal Core — NOT recommended)
+> 
+```
+
+**Branch 2 — Only your current CLI installed**:
+```
+You're using Claude Code. Codex CLI is not installed.
+  [1] Install Codex CLI now (1 command — opens https://github.com/openai/codex)
+      Then use Codex as MAGI Verdict (Tier 1)
+  [2] Single-engine: use fresh-context Claude as auditor (Tier 2 — works fine)
+  [3] Skip audit entirely (⚠️ NOT recommended)
+> 
+```
+
+**Branch 3 — Some other CLI** (Cursor / Cline / Aider / Gemini / etc.):
+```
+You're using <detected CLI>. Note: CCC-MAGI is Tier-3 tested on this CLI 
+(some hooks may not fire — see README § CLI compatibility).
+
+  [1] Use your current CLI as both writer + fresh-context auditor (Tier 2)
+  [2] Install Codex CLI separately to act as auditor (Tier 1, recommended)
+  [3] Skip audit (⚠️ NOT recommended)
+> 
+```
+
+For Simple mode: limit to options [1] and [2]; don't show "skip audit" (Universal Core compliance).
+
+### Step 2D — Pro mode (16 questions)
+
+After mode pick = Pro, ask all 16 questions, organized in 5 thematic blocks. The suggestion engine STILL runs after Q2 and pre-fills defaults for Q3-Q16 (user can accept, edit, or override).
+
+**Convention for every Pro-mode block**: at top of each block, tell user once:
+`(Per question: [Enter] = accept ⭐ suggestion / type new value / type "skip <Qn>" / type "?" for reasoning)`
+
+#### Block A — Identity (Q1-Q4)
+- Q1 project_name — auto-detected default
+- Q2 project_description — ALWAYS asked, NO default (triggers suggestion engine)
+- Q3 project_stage — choice a/b/c/d, suggestion highlighted
+- Q4 project_scale_target — open-ended with 3-5 example suggestions
+
+#### Block B — Scope + Discipline (Q5-Q7)
+- Q5 team_size — solo/small/large, suggestion based on git activity (brownfield) or description (greenfield)
+- Q6 primary_concern — open-ended with letter-coded suggestion list
+- Q7 out_of_scope_items — open-ended with examples from description's negative space
+
+#### Block C — Engine (Q8-Q9)
+- Q8 auditor_model — CLI-detected, branches per Step 2C above
+- Q9 language_mode — plain/professional, default plain
+
+#### Block D — Project identity / Red lines (Q10-Q14, → constitution Section 2)
+- Q10 project_audience — confirmatory pattern (suggestion pre-filled)
+- Q11 project_non_goals — open-ended with description-derived examples
+- Q12 project_compliance — GDPR/HIPAA/PCI/none/other, suggestion based on `project_audience` keywords
+- Q13 project_performance_floor — open-ended with example latencies
+- Q14 project_identity_other — OPTIONAL, can skip with empty
+
+#### Block E — Paths (Q15-Q16)
+- Q15 spec_dir — default `docs/features/`
+- Q16 implementation_dir — default `docs/features/`
+
+### Step 2E — Upgrade mode (Simple → Pro)
+
+If invoked via `/init --upgrade-to-pro` or natural language ("升级到专业版" / "upgrade to pro" / etc.):
+
+1. Read existing `.harness/state/install.json`
+2. Identify which 5 slots are already answered (Q1, Q2, Q5, Q8, test_required)
+3. Re-run the suggestion engine on the existing `project_description` to produce fresh defaults for the 11 skipped slots
+4. Walk through Q3, Q4, Q6, Q7, Q9, Q10, Q11, Q12, Q13, Q14, Q15, Q16 in that order
+5. Update install.json with `"mode": "pro"` and `"upgraded_from_simple_at": "<timestamp>"` fields
+6. Update constitution.md Section 2 with new identity slots
+
+Don't overwrite the 5 existing answers unless user explicitly says so.
+
+### Brownfield-mode adjustments (regardless of Simple/Pro)
+
+In brownfield mode, auto-detect defaults from the codebase BEFORE asking:
+
+- **Q1 (project_name)**: scan `package.json:name`, `pyproject.toml:name`, `Cargo.toml:name`, `go.mod`, `composer.json:name`
+- **Q2 (project_description)**: scan README.md first paragraph
+- **Q3 (project_stage)**: heuristic — git log < 30 commits AND no test files → early; has tests + CI but no prod marker → beta; otherwise → prod (low confidence — confirm)
+- **Q5 (team_size)**: count distinct git authors in last 90 days
+
+For each auto-detected default, show:
 ```
 Q1. Project name (detected from package.json: "my-app")
-    Press Enter to accept, or type a new value:
+    Press Enter to accept, or type new value:
 ```
 
-### Confirmation block
+### Confirmation block (after all questions in the chosen mode)
 
-After all 16 questions, show the full L0 slot table for confirmation (display in user's locale):
+Display the full L0 slot table for confirmation (user's locale). Highlight:
+- ✓ values user explicitly answered
+- 🤖 values from suggestion engine (accepted by user)
+- ⚙️ values defaulted (Simple mode skipped slots)
+- 🔍 values auto-detected (brownfield)
 
 ```
-About to write the following L0 configuration to constitution.md:
+About to write the following configuration to constitution.md:
 
-  project_name              : my-app
-  project_description       : A note-taking tool for indie writers
-  project_stage             : beta
+  project_name              : my-app                  🔍 detected
+  project_description       : "..."                    ✓ user
+  project_stage             : early                    ⚙️ default (Simple mode)
+  team_size                 : small                    🤖 suggested + accepted
   ...
 
-All correct? Type "yes" to continue, or "no" to re-answer any question:
+All correct? Type "yes" to continue, "no" to re-answer specific Q#:
 ```
 
 ---

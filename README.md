@@ -185,13 +185,51 @@ For the full design rationale, see `docs-harness/design-spec.md`.
 
 ---
 
-## Compatibility
+## CLI compatibility
 
-- **CLIs**: Claude Code (`claude`), Codex CLI (`codex`). Future: Gemini CLI, Cline CLI, others.
+CCC-MAGI is end-to-end tested on **two CLIs**: Claude Code and Codex CLI. Other CLIs work to varying degrees — the table below sets correct expectations:
+
+| Your primary CLI | Cross-model auditor | Status | What works / what doesn't |
+|---|---|---|---|
+| **Claude Code** | Codex CLI | ✅ **Tier 1** | Everything: 5 hook chain, /init 16-question flow, cross-model audit, session resume |
+| **Codex CLI** | Claude Code | ✅ **Tier 1** | Same as above, roles reversed (Claude does the audit) |
+| Single-CLI fallback | same model in fresh context | ⚠️ **Tier 2** | All skills work; **bias-cancellation weakens** (same model = same blind spots). Discipline of "second look" preserved. |
+| Cursor / Cline / Aider / Gemini CLI / others | (depends on what's installed) | ⚠️ **Tier 3** | **Untested**. The following may not work: `UserPromptSubmit` hook (bootstrap-check / budget-monitor) / `PreCompaction` hook (memory-snapshot) / `PostToolUse` hook (formatter). Still works: constitution.md, skills as documentation, /init 16-question flow, cross-model audit IF your CLI supports `--output-format json`. Risk on you. |
+
+**Detection**: at `/init` time, CCC-MAGI runs `command -v claude && command -v codex && command -v gemini` to see what's available, then suggests the highest-tier configuration your machine can support.
+
+**No plugins required** — the cross-model audit invokes the auditor CLI directly via shell (`codex exec ...` or `claude --no-session ...`). You don't need any "harness bridge" plugin.
+
+**Other compatibility**:
 - **OS**: macOS, Linux. Windows via WSL.
 - **Shell**: bash 3.2+ (macOS default supported).
 - **Required tools**: `git`, `jq` (for `auditor-gate.sh`).
-- **Auditor models**: Codex (default), Claude (single-engine fallback), or any model with structured-output capability.
+
+---
+
+## Team collaboration & git policy
+
+CCC-MAGI ships a careful split between team-shared and personal files. The shipped `.gitignore` already encodes this — you usually don't have to think about it. But here's the philosophy in case you do:
+
+**Committed (visible in repo, every teammate sees the same):**
+- `constitution.md` — project identity
+- `CLAUDE.md` + `AGENTS.md` — workflow + AI tool context
+- `.harness/skills/` + `.harness/agents/` + `.harness/scripts/` — the harness machinery
+- `.harness/state/install.json` — answers to the 16/5 onboarding questions
+- `.harness/memory/conventions.md` — long-form project conventions
+- `.claude/settings.json` + `.codex/config.toml` — hook wiring
+
+**Gitignored (yours alone, never shared):**
+- `.harness/memory/observations.jsonl` + `.harness/memory/decision-log.md` — your AI session notes
+- `.harness/audits/` + `.harness/state/auditor-approvals/` — runtime verdict logs
+- `.harness/state/workflow-checkpoints/` — your session progress cards
+- `.harness/state/shipped-hashes.json` — install-time hash registry
+
+**Why this split** — Cline / Spec-Kit / BMAD / Continue / Roo all commit their harness files wholesale, leading to merge conflicts every time someone re-installs at a different version. Aider gitignores everything, losing team alignment. CCC-MAGI's middle path: commit the **identity + tools + rules**, gitignore the **session + verdicts + progress**.
+
+**If you're a solo developer** — you can ignore this section. The defaults work.
+
+**If you switch from a different harness** — re-run `/init`. The harness will detect any pre-existing config from BMAD / Spec-Kit / ad-hoc CLAUDE.md files and offer to archive them.
 
 ---
 

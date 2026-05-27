@@ -80,12 +80,22 @@
 
     "SessionStart": [
       {
-        "_comment": "Memory recall: reads .harness/memory/observations.jsonl, scores entries by relevance to the current git branch's feature, and injects the top relevant entries into Claude's additionalContext at session start. Silently no-ops if the memory file is missing or empty.",
+        "_comment": "Memory recall (MAGI Archivist): reads .harness/memory/observations.jsonl, scores entries by relevance to the current git branch's feature, and injects the top relevant entries into Claude's additionalContext at session start. Silently no-ops if the memory file is missing or empty.",
         "hooks": [
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-recall.sh",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comment": "Checkpoint recall (MAGI Archivist): detects current git branch's feature, reads .harness/state/workflow-checkpoints/<feature>.json if it exists, injects additionalContext telling MAGI Core to surface the resume offer to the user. Silent on main/master/develop, on missing checkpoints, or outside git repos. Powers the welcome-back UX of the /resume skill.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/checkpoint-recall.sh",
+            "timeout": 5
           }
         ]
       }

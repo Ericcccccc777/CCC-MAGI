@@ -51,7 +51,7 @@ test -f .harness/state/install.json
 
 **If the file DOES exist** → CCC-MAGI is fully configured. Proceed with normal harness workflow:
 
-- All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, plus `/init` for re-configuration, `/constitution-edit` for editing project identity, `/add-constitution-clause`, `/add-anti-flag`).
+- All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/resume`, `/next`, `/remember`, plus `/init` for re-configuration, `/constitution-edit` for editing project identity, `/add-constitution-clause`, `/add-anti-flag`).
 - This file (CLAUDE.md) and `constitution.md` carry the operating rules.
 
 > **Belt-and-suspenders design**: this Bootstrap Status Check block is the "employee handbook" layer — it tells Claude *what* to do. The actual *enforcement* lives in the UserPromptSubmit hook at `.harness/scripts/bootstrap-check.sh`, wired in `.claude/settings.json`. The hook fires deterministically on every user prompt regardless of whether Claude reads this block. Together = robust against any single failure mode (e.g., this block missing because CLAUDE.md was overwritten by an earlier session's edit).
@@ -103,7 +103,7 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 - Don't second-guess CEO intent at later stages. Paraphrase to confirm understanding (Stage 1) — never to challenge.
 - Don't ask the CEO technical questions; translate them to user-result questions, or decide internally and document the reasoning.
 - **Language mode is `{{language_mode}}`.** If `plain` (default), CEO-facing prompts strip jargon — every question and every confirmation phrased so a non-engineer can answer. If `professional`, technical terms allowed.
-- When MAGI (the {{auditor_model}} auditor) disagrees with the CEO on a BLOCKING item, route through the escalation pattern: present both views, name the user/cost/security impact, then let the CEO decide. The CEO still has the final word (unless the disagreement is over a Universal Core item, in which case the constitution wins).
+- When **MAGI Verdict** (the cross-model auditor, default `{{auditor_model}}`) disagrees with CEO on a BLOCKING item, route through the escalation pattern: present both views, name the user/cost/security impact, then let CEO decide. CEO still has the final word **unless the disagreement is over a Universal Core item** — in which case the constitution wins and MAGI Verdict's verdict stands (auditor-gate.sh enforces this at the shell level; no override possible).
 
 ## Repo structure
 
@@ -118,7 +118,15 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
 
 ## Workflow
 
-Two roles, three lanes. Roles are **CEO (you)** and **Tech Lead (Main Claude + MAGI, the {{auditor_model}} auditor)**; junior reviewers (plugins from `{{junior_reviewers}}`) enforce mechanical rules; the junior programmer (`test-fixer`) writes test code only. Judgment is MAGI's (the auditor's); rule enforcement is the subagents'; intent is yours.
+Two sides, three lanes. The **CEO (you, human)** sets intent. The **MAGI System** (the AI team) implements + reviews — see `AGENTS.md § MAGI System` for the 7 positions. Concretely:
+
+- **MAGI Core** (your primary CLI, e.g. Claude Code) — orchestrator + workflow manager. Talks to you. Spawns subagents.
+- **MAGI Verdict** (default `{{auditor_model}}`, e.g. Codex) — cross-model auditor. **Judgment authority. Not under MAGI Core's chain of command** — independent reviewer per Universal Core.
+- **MAGI Planner / Programmer / Tester** — played by MAGI Core during the matching stage (mode switch, not separate processes).
+- **MAGI Reviewer** — `{{junior_reviewers}}` rule-enforcement plugins (backend / frontend / security). Mechanical. Cite rule source; never invent.
+- **MAGI Archivist** — `memory-recall.sh` / `memory-snapshot.sh` hook services.
+
+Judgment is MAGI Verdict's; rule enforcement is MAGI Reviewer's; orchestration is MAGI Core's; intent is yours.
 
 The workflow runs in two **modes** that share Stages 2–9. Stage 1 differs by mode:
 
@@ -234,7 +242,7 @@ Specs at `{{spec_dir}}<name>.md` are load-bearing only when they match reality. 
 
 **Plan files are transient.** `{{spec_dir}}<name>-plan.md` is the Stage 4 execution checklist. Once the implementation lands at Stage 8, the plan has done its job — delete it as part of the commit that ships the implementation. Stale plan files with un-ticked checkboxes mislead future-you.
 
-**Catching drift.** If you suspect a spec has drifted from reality, run `/audit-spec <name>` to produce a fresh as-built reading from code (fresh subagent author, MAGI — the auditor — reviews independently), then iterate to a corrected canonical spec. The audit mechanism IS the maintenance mechanism.
+**Catching drift.** If you suspect a spec has drifted from reality, run `/audit-spec <name>` to produce a fresh as-built reading from code (fresh subagent author; **MAGI Verdict** reviews independently), then iterate to a corrected canonical spec. The audit mechanism IS the maintenance mechanism.
 
 ## Tool map
 
@@ -257,6 +265,7 @@ Skills are invokable two ways:
 
 - `/init` — **Step 2** of harness setup: fills L0/L1 slots interactively, writes `.harness/state/install.json` as the canonical "configured" marker. Re-runnable for re-configuration with `--force`. Does NOT run detection — bootstrap handles that before /init is invoked.
 - `/next` — workflow state inspector: detects current feature progress and suggests next command. Doesn't auto-invoke; pure wayfinder. Use when unsure which skill to run.
+- `/resume` — session resume: reads `.harness/state/workflow-checkpoints/<feature>.json` and restores stage / artifact / progress state. Auto-surfaced at SessionStart if a checkpoint matches the current git branch. Use after multi-day breaks, cross-device work, or context-compaction loss.
 - `/feature-draft <name>` — stage 1, **new-feature mode**
 - `/audit-spec <name>` — stage 1, **audit mode**
 - `/spec-finalize <name>` — stage 2
@@ -287,14 +296,16 @@ Section 1 (Universal Core) is harness-guaranteed and cannot be modified by `/con
 
 ### Subagents (`.harness/agents/`)
 
-Subagents enforce **mechanical rules only** — they do not exercise judgment, propose new patterns, or evaluate business logic. Judgment is the auditor's job; pattern proposals belong to the Tech Lead; intent decisions are the CEO's. A subagent finding always cites the rule source (a `CLAUDE.md` or rule file); if it can't, that's not a finding to report.
+Subagents enforce **mechanical rules only** — they do not exercise judgment, propose new patterns, or evaluate business logic. Judgment is MAGI Verdict's job; pattern proposals belong to MAGI Core; intent decisions are CEO's. A subagent finding always cites the rule source (a `CLAUDE.md` or rule file); if it can't, that's not a finding to report.
 
-**Core three (always present):**
-- **Planner** — turns CEO intent into a plain-language spec, then a per-file execution plan.
-- **Programmer** — implements per the plan.
-- **Reviewer (MAGI)** — judgment-based auditor (default model: {{auditor_model}}), known as MAGI in conversational mentions; single-engine fallback if no second model available.
+**Core MAGI positions (built-in):**
+- **MAGI Planner** — Stage 1 + 4. Played by MAGI Core: turns CEO intent into a plain-language spec, then a per-file execution plan.
+- **MAGI Programmer** — Stage 5. Played by MAGI Core: implements per the plan.
+- **MAGI Tester** — Stage 6. Played by `test-fixer` subagent (fresh context, so it doesn't inherit Programmer's rationalizations).
+- **MAGI Verdict** — Stages 2-6 + commit gate. Cross-model judgment auditor (default `{{auditor_model}}`). Single-engine fallback (fresh-context same-model) when no second model available.
+- **MAGI Archivist** — Hook-triggered (SessionStart / PreCompaction). Memory layer service.
 
-**Rule-enforcement plugins** (`{{junior_reviewers}}` — user picks at /init):
+**MAGI Reviewer plugins** (`{{junior_reviewers}}` — user picks at /init):
 <!-- ⟦L1⟧ Filled per project. Examples shipped: frontend-reviewer,
      backend-reviewer, security-reviewer, infra-reviewer. User selects
      which plugins to enable based on tech stack. -->
@@ -329,7 +340,57 @@ Mechanism:
 
 Token economics: memory recall adds ~1-3K tokens to session startup. Net savings only materialize on multi-session work on the same feature. Empty memory file → zero token impact.
 
-Privacy: by default `.harness/memory/` is NOT gitignored — useful for team collaboration. Solo developers may add it to `.gitignore` if they prefer.
+## Harness Hygiene (git policy)
+
+> **CCC-MAGI = "butler in your project"**. The harness lives in your project to serve you, but the line between "team-shared infrastructure" and "personal runtime state" is **load-bearing for git hygiene**. Both must be committed correctly — wrong policy on either side breaks team collaboration or pollutes shared history.
+
+### Committed to git (team-shared)
+
+Everyone on the team uses the same harness setup. Inconsistency here causes "works on my machine" pain:
+
+- `constitution.md` — project's WHAT (Sections 1+2+3). Slot values define project identity.
+- `CLAUDE.md` (this file) — workflow + lanes + operating principles. Team contract.
+- `AGENTS.md` — universal AI-tool project context + auditor (MAGI) brief.
+- `CCC_MAGI_README.md` / `CCC_MAGI_LICENSE` — harness self-documentation.
+- `.harness/skills/` — all stage skills. Team uses same skill set.
+- `.harness/agents/` — reviewer + test-fixer agent definitions.
+- `.harness/scripts/` — hook scripts (deterministic enforcement layer).
+- `.harness/state/install.json` — the 16/5 L0 slot answers. **Especially critical**: team must agree on project identity.
+- `.harness/memory/conventions.md` — long-form project conventions (rules everyone follows).
+- `.claude/settings.json` — Claude Code hook wiring. Enforcement consistency.
+- `.codex/config.toml` + `.codex/hooks.json` — Codex CLI configuration.
+- `docs-harness/` — design rationale. Useful onboarding reference for teammates.
+
+### Gitignored (personal / runtime / regenerable)
+
+Per-developer state. Sharing these creates merge conflict noise or pollutes audit signal:
+
+- `.harness/memory/observations.jsonl` — your personal AI session notes (each dev has own).
+- `.harness/memory/decision-log.md` — your personal CEO decisions (each dev has own).
+- `.harness/audits/` — runtime audit verdict logs (regenerated each audit; merge-conflict source).
+- `.harness/state/auditor-approvals/` — per-feature/per-stage verdict JSON (regenerable).
+- `.harness/state/test-fix/` — test-fixer attempt logs (transient).
+- `.harness/state/workflow-checkpoints/` — your session progress cards (per-developer).
+- `.harness/state/_active.json` — currently-active feature pointer.
+- `.harness/state/shipped-hashes.json` — install-time content-hash registry (regenerated per install).
+- `.harness/state/auditor.env` — per-machine secrets / model ID overrides.
+- `.claude/commands/` — auto-generated slash-command shims (derived from skills).
+- `.ccc-magi-temp/` / `old_version_harness/` — installer transient artifacts.
+
+### Self-policing
+
+If you find any of the **gitignored** paths above tracked by git (`git ls-files | grep ...`), it's a hygiene break. Recover with:
+
+```bash
+git rm --cached -r <path>
+git commit -m "chore: gitignore CCC-MAGI runtime artifacts"
+```
+
+If you find a **committed** path missing from git (e.g., `.harness/skills/` is `.gitignore`d), team alignment is at risk. Add it back to git so collaborators stay in sync.
+
+### Trade-off acknowledged
+
+This split deviates from a pure "harness as invisible tool" philosophy. CCC-MAGI is **visible in your repo** — teammates see `constitution.md` and `.harness/skills/` in their clone. The benefit (team-shared identity + deterministic enforcement) outweighs the cost (~30 harness files visible in repo). If you're a solo developer and want the harness fully invisible, you can locally `.gitignore` everything except the harness's slot output (`docs/features/*.md`) — but you lose easy onboarding for any future collaborator.
 
 ## Rule sources
 
