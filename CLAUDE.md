@@ -166,6 +166,74 @@ CEO is a **human** who shouldn't have to memorize slash commands. The CCC-MAGI w
 2. Refuse to act because they didn't use the exact slash syntax
 3. Switch to English just because you're invoking a slash command
 
+### Critical: detailed requests STILL enter Stage 1 — they don't bypass it
+
+User requests vary wildly in length:
+- **Short**: 「我想做登录功能」 / 「let's add login」 / 「add a search box」
+- **Detailed**: 「我想做一个网页主页，要 topbar + 左侧导航 + bottom bar，Apple 风格，含 3D 动画，至少 20 种动画效果，滚动一个一个出，丝滑切换...」 (300+ 字)
+
+**Both trigger `/feature-draft`. Detail is NOT permission to skip Stage 1.**
+
+What changes between short and detailed requests:
+- **Short** → paraphrase asks more questions to fill gaps; edge-case round is more exploratory
+- **Detailed** → paraphrase quotes the user's brief verbatim ("我听到你想做：[X, Y, Z]，对吗？"); edge-case round is faster because user pre-answered some categories
+
+What does NOT change:
+- ✅ Spec file STILL gets written to `docs/features/<name>.md`
+- ✅ Edge-case round STILL walks 8 categories (even if user pre-answered some, verify each — they likely missed a few)
+- ✅ MAGI Verdict STILL audits the spec (Codex catches what user's brief missed)
+- ✅ TodoWrite STILL surfaces the execution plan BEFORE any code (CEO must confirm)
+- ✅ Stage 7 smoke test STILL required
+
+#### Anti-pattern (what NOT to do)
+
+CEO says: 「做一个网页主页，要 X + Y + Z + Apple 风格 + 3D 动画 + 20 种效果...」(300 字详细 brief)
+
+```
+❌ WRONG:
+   AI: "明白 —— 给你做一个高端 Apple 风的单页 demo..."
+   [immediately writes 1370-line index.html, skipping Stage 1 entirely]
+   AI: "搞定。这是 trivial-change lane。"
+   
+   Problem: 1370 LOC ≠ trivial. No spec was written. No auditor reviewed.
+            No TodoList shown before code. CEO lost ability to course-correct.
+
+✅ RIGHT:
+   AI: "好的，启动 Stage 1。我先复述我理解的：
+        你想做一个网页主页，结构是 topbar / 左导航 / main / bottom bar，
+        Apple 风格，含 3D 动画，至少 20 种动画效果，滚动顺序触发...
+        对吗？"
+   [Invokes /feature-draft homepage-design — walks paraphrase + 8 edge cases + writes spec]
+```
+
+#### Why this happens (avoid the trap)
+
+A detailed brief **LOOKS like a spec** — it has structure, vocabulary, technical detail. The trap: AI thinks "user already specced this, skip to /implement." But:
+
+1. Detail ≠ structure. Stage 1 transforms freeform brief into structured `docs/features/<name>.md` with: ## Happy path, ## Edge-case behavior, ## Required automated tests, ## Smoke-test procedure. The brief lacks this shape.
+2. Detail ≠ edge-case coverage. User's brief almost never covers all 8 categories (especially #3 concurrency / #4 permissions / #5 lifecycle). Skipping the round means shipping with gaps.
+3. Detail ≠ auditor reviewed. Cross-model audit catches what same-model writing misses. No audit = bias not cancelled.
+
+#### Lane self-check (hard rule)
+
+**Before writing ANY code, run this check:**
+
+```
+Q: Would my response create a NEW code file (.ts/.js/.py/.html/.css/.tsx/.jsx/.go/.rs/etc.)?
+
+  IF yes → MUST enter /feature-draft first. No exception.
+  IF no, but editing > 50 LOC of existing code → MUST enter /feature-draft.
+  IF no, editing < 20 LOC of existing code → trivial-change lane OK.
+  IF only formatting/comments → trivial-change lane OK.
+```
+
+**CEO override**: Only if CEO explicitly says one of these, may you skip Stage 1:
+- 「跳过 spec」/「skip spec」/「don't /feature-draft」
+- 「直接写就行」/「just write it」/「quick demo, no formality」
+- 「trivial / 走 trivial lane」
+
+Without explicit override, **default is Full workflow**. AI judgment cannot self-classify creative requests as trivial — that's a CEO decision.
+
 ### What if intent is ambiguous?
 
 If you can't confidently map intent to a command (e.g., user says "看看吧"), ask **one** clarifying question, plain language, no jargon:
