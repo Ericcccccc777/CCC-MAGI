@@ -191,12 +191,26 @@ if [ -n "$SKIP_STAGE" ]; then
   fi
 fi
 
+# Portable sha256 (Mac uses shasum, Linux/Git-Bash use sha256sum)
+portable_sha256() {
+  local path="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$path" 2>/dev/null | awk '{print $1}' | head -c 16
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$path" 2>/dev/null | awk '{print $1}' | head -c 16
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 "$path" 2>/dev/null | awk '{print $NF}' | head -c 16
+  else
+    echo ""
+  fi
+}
+
 # Artifact paths (compute sha256 if file exists)
 compute_artifact_block() {
   local path="$1"
   if [ -f "$path" ]; then
     local sha
-    sha=$(shasum -a 256 "$path" 2>/dev/null | awk '{print $1}' | head -c 16)
+    sha=$(portable_sha256 "$path")
     jq -n --arg p "$path" --arg s "$sha" '{path: $p, sha256: $s, exists: true}'
   else
     jq -n --arg p "$path" '{path: $p, sha256: null, exists: false}'

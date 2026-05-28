@@ -34,27 +34,56 @@ Or read `$LANG` directly. Common values:
 
 ---
 
-## ⟦Bootstrap Status Check⟧ (perform first, every session)
+## ⟦Bootstrap Status Check⟧ (perform first, every session) — Two-Phase State Machine
 
-**Before any other work in this conversation**, check whether CCC-MAGI has been configured for this project:
+CCC-MAGI bootstrap progresses through **two independent phases**, each with its own persistent marker:
 
-```bash
-test -f .harness/state/install.json
-```
+| Phase | Marker file | Meaning |
+|---|---|---|
+| **Phase 1: Environment check** | `.harness/state/env-check.json` | jq + git + at least one AI CLI confirmed present |
+| **Phase 2: Project deployment** | `.harness/state/install.json` | L0 slot values filled, constitution.md rendered, harness fully configured |
 
-**If the file DOES NOT exist** → CCC-MAGI has NOT been configured for this project yet.
+The `UserPromptSubmit` hook (`bootstrap-check.sh`) reads both markers and decides what to do:
 
-- Read `.harness/scripts/standalone-bootstrap.md` and run that flow first, before any user request.
-- The bootstrap flow detects any existing harness configs in the project, presents a 3-option menu to the user, and either installs CCC-MAGI (options 1/2) or yields control back to normal Claude Code workflow for this session (option 3).
-- If the user previously declined CCC-MAGI **in this same conversation**, you may proceed with normal Claude Code workflow without invoking harness skills. Treat the user's decline as binding for the rest of this session; do NOT re-prompt within the same conversation.
-- Re-prompt at the start of the **next** session (because `install.json` still won't exist).
+### State S0 — No `.harness/` directory
+Not a CCC-MAGI project. Hook stays silent. Operate normally.
 
-**If the file DOES exist** → CCC-MAGI is fully configured. Proceed with normal harness workflow:
+### State S1 — `.harness/` exists, no env-check, no install
+First-time user in this project. Hook injects context telling you to introduce yourself as **MAGI Core** and ask the user (in their OS locale):
 
-- All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/resume`, `/abandon`, `/next`, `/remember`, plus `/init` for re-configuration, `/constitution-edit` for editing project identity, `/add-constitution-clause`, `/add-anti-flag`).
-- This file (CLAUDE.md) and `constitution.md` carry the operating rules.
+> "Hi, I'm MAGI Core. I see CCC-MAGI is installed in this project but not yet configured. Setup has two phases — Environment check (~30s) + Project deployment (~3-15 min). Want to start? You can also say 'later' — I'll stay quiet this session and ask again next time."
 
-> **Belt-and-suspenders design**: this Bootstrap Status Check block is the "employee handbook" layer — it tells Claude *what* to do. The actual *enforcement* lives in the UserPromptSubmit hook at `.harness/scripts/bootstrap-check.sh`, wired in `.claude/settings.json`. The hook fires deterministically on every user prompt regardless of whether Claude reads this block. Together = robust against any single failure mode (e.g., this block missing because CLAUDE.md was overwritten by an earlier session's edit).
+**If user agrees**:
+1. Run `.harness/scripts/env-check.sh` via Bash tool. It outputs JSON describing what's installed (jq, git, claude, codex, gemini) and tier (1-claude-codex / 2-single / 3-other / 0-none).
+2. For each missing required dep (only `jq` is a true blocker — git must exist or user couldn't be using Claude Code), surface install options from `jq_install_hints`. Common patterns:
+   - macOS + brew detected → offer `brew install jq`
+   - No brew or user prefers no-sudo → offer `.harness/scripts/env-check.sh --install-jq-vendored` (downloads jq binary to `.harness/bin/jq`)
+   - User wants manual → give them the command, wait for them to run it themselves
+3. Run install command via Bash tool, then re-run env-check.sh to verify.
+4. When all required OK → call `env-check.sh --finalize` to write `env-check.json`.
+5. **Immediately proceed to Phase 2** (no need to re-prompt the user).
+
+**If user declines** (says "no" / "later" / "不要" / "skip"):
+- Do NOT bring up CCC-MAGI again in this session. The decline is binding for this conversation.
+- Next session the hook will fire again — that's expected; user can change their mind.
+
+**If user asks an unrelated question first**:
+- Answer their question normally.
+- At the end, mention briefly: "BTW, your CCC-MAGI isn't configured yet. Want to set it up?"
+
+### State S2 — env-check.json exists, no install.json
+Phase 1 done, Phase 2 not done. Hook injects context telling you the env is ready, ask user to do Phase 2. Invoke `/init` — it will ask Simple vs Pro mode and walk through L0 questions.
+
+### State S3 — install.json exists
+Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/resume`, `/abandon`, `/next`, `/remember`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`).
+
+### Session deduplication
+
+The hook tracks injected sessions via `.harness/state/_bootstrap-injected-sessions/<session-id>.flag` files (or time-based fallback if `session_id` not available in stdin). This ensures we ask the user ONCE per session, not on every prompt.
+
+### Belt-and-suspenders design
+
+This Bootstrap Status Check block is the "employee handbook" layer — it tells Claude *what* to do. The actual *enforcement* lives in the UserPromptSubmit hook at `.harness/scripts/bootstrap-check.sh`, wired in `.claude/settings.json`. The hook fires deterministically on every user prompt and computes the state. Together = robust against any single failure mode (e.g., this block missing because CLAUDE.md was overwritten by an earlier session's edit).
 
 ---
 

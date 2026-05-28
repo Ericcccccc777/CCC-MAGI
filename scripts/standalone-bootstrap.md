@@ -300,38 +300,95 @@ Repeat the 3-option menu. Do not improvise variants.
 
 ---
 
-## Step E — Trigger CCC-MAGI configuration
+## Step E — Phase 1: Environment check
 
 **Reached if**: user picked 1 or 2 in Step C, OR confirmed-set was empty (Step B special case).
 
-The CCC-MAGI files are now ready, but project-specific values (L0 slots in `constitution.md`) need to be filled. This is what `/init` skill does. Invoke it:
+Before filling project-specific values, verify the environment has the required dependencies (jq, git, at least one AI CLI). This is the "Phase 1" of the new two-phase bootstrap.
+
+1. Check if Phase 1 was already done:
+   ```bash
+   test -f .harness/state/env-check.json
+   ```
+   - If exists → Phase 1 already passed in a previous session; skip to Step F.
+   - If missing → continue to step 2 below.
+
+2. Run the environment detector via Bash tool:
+   ```bash
+   .harness/scripts/env-check.sh
+   ```
+   It outputs JSON with `required` (jq/git status), `ai_clis` (claude/codex/gemini presence), `tier` (recommended config), and `blockers` (missing required deps).
+
+3. Surface findings to the user (in their OS locale). Example output:
+   ```
+   Phase 1 — Environment check
+   
+   Required dependencies:
+     ✅ git installed (2.39.5)
+     ❌ jq not installed   ← blocker
+   
+   AI CLIs:
+     ✅ claude installed   → Tier 1 candidate
+     ✅ codex installed    → Tier 1 candidate (cross-model audit available)
+     ⚪ gemini not installed (optional)
+   
+   Recommendation: Tier 1 — Claude writes, Codex audits
+   
+   Need to install: jq
+   ```
+
+4. For each missing required dep (only jq is a true blocker — git must exist), present install options from the script's `jq_install_hints` field. Conversational, not error-out:
+   ```
+   How to install jq?
+     [a] brew install jq (Homebrew detected — recommended, ~10s)
+     [b] download vendored jq binary to .harness/bin/jq (no sudo, ~5s)
+     [c] manual: I'll give you the command, you run it
+   ```
+
+5. Execute user's choice via Bash tool:
+   - **[a] brew**: run `brew install jq`, wait for completion, re-run env-check.sh to verify.
+   - **[b] vendored**: run `.harness/scripts/env-check.sh --install-jq-vendored` (downloads to `.harness/bin/jq`, updates PATH automatically next time). Verify.
+   - **[c] manual**: print command, wait for user to run it themselves, then re-run env-check.sh when they say done.
+
+6. When `env-check.sh` shows `"all_required_ok": true`, finalize:
+   ```bash
+   .harness/scripts/env-check.sh --finalize
+   ```
+   This writes `.harness/state/env-check.json` and marks Phase 1 complete. **Proceed immediately to Step F (Phase 2)** — do NOT ask the user "ready for next phase?", just continue (UX should feel like one continuous flow).
+
+## Step F — Phase 2: Project deployment (/init)
+
+The environment is verified; now fill project-specific values (L0 slots in `constitution.md`). This is the `/init` skill.
 
 1. Tell the user (display in user's locale; pick the line matching the path that led here):
    ```
-   ✓ Step 1 complete (environment cleaned + CCC-MAGI in place).     ← if came from Step C option 1/2
-   ✓ Environment is clean — proceeding directly to configuration.       ← if came from Step B empty-set
+   ✓ Phase 1 complete (environment verified, tier: <X>).
    
-   Next, Step 2: fill in your project's identity (~16 questions, 5-10 minutes).
+   Phase 2: project deployment — answering questions to configure your project's constitution.
    
-   Start now? 
-     yes / Y → invoke /init now
-     no  / N → skip this session; bootstrap will re-prompt next session
-     skip   → decline CCC-MAGI entirely (treat as Step C option 3)
+   Pick mode:
+     [1] Simple — 5 questions, ~3 minutes (smart defaults for the other 11)
+     [2] Pro    — 16 questions, ~15 minutes (full identity contract)
+   
+   You can upgrade Simple → Pro anytime later by saying "升级到专业版" / "upgrade to pro".
+   
+   Choose, or say 'later' to defer this phase (bootstrap will re-fire next session).
    ```
-2. **If user says yes**: invoke the `/init` skill (`.harness/skills/init/SKILL.md`). The /init skill handles L0 question flow, slot rendering, validation, and writes `install.json`.
-3. **If user says no**: do nothing further this session. Surface this explicit notice (display in user's locale):
+2. **If user picks [1] Simple or [2] Pro**: invoke the `/init` skill (`.harness/skills/init/SKILL.md`) with the matching `--simple` or `--pro` flag. The /init skill handles L0 question flow, slot rendering, validation, and writes `install.json`.
+3. **If user says 'later' / no**: do nothing further this session. Surface this explicit notice (display in user's locale):
    ```
-   OK, /init configuration will be skipped this session.
+   OK, project deployment (/init) skipped this session.
    
-   ⚠️ Important: because install.json was not written, the bootstrap flow will run AGAIN on your NEXT CLI session
-   (re-presenting Step A scan results + Step B confirmation + Step C 3-option menu).
+   ⚠️ Status: Phase 1 (environment check) was completed and saved. Phase 2 (project deployment)
+   was NOT completed.
    
-   To avoid being prompted next time, you can:
-     a. Answer yes now to complete Step 2
-     b. Run /init manually later to complete configuration (writes install.json)
-     c. If you've decided against CCC-MAGI, manually delete .harness/ and constitution.md, etc.
+   What happens next time:
+     • The hook will fire and inject a shorter prompt (skipping the environment check since
+       it's already passed) asking ONLY about Phase 2.
+     • This is faster than starting from scratch — you've already passed the heavy part.
+   
+   If you've decided against CCC-MAGI for good, manually delete .harness/ and constitution.md.
    ```
-   The user keeps a clean partial-install state; per CCC_harness_flow.md decision 6 (Restart policy) this is expected and benign — bootstrap re-fires next session.
 4. **If user says skip**: treat exactly like Step C option 3 — decline CCC-MAGI for this session. This branch is most relevant when Step E was reached via Step B's empty-confirmed-set jump (the user never saw the Step C menu and now wants to back out). Acknowledge (display in user's locale):
    ```
    OK, this session won't use CCC-MAGI.

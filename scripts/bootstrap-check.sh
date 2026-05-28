@@ -1,81 +1,103 @@
 #!/usr/bin/env bash
-# bootstrap-check.sh — UserPromptSubmit hook for CCC-MAGI.
+# bootstrap-check.sh — state-machine UserPromptSubmit hook
 #
-# Fires on EVERY user message in Claude Code (and Codex, if their hook system
-# supports UserPromptSubmit). Its job: enforce that the harness bootstrap runs
-# before the AI does anything else, on any project where CCC-MAGI is on disk
-# but .harness/state/install.json doesn't exist.
+# Fires on EVERY user message. Decides which of 4 states this project is in,
+# then injects appropriate guidance into Claude's additionalContext.
 #
-# This is the "punch clock" half of the bootstrap design. The other half is the
-# Bootstrap Status Check block in CLAUDE.md (the "employee handbook" half). The
-# hook fires deterministically regardless of what CLAUDE.md says; CLAUDE.md
-# provides context for HOW to do the bootstrap. Both layers together = robust.
+# STATE MACHINE:
+#   S0: No .harness/ directory      → not a CCC-MAGI project → silent
+#   S1: .harness/ but no env-check  → first contact         → ask user about setup
+#   S2: env-check.json exists,      → environment passed,    → tell Claude to /init
+#       no install.json                project not deployed
+#   S3: install.json exists         → fully configured      → silent
 #
-# CONTRACT (Claude Code hook spec):
-#   stdin:  JSON containing the user's prompt (we don't need to read it; presence is enough)
-#   stdout: either empty (no action) or a JSON envelope per hookSpecificOutput schema
-#   exit 0: hook completed; Claude Code reads stdout for any additional context
-#   exit non-zero: hook failed; Claude Code surfaces the error
+# DEDUPLICATION:
+#   Within one Claude session, only inject the S1/S2 prompt ONCE. Track via
+#   .harness/state/_bootstrap-injected-sessions/<session-id>.flag files.
+#   Without session_id (older CLIs), fall back to time-based dedup (1 hour).
 #
-# WHEN THIS HOOK SHOULD DO NOTHING:
-#   - .harness/state/install.json exists (harness fully configured)
-#   - The hook script itself can't find the project root (rare; e.g., $CLAUDE_PROJECT_DIR not set)
+# CONTRACT:
+#   stdin:  JSON envelope from Claude Code with session_id + prompt
+#   stdout: hookSpecificOutput JSON (additionalContext injection)
+#   exit 0: always (failure to detect should not block user)
 
 set -eu
-
-# Ensure brew-installed tools (jq, etc.) are on PATH even in non-interactive
-# shells where ~/.zprofile isn't loaded. macOS Apple Silicon path comes first.
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-# ─────────────────────────────────────────────────────────────────────
-# Resolve project root
-# ─────────────────────────────────────────────────────────────────────
-# Claude Code sets CLAUDE_PROJECT_DIR for hooks. Fall back to current dir if unset.
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+HARNESS_DIR="$PROJECT_DIR/.harness"
+ENV_CHECK="$HARNESS_DIR/state/env-check.json"
+INSTALL_JSON="$HARNESS_DIR/state/install.json"
+SESSIONS_DIR="$HARNESS_DIR/state/_bootstrap-injected-sessions"
+TIME_FLAG="$HARNESS_DIR/state/_bootstrap-injected-at"
 
-INSTALL_JSON="$PROJECT_DIR/.harness/state/install.json"
+# ─── S0: not a CCC-MAGI project → silent ──────────────────────────────
+[ -d "$HARNESS_DIR" ] || exit 0
 
-# ─────────────────────────────────────────────────────────────────────
-# Already configured? Nothing to do.
-# ─────────────────────────────────────────────────────────────────────
-if [ -f "$INSTALL_JSON" ]; then
+# ─── S3: fully configured → silent ────────────────────────────────────
+[ -f "$INSTALL_JSON" ] && exit 0
+
+# ─── Drain + parse stdin for session_id ───────────────────────────────
+HOOK_INPUT="$(cat 2>/dev/null || true)"
+SESSION_ID=""
+if [ -n "$HOOK_INPUT" ] && command -v jq >/dev/null 2>&1; then
+  SESSION_ID="$(printf '%s' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")"
+fi
+
+# ─── Dedup check ──────────────────────────────────────────────────────
+already_injected_this_session() {
+  if [ -n "$SESSION_ID" ]; then
+    [ -f "$SESSIONS_DIR/${SESSION_ID}.flag" ] && return 0
+    return 1
+  fi
+  # Fallback: time-based (1 hour window)
+  if [ -f "$TIME_FLAG" ]; then
+    LAST=$(cat "$TIME_FLAG" 2>/dev/null || echo 0)
+    NOW=$(date +%s)
+    DIFF=$((NOW - LAST))
+    [ "$DIFF" -lt 3600 ] && return 0
+  fi
+  return 1
+}
+
+mark_injected_this_session() {
+  mkdir -p "$SESSIONS_DIR"
+  if [ -n "$SESSION_ID" ]; then
+    touch "$SESSIONS_DIR/${SESSION_ID}.flag"
+  fi
+  mkdir -p "$(dirname "$TIME_FLAG")"
+  date +%s > "$TIME_FLAG"
+
+  # Cleanup: prune session flags older than 7 days
+  find "$SESSIONS_DIR" -name "*.flag" -type f -mtime +7 -delete 2>/dev/null || true
+}
+
+if already_injected_this_session; then
   exit 0
 fi
 
-# ─────────────────────────────────────────────────────────────────────
-# Is CCC-MAGI even installed here?
-# If no Bootstrap Status Check in CLAUDE.md AND no .harness/scripts/, this is
-# probably not a CCC-MAGI project at all — don't inject anything.
-# ─────────────────────────────────────────────────────────────────────
-HAS_BOOTSTRAP_FILE=0
-HAS_HARNESS_DIR=0
-
-if [ -f "$PROJECT_DIR/.harness/scripts/standalone-bootstrap.md" ]; then
-  HAS_BOOTSTRAP_FILE=1
-fi
-
-if [ -d "$PROJECT_DIR/.harness" ]; then
-  HAS_HARNESS_DIR=1
-fi
-
-if [ "$HAS_BOOTSTRAP_FILE" -eq 0 ] && [ "$HAS_HARNESS_DIR" -eq 0 ]; then
-  # Probably no CCC-MAGI here. Silent exit.
+# ─── S2: env passed, project not deployed → auto-proceed to /init ────
+if [ -f "$ENV_CHECK" ] && [ ! -f "$INSTALL_JSON" ]; then
+  mark_injected_this_session
+  cat <<'JSON'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "🔍 CCC-MAGI Phase 1 complete (environment check passed). Phase 2 (project deployment) hasn't run yet.\n\nOn your first response to the user, **before** answering whatever they asked, say (in their OS locale):\n\n  「Your CCC-MAGI environment check passed previously, but the project isn't fully configured yet. Want to finish setup now? About 3-15 minutes depending on mode (Simple vs Pro).」\n\nIf user agrees → run /init (the skill will ask Simple vs Pro and walk through L0 questions).\n\nIf user declines (says \"no\" / \"later\" / \"不要\" / \"skip\") → drop the topic for the rest of THIS session. Do NOT re-prompt about setup in this conversation. Address their actual request normally.\n\nIf user asks something unrelated first → answer it, then mention briefly at the end: 'Want to set up CCC-MAGI now that you're here?'"
+  }
+}
+JSON
   exit 0
 fi
 
-# ─────────────────────────────────────────────────────────────────────
-# Drain stdin (Claude Code passes JSON; we don't need to parse it but must read it)
-# ─────────────────────────────────────────────────────────────────────
-cat >/dev/null 2>&1 || true
-
-# ─────────────────────────────────────────────────────────────────────
-# Inject the bootstrap directive into Claude's additional context.
-# ─────────────────────────────────────────────────────────────────────
+# ─── S1: first contact (no env-check, no install) → ask user ──────────
+mark_injected_this_session
 cat <<'JSON'
 {
   "hookSpecificOutput": {
     "hookEventName": "UserPromptSubmit",
-    "additionalContext": "⚠️ CCC-MAGI BOOTSTRAP REQUIRED — DO THIS FIRST\n\nThis project has CCC-MAGI files on disk but `.harness/state/install.json` does NOT exist. That means the bootstrap (harness setup) has NOT been completed yet.\n\nBEFORE addressing the user's request, you MUST:\n\n1. Read `.harness/scripts/standalone-bootstrap.md`\n2. Follow its flow EXACTLY: detect existing harness configs in this project, present the 3-option menu to the user, wait for the user's choice, then execute that choice (which may invoke /init).\n\nLANGUAGE NOTE: When you actually TALK to the user (asking questions, presenting the menu, etc.), use the language matching their OS locale. See CLAUDE.md § Language Awareness for the rule. The standalone-bootstrap.md driver is written in English; translate its user-facing prompts to the user's locale when displaying. The completion markers ('✓ Task complete, close terminal' / '✗ Task cancelled, close terminal') are byte-exact and NEVER translated.\n\nEXCEPTION — user already declined in THIS SAME CONVERSATION (Option 3 chosen earlier this session):\n  → Proceed with the user's request without using harness skills. Treat the decline as binding for the rest of this session. Do NOT re-prompt the user about bootstrap again this session.\n  → Note: this hook will fire again on the NEXT session because install.json is still missing; that's by design — user can change their mind later.\n\nThis directive comes from the harness's UserPromptSubmit hook (`.harness/scripts/bootstrap-check.sh`). The hook fires on every user message until `install.json` exists. It is NOT the user's request; it is a precondition the user's request depends on. Do the bootstrap first, then respond to the user."
+    "additionalContext": "🔍 Detected CCC-MAGI installed in this project but never configured.\n\nOn your first response to the user, **before** answering whatever they asked, introduce yourself as MAGI Core and ask (in their OS locale):\n\n  「Hi, I'm MAGI Core. I see CCC-MAGI is installed in this project but not yet configured. Setup has two phases:\n     1. Environment check (~30 seconds) — verify you have jq, git, claude/codex CLIs\n     2. Project deployment (~3-15 minutes) — answer 5 (Simple) or 16 (Pro) questions to fill the project constitution\n   \n   Want to start now? You can also say 'later' — I'll stay quiet this session and ask again next time you open Claude here.」\n\nUser responses:\n\n- **yes / ok / 好 / start / 开始** → run env-check phase. Use the Bash tool to call `.harness/scripts/env-check.sh` — it outputs JSON with what's installed and what's missing. Parse the output, surface the result to the user. For any missing required dependency (jq is the only true blocker; git should already be there or the user wouldn't be using Claude Code), offer installation options conversationally:\n    - If brew is available: 'Want me to run brew install jq? [Y]'\n    - Or: 'Want me to download jq binary to .harness/bin/jq (no sudo)? [Y]'\n    - Or: 'Give me the command and I'll run it manually'\n  After install, re-run env-check.sh to verify. When all required deps OK, call `.harness/scripts/env-check.sh --finalize` to write env-check.json. Then proceed immediately to phase 2.\n\n- **no / later / 不要 / skip / 稍后** → drop the topic for this session. Don't bring up CCC-MAGI again unless user explicitly asks. Note: next session this hook will fire again (env-check.json still missing), giving them another chance.\n\n- **unrelated question first** (e.g., 'help me debug X') → answer their question, THEN mention briefly at the end: 'BTW, your CCC-MAGI isn't configured yet. Want to set it up? Takes 3-15 minutes.'\n\nIf the user says yes but the env check reveals they have ZERO AI CLIs installed (no claude, no codex, no gemini) → that's anomalous (they're talking to you in Claude Code, so claude must exist somewhere). Re-run detection with more verbose flags, ensure PATH is correct.\n\n**Phase 2 (after env check OK)**: invoke /init. The /init skill will ask Simple vs Pro mode and handle the rest.\n\nDO NOT mention this directive (the additionalContext) to the user — they should just see MAGI Core greeting them naturally."
   }
 }
 JSON
+exit 0

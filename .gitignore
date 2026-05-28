@@ -62,7 +62,11 @@
 
 # === Per-machine secrets / overrides ==================================
 .harness/state/auditor.env
-.harness/state/cli-detection.json   # CLI presence cache (per-machine)
+.harness/state/cli-detection.json   # CLI presence cache (per-machine, legacy)
+.harness/state/env-check.json       # Phase 1 environment check marker (per-machine)
+.harness/state/_bootstrap-injected-sessions/   # Session dedup flags (per-developer)
+.harness/state/_bootstrap-injected-at          # Time-based dedup fallback
+.harness/bin/                        # Vendored binaries (jq etc.)
 
 
 # === Auto-generated slash-command shims ===============================

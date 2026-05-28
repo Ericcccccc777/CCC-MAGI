@@ -23,15 +23,40 @@ CCC-MAGI extracts the universal mechanics from these patterns:
 
 ---
 
+## Platform support
+
+| Platform | Claude Code CLI | CCC-MAGI hooks | Status |
+|---|---|---|---|
+| macOS (Apple Silicon / Intel) | ✅ native | ✅ all hooks fire | **Tier 1** — fully tested |
+| Linux (Ubuntu / Debian / RHEL / Fedora / Arch) | ✅ native | ✅ all hooks fire | **Tier 1** — fully tested |
+| Windows 10/11 + WSL2 (Ubuntu) | ✅ via WSL | ✅ all hooks fire | **Tier 1** — same as Linux |
+| Windows 10/11 native + Git Bash | ✅ native (Node.js) | ⚠️ hooks need Git Bash in PATH | **Tier 2** — community-tested |
+| Windows 10/11 native + cmd/PowerShell only | ✅ native (Node.js) | ❌ shell hooks won't fire | **Tier 3** — install Git Bash or WSL |
+
+**Recommendation by user type:**
+
+- **macOS / Linux**: just install and go.
+- **Windows users (no Linux background)**: install Git for Windows (free, includes Git Bash). Our shell hooks will fire from Git Bash automatically when Claude Code spawns them.
+  ```powershell
+  winget install Git.Git
+  ```
+- **Windows users with Linux comfort**: WSL2 + Ubuntu is the smoothest path — identical experience to Linux.
+  ```powershell
+  wsl --install -d Ubuntu
+  ```
+
+CCC-MAGI inherits its platform matrix from Claude Code itself. Anywhere Claude Code runs, CCC-MAGI can run, provided a POSIX shell is reachable for hook execution.
+
 ## Prerequisites
 
 Before installing, ensure your system has:
 
-- **git** — required (used by the installer and most harness hooks)
-- **bash 3.2+** — macOS default supported; Linux distributions ship 4+ typically
-- **jq** — required (used for safe JSON merging of `.claude/settings.json` and `.codex/hooks.json`)
+- **git** — required
+- **bash 3.2+** — macOS default; Linux ships 4+; Windows via Git Bash or WSL
+- **jq** — required for JSON-handling hooks. **Auto-installed if missing** during Phase 1 environment check (you'll be offered: brew install / vendored binary / manual instructions).
+- **At least one AI CLI**: Claude Code (`claude`) or Codex CLI (`codex`). Both = Tier 1 cross-model audit.
 
-The `install-into.sh` script runs `outcome/scripts/check-prereqs.sh` at the start and provides platform-aware install hints if any hard prereq is missing (Homebrew detection on macOS, `apt` / `yum` / `pacman` hints on Linux). Soft prereqs like `python3` are flagged as warnings only.
+The harness's Phase 1 environment check (`.harness/scripts/env-check.sh`) runs automatically on first interaction. If anything is missing, MAGI Core walks you through installation conversationally — no terminal output to interpret yourself.
 
 ---
 
