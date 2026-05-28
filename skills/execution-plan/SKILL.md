@@ -94,7 +94,77 @@ If `context7` is unreachable or returns nothing useful for a library, do NOT gue
 
 5. **Flag any open design decisions** that surfaced while planning. Do not resolve them unilaterally — stop and ask the user.
 
-6. **Present the plan** — the user reviews and approves before auditor judgment audit (Step 7). **Wait for user response before continuing.**
+6. **Present the plan AS A VISIBLE TODOLIST** — see Step 6a below. The user reviews and approves before auditor judgment audit (Step 7). **Wait for user response before continuing.**
+
+### Step 6a — Surface plan as a visible TodoList (MANDATORY)
+
+After writing the plan markdown but before asking for CEO approval, materialize the plan as a **user-visible todolist**. This is the most important UX moment in the workflow — CEO needs to SEE what's about to be changed before any code is written.
+
+**Branch on host CLI:**
+
+```bash
+# Detect which CLI is currently running this skill
+# Claude Code sets CLAUDE_PROJECT_DIR; absence suggests non-Claude
+if [ -n "$CLAUDE_PROJECT_DIR" ]; then
+  HOST_CLI="claude"
+else
+  HOST_CLI="other"
+fi
+```
+
+**For Claude Code** (`HOST_CLI=claude`): use the built-in **TodoWrite tool**. Call it ONCE with all plan files as Task entries:
+
+```
+For each file in the plan, create a Task with:
+  - subject:     <file path>      (e.g., "src/auth/login.ts")
+  - description: <1-line summary> (from the plan entry)
+  - activeForm:  "Writing <file path>"
+  - status:      pending
+```
+
+This populates Claude Code's sidebar todolist — CEO sees it immediately.
+
+**For other CLIs** (Codex / Cursor / Gemini / etc.): write a markdown todolist to `.harness/state/workflow-checkpoints/<feature>.todo.md`:
+
+```markdown
+# <feature> — Execution Plan TodoList
+
+Generated: <ISO timestamp>
+Source plan: docs/features/<feature>-plan.md
+
+## Files to create/modify (N total)
+
+- [ ] **1.** `src/auth/types.ts` — Type definitions for login flow
+- [ ] **2.** `src/auth/login.ts` — OTP verification + session creation
+- [ ] **3.** `src/auth/session.ts` — Session lifecycle
+- [ ] **4.** `src/auth/middleware.ts` — Route protection
+- ...
+
+Status legend:
+  - [ ] = pending
+  - [~] = in progress (currently being written)
+  - [x] = completed
+```
+
+`/implement` reads/updates this file in real time.
+
+**Display to CEO** (locale-appropriate):
+
+```
+📋 Stage 4 计划写完了 (`docs/features/<feature>-plan.md`)
+   要改 N 个文件 — 完整清单已经在<todolist|.harness/state/workflow-checkpoints/<feature>.todo.md>给你看了
+
+快速过一下 — 看起来合理吗？
+  👉 「OK」/「合理」/「approve」  — 继续做 audit + 进 Stage 5 编程
+  👉 「改一下」+ 说改哪个/加哪个  — 我修改 plan + todolist
+  👉 「跳过文件 X」                — 我把那个文件从计划里删
+  👉 「先停一下」                  — 我等你看完
+  👉 「放弃」                      — 不做这个功能了
+
+(我会等你确认 — Stage 5 一开始就改真实文件了，确认后再走)
+```
+
+Do NOT proceed to Step 7 (auditor audit) without CEO approval of the plan.
 
 7. **Auditor judgment audit on the plan.** Run after the user approves the file list and any open decisions are resolved:
 

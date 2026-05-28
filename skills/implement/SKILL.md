@@ -277,6 +277,9 @@ TOTAL_FILES=$(grep -cE '^\s*-\s+\`?[^[:space:]\`]+' docs/features/<feature>-plan
 
 ### MID-FLIGHT — after each file's Edit/Write completes
 
+Update TWO things in parallel (so /pickup + the visible todolist both stay accurate):
+
+**1. Checkpoint (for /pickup):**
 ```bash
 # Call this AFTER every file the implementer fully completes (not on partial edits)
 .harness/scripts/checkpoint-write.sh \
@@ -285,6 +288,28 @@ TOTAL_FILES=$(grep -cE '^\s*-\s+\`?[^[:space:]\`]+' docs/features/<feature>-plan
 ```
 
 This makes `/pickup` reports show: *"3/8 files done — continue at src/auth/middleware.ts (next)"*.
+
+**2. Visible TodoList (for CEO real-time visibility):**
+
+**For Claude Code** (`CLAUDE_PROJECT_DIR` set): use the built-in **TaskUpdate tool** (the same task list /execution-plan populated). For each file you complete:
+- BEFORE writing: call `TaskUpdate` with `taskId: <id-of-file's-task>` and `status: "in_progress"`
+- AFTER writing: call `TaskUpdate` with `status: "completed"`
+
+CEO sees the sidebar live update — green checks march down the list as you write each file.
+
+**For other CLIs** (Codex / Cursor / Gemini / etc.): update `.harness/state/workflow-checkpoints/<feature>.todo.md` (the markdown file /execution-plan created):
+
+```bash
+# Mark in-progress
+sed -i.bak "s|^- \[ \] \*\*N.\*\* \`<file>\`|- [~] **N.** \`<file>\`|" .harness/state/workflow-checkpoints/<feature>.todo.md && rm .harness/state/workflow-checkpoints/<feature>.todo.md.bak
+
+# After done: mark completed
+sed -i.bak "s|^- \[~\] \*\*N.\*\* \`<file>\`|- [x] **N.** \`<file>\`|" .harness/state/workflow-checkpoints/<feature>.todo.md && rm .harness/state/workflow-checkpoints/<feature>.todo.md.bak
+```
+
+(Use `perl -i -pe` if sed -i is fragile across platforms.)
+
+**Why both visibility mechanisms**: native Claude Code TodoWrite gives the slickest UX in Claude. Markdown todolist gives all other CLIs a usable fallback. Both stay in sync with checkpoint so /pickup works regardless of CLI.
 
 ### At Stage 5 END — close out + audit verdict
 
