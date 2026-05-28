@@ -556,19 +556,100 @@ AUDITOR_CLI=claude
 
 If Step 6 validation fails, `install.json` should still be written (the install IS done, validation surfaces issues to fix). Only if a Step 4 file write FAILS should install.json NOT be written.
 
+**MUST contain COMPLETE slot state** — every L0 and resolved L1 slot value gets recorded. This lets downstream skills (/feature-draft, /resume, /constitution-edit, etc.) read project state without re-reading constitution.md and re-parsing slots. The full schema:
+
 ```bash
 cat > .harness/state/install.json <<JSON
 {
-  "installed_at": "<ISO-8601 timestamp>",
-  "harness_version": "<harness package version>",
-  "mode": "<greenfield|brownfield>",
-  "language_mode": "<plain|professional>",
-  "auditor_model": "<Codex|None|...>",
-  "junior_reviewers_enabled": [<list of enabled reviewer plugin names>],
-  "skill_set_version": "<sha-or-timestamp-of-source-skills>"
+  "schema_version": 2,
+
+  "installed_at": "<ISO-8601 timestamp, e.g., 2026-05-28T10:00:00Z>",
+  "harness_version": "<package version, e.g., 0.9.0>",
+  "skill_set_version": "<sha-or-timestamp-of-source-skills, optional>",
+
+  "onboarding": {
+    "mode": "<simple|pro>",
+    "upgraded_from_simple_at": "<ISO timestamp, only set if Simple → Pro upgrade happened>",
+    "questions_asked": [<list of Q-numbers actually answered, e.g., [1, 2, 3, 5, 8] for Simple mode>],
+    "questions_defaulted": [<list of Q-numbers using smart defaults, e.g., [4, 6, 7, 9, ...]>]
+  },
+
+  "project_mode": "<greenfield|brownfield>",
+
+  "slots": {
+    "_comment": "All L0 + resolved L1 slot values. Source: constitution.md § Slot registry. Every key here should match a slot name in that registry.",
+
+    "project_name":              "<value>",
+    "project_description":       "<value>",
+    "project_stage":             "<early|beta|prod|scale>",
+    "project_scale_target":      "<value>",
+    "team_size":                 "<solo|small|large>",
+    "primary_concern":           "<value>",
+    "out_of_scope_items":        [<list>],
+    "auditor_model":             "<Codex|Claude|None|...>",
+    "auditor_model_id":          "<e.g., gpt-5.5>",
+    "language_mode":             "<plain|professional>",
+    "spec_dir":                  "<e.g., docs/features/>",
+    "implementation_dir":        "<e.g., docs/features/>",
+
+    "project_audience":          "<value>",
+    "project_non_goals":         [<list>],
+    "project_compliance":        "<GDPR|HIPAA|PCI|none|other>",
+    "project_performance_floor": "<value>",
+    "project_identity_other":    [<list>],
+
+    "tech_stack":                "<value, AUTO from manifests>",
+    "repo_structure":            "<value, AUTO from fs scan>",
+    "dependency_flow":           "<value, AUTO or OPTIONAL>",
+    "release_lanes":             [<list, e.g., ["git-push"]>],
+    "backend_change_lane":       "<value, OPTIONAL>",
+    "error_tracker":             "<Sentry|Bugsnag|none|other>",
+    "test_required":             true|false,
+    "junior_reviewers":          [<list, e.g., ["frontend-reviewer", "backend-reviewer", "security-reviewer"]>],
+    "rule_sources":              [<list, starts empty>],
+    "supported_locales":         [<list, e.g., ["zh-Hans", "en", "ko"]>],
+    "edge_case_categories":      [<list of 8 categories, defaults + user additions>],
+    "test_framework":            "<jest|vitest|pytest|none|auto>",
+    "test_runner_command":       "<e.g., npm test>",
+    "feature_folder_pattern":    "<value>",
+    "client_code_paths":         [<list>],
+    "backend_code_paths":        [<list>],
+    "backend_db_type":           "<postgres|mysql|mongodb|none|other>",
+    "high_trap_libraries":       [<list of libraries needing context7 version check>],
+    "migration_dir":             "<value, only if backend_db_type set>",
+    "pii_columns":               [<list, e.g., ["phone", "email", "name", "address", "payment"]>],
+    "rls_auth_function":         "<value, only if backend supports>",
+
+    "_comment_l2": "L2 (grow-over-time) slots are tracked separately — anti_flag_rules in AGENTS.md, project_red_lines in constitution.md § 3. Not duplicated here."
+  },
+
+  "environment": {
+    "_comment": "Snapshot of env-check.json content at /init time. Useful for /audit and /resume to know what tier was active.",
+    "platform":           "<darwin|linux|windows-wsl|windows-git-bash|unknown>",
+    "tier":               "<1-claude-codex|2-single-claude|3-other|0-none>",
+    "ai_clis_installed":  {"claude": true|false, "codex": true|false, "gemini": true|false}
+  },
+
+  "magi_system": {
+    "_comment": "Records which models back which MAGI positions. Lets downstream skills know who's playing what.",
+    "core_cli":         "<claude|codex|cursor|...>",
+    "verdict_cli":      "<codex|claude|gemini|none>",
+    "verdict_model_id": "<gpt-5.5|claude-sonnet-4-6|...>"
+  },
+
+  "render_status": {
+    "_comment": "Which files were rendered + their slot count + any per-file warnings. Helps /constitution-edit and re-installs know what to touch.",
+    "constitution.md":  {"slots_filled": N, "warnings": []},
+    "CLAUDE.md":        {"slots_filled": N, "warnings": []},
+    "AGENTS.md":        {"slots_filled": N, "warnings": []}
+  }
 }
 JSON
 ```
+
+**Why the verbose schema**: Simple mode hides 11 questions from the user but still WRITES their default values to install.json. This way `/feature-draft` doesn't have to re-derive "what's my project_audience" — it just reads it. Sparse install.json (the v0.8.x format) forced every downstream skill to re-parse constitution.md, which is fragile.
+
+**Upgrade path**: When `/init --upgrade-to-pro` is invoked, **don't overwrite** the existing JSON wholesale. Read it, update only the slots that got new answers, set `onboarding.upgraded_from_simple_at`, and write back.
 
 ---
 
