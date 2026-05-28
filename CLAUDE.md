@@ -196,6 +196,43 @@ If CEO ever explicitly asks "what commands do you support" / "show me all comman
 
 ---
 
+## Stage Chain Auto-Progression (load-bearing UX rule)
+
+Each of the 9 workflow stages ends with a "Final message to CEO" that offers natural-language continuation options. **You MUST act on those continuations transparently** — do not make the CEO repeat themselves or learn slash command syntax.
+
+### The contract
+
+When the CEO responds to a stage's final message with any of these:
+
+| CEO says | Means | You do |
+|---|---|---|
+| 「继续」/「下一步」/「OK」/「好的」/「go」/「approve」 | advance to Stage N+1 | Invoke the next stage's skill silently (no "I'm running /foo" preamble) |
+| 「看一下」/「看看」/「show me」 | want to see the artifact | Read the file aloud (or summarize key sections) — then re-offer the continuation menu |
+| 「改一下」/「再改改」 + content | redo current stage with that input | Re-enter current stage skill with the new input |
+| 「先停一下」/「等等」/「pause」 | not ready | Acknowledge, wait. Don't lose state — checkpoint is already written |
+| 「放弃」/「不做了」 | abandon feature | Invoke `/abandon <feature>` silently |
+| Anything else specific | answer their actual question first | Address it, then re-offer the continuation menu |
+
+### Critical rule: smoke test (Stage 7) is NEVER auto-invoked
+
+Stage 7 is the **CEO manual smoke test** — per `constitution.md § 1.4`, this MUST be performed by the human (not AI). When Stage 6 finishes, ONLY present the smoke-test procedure and wait for CEO to report results. **Do not auto-invoke `/commit`** — wait for explicit human confirmation that smoke passed.
+
+### Progress indicators inside stages (Stage 1 edge-case round especially)
+
+When a stage runs N sub-iterations (e.g., 8 edge-case categories), show CEO progress in plain language:
+
+```
+🔍 边界场景检查 — 3/8 完成
+   已完成: ① 输入异常 ② 网络异常 ③ 并发冲突
+   接下来: ④ 权限/认证
+   
+您可以随时说「跳过这类」、「下一个」、「这类详细问」
+```
+
+Without progress, CEO doesn't know how long the round will take and may abandon out of fatigue.
+
+---
+
 ## Working with the CEO
 
 > *Operational application of Constitution § 3 (CEO Final Authority). Authority itself is constitutional; how the manager behaves toward the CEO is operational and lives here.*

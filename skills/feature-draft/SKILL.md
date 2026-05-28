@@ -106,6 +106,22 @@ Then **paraphrase** back: "I'm hearing X. Did I get that right?" Wait for confir
 
 Walk all categories listed in `{{edge_case_categories}}`. For each, raise 3–5 concrete scenarios that **could** apply to this feature, then ask the CEO which behaviors apply and how each should resolve. Keep questions in plain language; refuse to ask the CEO tech-flavored questions ("useState vs useReducer?" — never; "how should the app behave if the user double-taps the submit button?" — yes).
 
+**MANDATORY: Show progress before each category** (CEO needs to know "how much more?"). Format (in CEO's OS locale):
+
+```
+🔍 边界场景检查 — N/8 完成
+   ✅ 已完成: <已答的类别用 ① ② ③ 列出>
+   ▶  当前: <第 N+1 类>
+   ▢  接下来: <剩下的类别>
+   
+（你可以随时说「跳过这类」、「下一个」、「这类详细问」）
+```
+
+After each category, also accept these meta-commands from the CEO:
+- 「**跳过**」/「**skip**」 → mark this category as "no behaviors apply" and move to next
+- 「**全部跳过**」/「**skip all**」 → finish the round, move to Step 3 (write spec)
+- 「**重新问**」/「**re-ask**」 → re-raise the current category with different scenarios
+
 **Default categories** (these ship with the harness; the user can edit `{{edge_case_categories}}` at /init or via `/constitution-edit` to add domain-specific ones):
 
 1. **Input validation** — empty, too long, special characters, wrong format
