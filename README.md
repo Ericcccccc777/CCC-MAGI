@@ -21,6 +21,63 @@ CCC-MAGI extracts the universal mechanics from these patterns:
 
 …and packages them as a slot-driven template that fills in **your** project's specifics via a one-time `/init`.
 
+## What it feels like in use
+
+CCC-MAGI is **conversational, not CLI-driven**. You almost never type slash commands. Example dialogue:
+
+```
+你: 「我想做一个用户登录功能」
+
+MAGI Core: 「好的，我理解你想做用户登录功能 — 我来启动 Stage 1 起草。
+            先确认我的理解 ... 」
+            (silently invokes /feature-draft user-login)
+            (walks paraphrase + 8 edge cases with progress: 🔍 4/8)
+            (writes docs/features/user-login.md)
+            
+MAGI Core: 「✅ 需求写好了。可以做：
+              👉 「继续」 — 我做最终审查
+              👉 「看一下」 — 把需求念给你听
+              👉 「改一下」 + 内容 — 重做
+              👉 「放弃」」
+
+你: 「继续」
+
+MAGI Core: 「好，调 MAGI Verdict ...」
+            (silently runs /spec-finalize, calls Codex)
+            (verdict PASS, risk 3)
+            「Stage 2 完成。要继续设计数据库（Stage 3）还是直接做执行计划（Stage 4）？」
+
+你: 「继续」
+
+MAGI Core: 「这个功能涉及用户表，我先做 Stage 3 ...」
+            (silently runs /db-schema)
+            (writes migration)
+            「Stage 3 完成。要继续做执行计划吗？」
+
+你: 「继续」
+
+MAGI Core: 「好的 ...」
+            (silently runs /execution-plan)
+            (writes plan)
+            (calls Claude Code's TodoWrite — sidebar fills with 8 file tasks)
+            「📋 计划写好了，要改 8 个文件 — 完整清单已经在 todolist 里给你看了。
+              快速过一下 — 看起来合理吗？
+                👉 「OK」 — 开始编程
+                👉 「改一下」 + 改哪里」
+
+你: 「OK」
+
+MAGI Core: 「好的，开始 Stage 5 ...」
+            (silently runs /implement)
+            (TodoWrite updates live: ▶ writing → ✅ done, file by file)
+            「✅ Stage 5 完成。要继续做测试吗？」
+
+(... 一直到 Stage 8 commit 全程无需输斜杠命令 ...)
+```
+
+**自然语言触发器**：你说什么 → 我做什么的速查表见 `CLAUDE.md § MAGI Core's Natural-Language Intent Translation`。  
+**唯一例外**：Stage 7 (CEO 手工冒烟测试) 永远不会被 AI 自动跑 — 宪法要求人类亲手验证。
+
 ---
 
 ## Platform support
