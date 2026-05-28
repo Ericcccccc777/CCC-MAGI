@@ -330,3 +330,34 @@ After all required tests are green + post-fix auditor-gate passes:
   --decision "manual takeover after test-fixer exhausted 3 iterations" \
   --evidence ".harness/state/test-fix/<feature>-attempts.json"
 ```
+
+---
+
+## Final message to CEO (natural-language, Stage 6 → Stage 7 → Stage 8)
+
+After Stage 6 completes (tests green + post-fix auditor verdict), display (in CEO's OS locale):
+
+```
+✅ Stage 6 完成 — <feature> 的自动测试都过了
+   通过: N 个测试
+   MAGI Tester 迭代次数: X / 3
+   MAGI Verdict: <PASS/CONCERNS/WAIVED>, risk = M
+
+⚠️ Stage 7 — CEO 手工冒烟测试 (这一步只有人能做)
+
+   请你按 docs/features/<feature>.md 的 smoke test procedure 手动跑一下：
+     1. 打开 app / 启动开发服务器
+     2. 走一遍你最关心的 happy path
+     3. 试 1-2 个 edge case (从 spec 里挑你最不放心的)
+     4. 回来告诉我结果
+
+接下来你说：
+  👉 「smoke 过了」/「好的」/「ship」 — 我做 Stage 8 (commit + push)
+  👉 「smoke 发现 bug X」              — 我回 Stage 5 修
+  👉 「需要重新审一下 spec」           — 我回 Stage 1 改 spec (大改)
+  👉 「放弃」                          — 不 ship 这个功能
+```
+
+**Critical**: do NOT skip the CEO smoke test. Per `constitution.md § 1.4`, AI-self-report of "done" is constitutionally forbidden — the human MUST manually verify before commit. This is non-negotiable.
+
+On "smoke 过了" → invoke `/commit <feature>` silently.

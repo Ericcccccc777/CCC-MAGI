@@ -305,3 +305,26 @@ After all files complete + reviewer chain + auditor-gate passes:
 ```
 
 **Without mid-flight tracking, a crash at file 4/8 makes `/pickup` think Stage 5 hasn't started.**
+
+---
+
+## Final message to CEO (natural-language, Stage 5 → Stage 6)
+
+After Stage 5 completes (all files implemented + reviewer chain + auditor verdict), display (in CEO's OS locale):
+
+```
+✅ Stage 5 完成 — <feature> 的代码写完了
+   改动: N 个文件 (todolist 里全部 ✅)
+   MAGI Reviewer chain: <X 个 reviewer 跑过, 全过 / 有 N 个 concerns>
+   MAGI Verdict: <PASS/CONCERNS/WAIVED>, risk = M
+
+接下来可以：
+  👉 「继续」/「跑测试」               — 我做 Stage 6 (自动写测试 + 跑测试)
+                                       （前提：你的项目开了 test_required）
+  👉 「先看 git diff」                 — 我把改动列出来
+  👉 「先手动测一下」                  — 你自己跑一下，回来再 /test-fix
+  👉 「fix bug X」                     — 我去修指定的问题
+  👉 「放弃」                          — git stash 后放弃这个功能
+```
+
+On "继续" → invoke `/test-fix` silently (if `test_required = true`) OR directly suggest CEO smoke test (Stage 7) if tests are skipped.

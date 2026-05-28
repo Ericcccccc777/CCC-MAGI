@@ -123,3 +123,23 @@ If skipped (no backend configured):
 ```
 
 MAGI Archivist surfaces skipped stages in the `/pickup` report so users can see deliberate skips vs forgotten stages.
+
+---
+
+## Final message to CEO (natural-language, not slash-command)
+
+After Stage 3 completes (schema designed + migration written + auditor verdict), display (in CEO's OS locale):
+
+```
+✅ Stage 3 完成 — <feature> 的数据库改动设计好了
+   迁移文件: <path>
+   MAGI Verdict: <PASS/CONCERNS/WAIVED>, risk = N
+
+接下来可以：
+  👉 「继续」/「下一步」      — 我做执行计划 (Stage 4 — 列出要改的每个文件)
+  👉 「看迁移」               — 我把迁移文件念给你听
+  👉 「改 schema」+ 说改什么  — 重做 Stage 3
+  👉 「放弃」                 — 不做这个功能了
+```
+
+On "继续" → invoke `/execution-plan <feature>` silently.

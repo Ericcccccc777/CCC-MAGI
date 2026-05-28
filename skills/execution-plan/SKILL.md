@@ -224,3 +224,53 @@ After auditor-gate passes for Stage 4:
   --feature <feature-slug> --stage 4 --by "CEO" \
   --decision "<e.g. 'chose pessimistic lock over optimistic; reads are 10x more common'>"
 ```
+
+---
+
+## Final message to CEO (with TodoWrite — Stage 4 → Stage 5)
+
+After Stage 4 completes (execution plan written + auditor verdict), this is the **MOST important UX moment in the workflow**: CEO needs to SEE what's about to be changed before any code is written.
+
+**MANDATORY step**: Before printing the final message, **call the TodoWrite tool** (Claude Code internal) with one Task entry per file in the execution plan:
+
+For each file in `docs/features/<feature>-plan.md`:
+- `subject`: the file path (e.g., "src/auth/login.ts")
+- `description`: 1-line summary from the plan (e.g., "OTP verification + session creation")
+- `activeForm`: "Writing src/auth/login.ts"
+- `status`: pending
+
+This populates Claude Code's user-visible todolist sidebar. CEO can SEE the planned changes.
+
+**For non-Claude CLIs** (Codex / Cursor / Gemini etc): TodoWrite tool may not exist. Fallback: write a markdown todolist to `.harness/state/workflow-checkpoints/<feature>.todo.md`:
+
+```markdown
+# <feature> — Execution Plan TodoList
+
+- [ ] src/auth/types.ts — Type definitions
+- [ ] src/auth/login.ts — OTP verification + session creation
+- [ ] src/auth/session.ts — Session lifecycle
+- ...
+```
+
+Then surface to CEO either way (locale-appropriate):
+
+```
+✅ Stage 4 完成 — <feature> 的执行计划写好了
+   计划文档: docs/features/<feature>-plan.md
+   要改 N 个文件 (已经显示在 todolist 里给你看)
+   MAGI Verdict: <PASS/CONCERNS>, risk = M
+
+📋 请快速过一下要改的文件，确认计划合理：
+   [打开 Claude Code 的 todolist 看完整列表]
+
+接下来可以：
+  👉 「开始」/「继续」/「写吧」/「OK」  — 我开始编程 (Stage 5)
+  👉 「改一下计划」+ 说改啥             — 重做 Stage 4
+  👉 「跳过文件 X」                     — 我把那个文件从计划里删掉
+  👉 「先停一下我想想」                 — 等你
+  👉 「放弃」                           — 不做这个功能了
+
+(写代码前我要你确认 — 一旦开始 Stage 5 就会创建/修改真实文件)
+```
+
+On "开始" / "继续" / "写吧" → invoke `/implement <feature>` silently.

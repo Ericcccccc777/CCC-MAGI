@@ -167,3 +167,30 @@ After Status: FINALIZED is set and the auditor-gate passes:
   --decision "advance despite CONCERNS verdict" \
   --evidence ".harness/audits/concerns-<feature>-stage2-<ts>.json"
 ```
+
+---
+
+## Final message to CEO (natural-language, not slash-command)
+
+After Stage 2 completes (Status: FINALIZED + auditor PASS/CONCERNS/WAIVED), display (in CEO's OS locale):
+
+```
+✅ Stage 2 完成 — <feature> 的需求已锁定
+   状态: FINALIZED
+   MAGI Verdict: <PASS/CONCERNS/WAIVED>, risk = N
+
+接下来可以：
+  👉 「继续」/「下一步」  — 我决定走 Stage 3 (设计数据库) 还是 Stage 4 (执行计划)
+                          - 如果这个功能涉及数据存储 → 我走 /db-schema
+                          - 如果只改前端/逻辑 → 我直接走 /execution-plan
+  👉 「先看 verdict」     — 我把 MAGI Verdict 的发现念给你听
+  👉 「先停一下」         — 我等你
+  👉 「放弃」             — 不做这个功能了
+
+(直接告诉我你想干嘛 — 我帮你判断走哪一支)
+```
+
+Decision logic for "继续":
+- If feature spec mentions data persistence / schema / migration AND `backend_db_type` is configured → invoke `/db-schema <feature>` silently
+- Else → invoke `/execution-plan <feature>` directly
+- Surface your decision to CEO: *"这个功能涉及数据库，我先做 Stage 3 (设计 schema)"* — let them override if you guessed wrong.

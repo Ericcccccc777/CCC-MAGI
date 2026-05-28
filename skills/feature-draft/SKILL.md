@@ -385,3 +385,26 @@ At successful completion, write the checkpoint (first stage = bootstraps the fil
 ```
 
 **Skipping this step breaks `/pickup`** — MAGI Archivist depends on every stage writing here.
+
+---
+
+## Final message to CEO (natural-language, not slash-command)
+
+After completing Stage 1, do NOT print "next step: /spec-finalize". Instead, display (in CEO's OS locale):
+
+```
+✅ Stage 1 完成 — <feature> 的需求文档写好了
+   位置: docs/features/<feature>.md
+   MAGI Verdict 的初评: <PASS/CONCERNS/FAIL>, risk = N
+
+接下来可以：
+  👉 「继续」/「下一步」/「OK」  — 我来做最终审查 (Stage 2)
+  👉 「看一下」                  — 我把刚写的需求念给你听
+  👉 「改一下 + 你想改的内容」    — 重做需求，比如「再加一个边界场景」
+  👉 「放弃」                    — 不做这个功能了
+  👉 直接告诉我下一件事 — 我会想办法理解
+
+(我不需要你记 slash command — 用大白话和我说就行)
+```
+
+If CEO responds with "继续" / "OK" / "下一步" / "go" / "approve" → invoke `/spec-finalize <feature>` directly (transparent translation per CLAUDE.md § MAGI Core's Natural-Language Intent Translation). Don't ask "do you want me to run /spec-finalize?" — just do it after their go-ahead.

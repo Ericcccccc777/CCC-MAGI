@@ -368,3 +368,28 @@ At successful completion, write the checkpoint with `mode: audit`:
 ```
 
 **MAGI Archivist requires this** for `/pickup` to know audit-mode features exist.
+
+---
+
+## Final message to CEO (natural-language, not slash-command)
+
+After completing the audit-mode Stage 1, do NOT print "next step: /spec-finalize". Instead (in CEO's OS locale):
+
+```
+✅ <feature> 的现状审计完成
+   生成: docs/features/<feature>.md (canonical spec)
+         docs/features/<feature>-implementation.md (delta ledger)
+         .harness/audits/<feature>-as-built-<date>.md (frozen as-built snapshot)
+   接受的 deltas: N 个
+   推迟的 deltas: M 个
+
+接下来可以：
+  👉 「继续」/「下一步」              — 我做最终审查 (Stage 2)
+  👉 「看 deltas」                    — 我列出每个改动和你的决定
+  👉 「先去做某个 delta」+ 描述哪个   — 我开新功能流程处理这个 delta
+  👉 「先放着」                       — 审计存档了，先做别的
+
+(直接说你想做什么 — 我懂)
+```
+
+On "继续" → invoke `/spec-finalize <feature>` silently.
