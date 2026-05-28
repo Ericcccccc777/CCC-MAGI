@@ -47,9 +47,48 @@ Before Step 1, run a 30-second pre-flight:
 
 1. `git status` — clean? If uncommitted changes exist, surface them and ask: commit first, stash, or proceed (and accept noise).
 2. Existing `{{spec_dir}}<name>.md` — does it already exist? If yes, ask whether this is a redo (delete and start over), an audit (`/audit-spec <name>` instead), or an add-on to a finalized spec.
-3. State recap to user: "Pre-stage clear. Lane: Full workflow (new feature). Proceeding with Stage 1 in new-feature mode. Anything to adjust before we start?"
+3. **Write initial checkpoint** (CRITICAL — see § Step 0 below): so /pickup can restore state if user interrupts mid-Step-1.
+4. State recap to user: "Pre-stage clear. Lane: Full workflow (new feature). Proceeding with Stage 1 in new-feature mode. Anything to adjust before we start?"
 
 Do not proceed without an explicit go-ahead.
+
+## Step 0 — Initial checkpoint (MANDATORY before Step 1)
+
+Before asking the CEO anything, write a placeholder checkpoint. This is the **insurance** against interruptions: if the user closes Claude mid-Step-1, `/pickup` and the SessionStart welcome-back UX still know "user-login was started, was at Stage 1, was on paraphrase/edge-case round".
+
+Without this, an interrupted Step 1 leaves no trace → user comes back next session, sees nothing about the feature, has to remember they were doing it.
+
+```bash
+# Detect mode + lane (defaults: new-feature, full)
+.harness/scripts/checkpoint-write.sh \
+  --feature <name> \
+  --create-if-missing \
+  --mode new-feature \
+  --lane full \
+  --stage 1 \
+  --stage-in-progress "$(jq -nc '{stage_number:1, files_total:0, files_done_list:[], files_remaining_list:[], last_action:\"Starting /feature-draft\", resume_hint:\"You were at Stage 1 (paraphrase + edge-case round). Run /feature-draft to continue.\"}')"
+```
+
+Verify the checkpoint exists before continuing:
+```bash
+test -f .harness/state/workflow-checkpoints/<name>.json && echo "✓ checkpoint placed" || echo "❌ checkpoint write failed — investigate before proceeding"
+```
+
+If write failed (jq missing, permissions, etc.), HALT and surface to user — don't proceed without checkpoint protection.
+
+**Updates during Step 1-4**: after each substep that produces value (paraphrase confirmed, edge-case round complete, spec written, audit verdict received), update the checkpoint's `resume_hint` field to reflect what state to resume from:
+
+```bash
+# After paraphrase confirmed
+.harness/scripts/checkpoint-write.sh --feature <name> \
+  --stage-in-progress "$(jq -nc '{stage_number:1, files_total:0, files_done_list:[], files_remaining_list:[], last_action:\"Paraphrase confirmed\", resume_hint:\"Resume from edge-case round (you confirmed the happy path)\"}')"
+
+# After edge-case round complete  
+.harness/scripts/checkpoint-write.sh --feature <name> \
+  --stage-in-progress "$(jq -nc '{...resume_hint:\"Resume from spec writing (edge cases gathered)\"}')"
+```
+
+This ensures `/pickup` reports are specific: not just "Stage 1 in progress" but "Stage 1 — edge-case round complete, ready to write spec".
 
 ## Step 1 — CEO happy path + paraphrase
 
