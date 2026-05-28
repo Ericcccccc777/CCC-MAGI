@@ -88,7 +88,8 @@ FULL_PROMPT="${PRESET_PREFIX}${FOCUS}"
 read -r -d '' REVIEW_SCHEMA <<'JSON' || true
 {
   "type": "object",
-  "required": ["verdict", "risk_score"],
+  "additionalProperties": false,
+  "required": ["verdict", "risk_score", "waiver_reason", "blocking_items", "advisory_items"],
   "properties": {
     "verdict": {"type": "string", "enum": ["PASS", "CONCERNS", "FAIL", "WAIVED"]},
     "risk_score": {"type": "integer", "minimum": 0, "maximum": 10},
@@ -97,6 +98,7 @@ read -r -d '' REVIEW_SCHEMA <<'JSON' || true
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["category", "rule_source", "finding"],
         "properties": {
           "category": {"type": "string", "enum": ["universal-core", "strong", "advisory"]},
@@ -109,6 +111,7 @@ read -r -d '' REVIEW_SCHEMA <<'JSON' || true
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["rule_source", "finding"],
         "properties": {
           "rule_source": {"type": "string"},
@@ -123,12 +126,14 @@ JSON
 read -r -d '' DIAGNOSTIC_SCHEMA <<'JSON' || true
 {
   "type": "object",
+  "additionalProperties": false,
   "required": ["hypotheses"],
   "properties": {
     "hypotheses": {
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["summary", "evidence", "next_step"],
         "properties": {
           "summary": {"type": "string"},
@@ -144,27 +149,30 @@ JSON
 # ─────────────────────────────────────────────────────────────────────
 # Invoke the auditor CLI
 # ─────────────────────────────────────────────────────────────────────
-TEMP_OUTPUT="$(mktemp /tmp/auditor-gate.XXXXXX.json)"
+# Note: mktemp template without .json suffix — macOS BSD mktemp doesn't
+# substitute X chars when a dot extension follows. The output file is JSON
+# regardless; the extension doesn't matter for jq parsing.
+TEMP_OUTPUT="$(mktemp /tmp/auditor-gate.XXXXXX)"
 
 invoke_codex() {
-  # CUSTOMIZE if your codex CLI uses different flags
-  local schema_file="$(mktemp /tmp/schema.XXXXXX.json)"
+  # Codex CLI 0.130.0+ removed `--file <path>` support. Embed TARGET content
+  # in the prompt body instead (same pattern as invoke_claude_fresh).
+  local schema_file="$(mktemp /tmp/schema.XXXXXX)"
   if [ "$MODE" = "review" ]; then
     echo "$REVIEW_SCHEMA" > "$schema_file"
   else
     echo "$DIAGNOSTIC_SCHEMA" > "$schema_file"
   fi
 
-  local target_args=()
+  local prompt_with_target="$FULL_PROMPT"
   if [ -n "$TARGET" ] && [ -f "$TARGET" ]; then
-    target_args=(--file "$TARGET")
+    prompt_with_target+=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
   fi
 
   codex exec \
     --model "$AUDITOR_MODEL_ID" \
     --output-schema "$schema_file" \
-    "${target_args[@]}" \
-    -- "$FULL_PROMPT" > "$TEMP_OUTPUT"
+    -- "$prompt_with_target" > "$TEMP_OUTPUT"
 
   rm -f "$schema_file"
 }
