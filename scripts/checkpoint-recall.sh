@@ -44,7 +44,20 @@ esac
 
 # Derive feature slug from branch name
 # Strip common prefixes: feature/, feat/, fix/, bugfix/, hotfix/, chore/
-FEATURE_SLUG=$(echo "$BRANCH" | sed -E 's|^(feature|feat|fix|bugfix|hotfix|chore)/||')
+# Use perl instead of sed: BSD sed (macOS default) handles alternation
+# inconsistently across hosts; perl is uniform on Mac/Linux/Git-Bash.
+if command -v perl >/dev/null 2>&1; then
+  # Use ! as regex delimiter (avoid / collision with path separator in pattern)
+  FEATURE_SLUG=$(echo "$BRANCH" | perl -pe 's!^(feature|feat|fix|bugfix|hotfix|chore)/!!')
+else
+  # Fallback: shell parameter expansion (POSIX, no regex needed)
+  FEATURE_SLUG="$BRANCH"
+  for prefix in feature/ feat/ fix/ bugfix/ hotfix/ chore/; do
+    case "$FEATURE_SLUG" in
+      "$prefix"*) FEATURE_SLUG="${FEATURE_SLUG#$prefix}"; break ;;
+    esac
+  done
+fi
 
 # Bail if slug equals branch (no prefix stripped → probably not a feature branch)
 if [ "$FEATURE_SLUG" = "$BRANCH" ]; then
