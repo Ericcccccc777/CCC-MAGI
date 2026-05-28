@@ -110,10 +110,10 @@ If any check errors out (e.g., directories don't exist yet), treat the correspon
 
 If `CHECKPOINT_EXISTS`, the checkpoint is the **canonical truth** for workflow state. Filesystem booleans serve as drift detection:
 
-- If checkpoint says `current_stage = 5` but `SPEC_EXISTS = false` → drift; surface to CEO ("Checkpoint expects spec at `${spec_dir}${feature}.md` but it's missing. Suggest /resume to inspect, or /feature-draft to restart").
+- If checkpoint says `current_stage = 5` but `SPEC_EXISTS = false` → drift; surface to CEO ("Checkpoint expects spec at `${spec_dir}${feature}.md` but it's missing. Suggest /pickup to inspect, or /feature-draft to restart").
 - If checkpoint says `stages_skipped: [3]` and reason is "no backend" → skip Stage 3 in the recommendation.
-- If checkpoint's `stage_in_progress.files_done_list` is non-empty → the user is mid-Stage-5; suggest `/resume` instead of `/implement` (resume picks up at the right file).
-- If `last_activity_at` is > 7 days ago → add a flag: "Last activity 8 days ago — `/resume` for context recall recommended."
+- If checkpoint's `stage_in_progress.files_done_list` is non-empty → the user is mid-Stage-5; suggest `/pickup` instead of `/implement` (resume picks up at the right file).
+- If `last_activity_at` is > 7 days ago → add a flag: "Last activity 8 days ago — `/pickup` for context recall recommended."
 
 Without checkpoint, fall back to pure filesystem inference (existing logic below).
 

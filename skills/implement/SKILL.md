@@ -261,7 +261,7 @@ The user should be able to proceed to `/test-fix <feature>` immediately after.
 
 ## Checkpoint + decision-log integration (MAGI Archivist) — including mid-flight
 
-Stage 5 differs from other stages: it can take hours and edit many files. MAGI Archivist tracks progress **at the file level**, not just at stage end. This is what enables `/resume` to pick up at "5/8 files done" instead of "Stage 5 incomplete".
+Stage 5 differs from other stages: it can take hours and edit many files. MAGI Archivist tracks progress **at the file level**, not just at stage end. This is what enables `/pickup` to pick up at "5/8 files done" instead of "Stage 5 incomplete".
 
 ### At Stage 5 START — declare the file plan
 
@@ -284,7 +284,7 @@ TOTAL_FILES=$(grep -cE '^\s*-\s+\`?[^[:space:]\`]+' docs/features/<feature>-plan
   --file-done <path/to/file>
 ```
 
-This makes `/resume` reports show: *"3/8 files done — continue at src/auth/middleware.ts (next)"*.
+This makes `/pickup` reports show: *"3/8 files done — continue at src/auth/middleware.ts (next)"*.
 
 ### At Stage 5 END — close out + audit verdict
 
@@ -304,4 +304,4 @@ After all files complete + reviewer chain + auditor-gate passes:
   --decision "<e.g. 'override frontend-reviewer false positive on FlashList ref'>"
 ```
 
-**Without mid-flight tracking, a crash at file 4/8 makes `/resume` think Stage 5 hasn't started.**
+**Without mid-flight tracking, a crash at file 4/8 makes `/pickup` think Stage 5 hasn't started.**

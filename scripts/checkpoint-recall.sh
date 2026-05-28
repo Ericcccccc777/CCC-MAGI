@@ -75,7 +75,7 @@ fi
 if ! jq empty "$CHECKPOINT_FILE" 2>/dev/null; then
   # Corrupted — surface a warning instead of resume offer
   cat <<JSON
-{"additionalContext": "⚠️ Found a corrupted checkpoint at $CHECKPOINT_FILE for feature '$FEATURE_SLUG'. Surface to the user: 'Found a workflow checkpoint that looks corrupted. Run /resume --force-restart to ignore it, or inspect the file manually.'"}
+{"additionalContext": "⚠️ Found a corrupted checkpoint at $CHECKPOINT_FILE for feature '$FEATURE_SLUG'. Surface to the user: 'Found a workflow checkpoint that looks corrupted. Run /pickup --force-restart to ignore it, or inspect the file manually.'"}
 JSON
   exit 0
 fi
@@ -125,7 +125,7 @@ MESSAGE=$(jq -n \
       "  Last activity: " + $hours_ago + " hours ago\n" +
       (if $hint != "" then "  Resume hint: " + $hint + "\n" else "" end) +
       "\nOn your first response to the user, surface this naturally (do not narrate this hook — phrase it as MAGI Archivist would). Offer:\n" +
-      "  [1] /resume " + $feature + "  — continue from where left off (recommended)\n" +
+      "  [1] /pickup " + $feature + "  — continue from where left off (recommended)\n" +
       "  [2] /next " + $feature + "    — see full workflow status\n" +
       "  [3] Start something new — user can ignore the resume offer\n\n" +
       "If the user gives a specific request that's clearly unrelated to this feature (e.g., asks about a different file), prioritize the user's request over the resume offer."

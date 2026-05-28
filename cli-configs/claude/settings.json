@@ -90,7 +90,7 @@
         ]
       },
       {
-        "_comment": "Checkpoint recall (MAGI Archivist): detects current git branch's feature, reads .harness/state/workflow-checkpoints/<feature>.json if it exists, injects additionalContext telling MAGI Core to surface the resume offer to the user. Silent on main/master/develop, on missing checkpoints, or outside git repos. Powers the welcome-back UX of the /resume skill.",
+        "_comment": "Checkpoint recall (MAGI Archivist): detects current git branch's feature, reads .harness/state/workflow-checkpoints/<feature>.json if it exists, injects additionalContext telling MAGI Core to surface the resume offer to the user. Silent on main/master/develop, on missing checkpoints, or outside git repos. Powers the welcome-back UX of the /pickup skill.",
         "hooks": [
           {
             "type": "command",

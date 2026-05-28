@@ -345,4 +345,4 @@ At successful completion, write the checkpoint (first stage = bootstraps the fil
   --decision "<one-line summary, e.g. 'edge case #3 race-condition is in scope'>"
 ```
 
-**Skipping this step breaks `/resume`** — MAGI Archivist depends on every stage writing here.
+**Skipping this step breaks `/pickup`** — MAGI Archivist depends on every stage writing here.

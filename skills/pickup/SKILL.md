@@ -1,19 +1,19 @@
 ---
-name: resume
+name: pickup
 description: |
   Resume an in-progress feature from where you left off (across sessions, devices, days). Reads `.harness/state/workflow-checkpoints/<feature>.json` and restores: which stage you were at, which artifacts exist, what files were already implemented, what audit verdicts have been issued, and what CEO decisions were made.
   
   Trigger when the user:
-  - Invokes `/resume` (no args = resume current git-branch's feature; with feature name = resume that one)
+  - Invokes `/pickup` (no args = resume current git-branch's feature; with feature name = resume that one)
   - Says "continue where I left off" / "继续上次的进度" / "前回の続きから" / "이어서 작업"
   - Says "what was I doing on user-login?" / "user-login 我做到哪了？"
   - Reopens Claude on a branch that matches an existing checkpoint (SessionStart hook auto-surfaces this)
 argument-hint: [<feature-slug>] [--list] [--force-restart]
 ---
 
-# /resume
+# /pickup
 
-> *Operational basis: Stage 7 of `CLAUDE.md § Workflow` (CEO smoke test) and Stage 8 (commit) presume a coherent workflow state. When a session is interrupted between stages, `/resume` reconstructs that state.*
+> *Operational basis: Stage 7 of `CLAUDE.md § Workflow` (CEO smoke test) and Stage 8 (commit) presume a coherent workflow state. When a session is interrupted between stages, `/pickup` reconstructs that state.*
 
 > **MAGI position**: This skill is operated by **MAGI Archivist** (per `AGENTS.md § MAGI System`). Archivist's job is to recall and announce prior state, then hand control back to MAGI Core for the next stage.
 
@@ -21,9 +21,9 @@ argument-hint: [<feature-slug>] [--list] [--force-restart]
 
 Three common entry points:
 
-1. **Cross-day continuation** — you stopped Friday at Stage 5 (3/8 files done), come back Monday. `/resume` picks up exactly there.
+1. **Cross-day continuation** — you stopped Friday at Stage 5 (3/8 files done), come back Monday. `/pickup` picks up exactly there.
 2. **Cross-device continuation** — you started on laptop, finish on desktop. Both have the same git branch + checkpoint file (if committed) or separate checkpoint files (if gitignored, which is the default).
-3. **Session timeout / compaction loss** — context window filled up, conversation compacted. `/resume` reloads the structural state without re-paraphrasing every prior decision.
+3. **Session timeout / compaction loss** — context window filled up, conversation compacted. `/pickup` reloads the structural state without re-paraphrasing every prior decision.
 
 ## What it produces
 
@@ -77,24 +77,24 @@ What now?
 
 ### No args — resume current branch's feature
 ```
-/resume
+/pickup
 ```
 - Reads current git branch (e.g., `feature/user-login`)
 - Strips prefix `feature/` → feature slug `user-login`
 - Reads `.harness/state/workflow-checkpoints/user-login.json`
 - Surfaces the report above
-- If no checkpoint exists for this branch → tells user: *"No checkpoint for user-login. Start fresh with /feature-draft, or run /resume --list to see other features."*
+- If no checkpoint exists for this branch → tells user: *"No checkpoint for user-login. Start fresh with /feature-draft, or run /pickup --list to see other features."*
 
 ### Explicit feature name
 ```
-/resume user-login
+/pickup user-login
 ```
 - Reads `.harness/state/workflow-checkpoints/user-login.json` regardless of current branch
 - If user is on a different branch, asks: *"Switch to feature/user-login first? [Y/n]"*
 
 ### List all in-progress
 ```
-/resume --list
+/pickup --list
 ```
 Outputs:
 ```
@@ -107,7 +107,7 @@ In-progress features:
 
 ### Force restart from current stage
 ```
-/resume --force-restart
+/pickup --force-restart
 ```
 - Re-loads the checkpoint but invalidates the "in-progress" state of the current stage
 - Useful when you want to redo Stage 5 from scratch (e.g., wholesale plan change)
@@ -185,17 +185,17 @@ The SessionStart hook (`outcome/scripts/checkpoint-recall.sh` wired in `.claude/
 1. Reads current git branch (`git symbolic-ref HEAD`)
 2. Strips `feature/` / `feat/` / `fix/` prefix → feature slug
 3. Tests for `.harness/state/workflow-checkpoints/<slug>.json` — if exists, reads it
-4. Injects `additionalContext` to Claude: *"There's an in-progress feature `user-login` at Stage 5 (3/8 files done). The user may want to /resume; surface it on first interaction."*
+4. Injects `additionalContext` to Claude: *"There's an in-progress feature `user-login` at Stage 5 (3/8 files done). The user may want to /pickup; surface it on first interaction."*
 5. Claude (acting as MAGI Core) greets the user with the resume offer at first response
 
 This is the same pattern Continue.dev uses with `HistoryManager.loadLastSession()` but feature-scoped instead of session-scoped.
 
 ## What this skill does NOT do
 
-- **Doesn't roll back code** — if you have uncommitted changes that conflict with the checkpoint's expected state (e.g., you manually deleted a file the checkpoint says is done), `/resume` warns but doesn't auto-fix. You decide.
+- **Doesn't roll back code** — if you have uncommitted changes that conflict with the checkpoint's expected state (e.g., you manually deleted a file the checkpoint says is done), `/pickup` warns but doesn't auto-fix. You decide.
 - **Doesn't re-run MAGI Verdict automatically** — even if `last_activity_at` is months ago, prior verdicts still stand. Run `/audit-spec` to re-validate if you need a fresh judgment.
 - **Doesn't handle multi-developer conflict** — checkpoint is gitignored, so two devs on the same feature have independent checkpoints. Git branch is the conflict resolution mechanism, not the checkpoint.
-- **Doesn't replace `/next`** — `/next` is the workflow status inspector (which command should I run next?). `/resume` is the state restoration mechanism (what was I doing?). Both are complementary.
+- **Doesn't replace `/next`** — `/next` is the workflow status inspector (which command should I run next?). `/pickup` is the state restoration mechanism (what was I doing?). Both are complementary.
 
 ## Failure modes
 
@@ -203,8 +203,8 @@ This is the same pattern Continue.dev uses with `HistoryManager.loadLastSession(
 |---|---|---|
 | "No checkpoint for current branch" | You're on a non-feature branch (e.g., `main`) or this feature was started without going through the standard skills | Start the feature via `/feature-draft <name>` to create a checkpoint |
 | "Checkpoint references missing file `<path>`" | An artifact was manually deleted | Either restore the file from git or use `/feature-draft <name> --reset` to redo Stage 1 |
-| "Multiple checkpoints found, ambiguous" | Branch name doesn't cleanly map to feature slug | Use explicit form: `/resume <feature-slug>` |
-| "Checkpoint schema version mismatch" | You upgraded CCC-MAGI to a newer schema | The harness offers `/resume --migrate-checkpoint` to upgrade old checkpoints |
+| "Multiple checkpoints found, ambiguous" | Branch name doesn't cleanly map to feature slug | Use explicit form: `/pickup <feature-slug>` |
+| "Checkpoint schema version mismatch" | You upgraded CCC-MAGI to a newer schema | The harness offers `/pickup --migrate-checkpoint` to upgrade old checkpoints |
 
 ## Completion criteria
 

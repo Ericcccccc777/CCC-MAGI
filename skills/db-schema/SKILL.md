@@ -122,4 +122,4 @@ If skipped (no backend configured):
   --stage-skip 3 --skip-reason "no backend_db_type configured"
 ```
 
-MAGI Archivist surfaces skipped stages in the `/resume` report so users can see deliberate skips vs forgotten stages.
+MAGI Archivist surfaces skipped stages in the `/pickup` report so users can see deliberate skips vs forgotten stages.

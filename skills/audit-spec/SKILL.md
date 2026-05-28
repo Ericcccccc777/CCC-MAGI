@@ -367,4 +367,4 @@ At successful completion, write the checkpoint with `mode: audit`:
   --evidence ".harness/audits/<feature>-as-built-<date>.md"
 ```
 
-**MAGI Archivist requires this** for `/resume` to know audit-mode features exist.
+**MAGI Archivist requires this** for `/pickup` to know audit-mode features exist.

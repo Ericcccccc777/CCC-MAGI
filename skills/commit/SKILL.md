@@ -210,7 +210,7 @@ Stage 8 is complete when:
 
 ## Checkpoint + decision-log integration (MAGI Archivist)
 
-After the commit is created and (if applicable) pushed, **archive the checkpoint** — the feature is done, no more `/resume` needed:
+After the commit is created and (if applicable) pushed, **archive the checkpoint** — the feature is done, no more `/pickup` needed:
 
 ```bash
 .harness/scripts/checkpoint-write.sh \

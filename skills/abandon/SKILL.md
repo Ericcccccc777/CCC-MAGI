@@ -14,7 +14,7 @@ argument-hint: <feature-slug> [--archive-artifacts] [--force]
 
 > **MAGI position**: Operated by **MAGI Archivist**. Archivist's job is final-state record-keeping — when a feature dies, Archivist files the paperwork.
 
-> *Constitutional basis: Stage 7 (CEO smoke test) of `CLAUDE.md § Workflow` empowers CEO to reject a feature outright. `/abandon` is the formal record of that rejection — without it, stale checkpoints accumulate and `/resume --list` becomes noise.*
+> *Constitutional basis: Stage 7 (CEO smoke test) of `CLAUDE.md § Workflow` empowers CEO to reject a feature outright. `/abandon` is the formal record of that rejection — without it, stale checkpoints accumulate and `/pickup --list` becomes noise.*
 
 ## When to use
 
@@ -22,7 +22,7 @@ Three legitimate scenarios:
 
 1. **CEO rejects the feature post-spec** — after Stage 1 paraphrase + edge cases, CEO realizes the feature shouldn't exist. Abandon before any code is written.
 2. **Smoke test fails irrecoverably** — after Stage 7, CEO decides the feature is fundamentally wrong. Abandon, do not `/commit`.
-3. **Cleanup of dormant features** — `/resume --list` shows a feature you started 3 months ago and never finished. If you're not going back, abandon it to clear the slot.
+3. **Cleanup of dormant features** — `/pickup --list` shows a feature you started 3 months ago and never finished. If you're not going back, abandon it to clear the slot.
 
 **Do NOT use `/abandon` for**:
 - Temporary pauses (just close Claude — checkpoint persists)

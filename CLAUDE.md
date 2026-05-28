@@ -75,7 +75,7 @@ First-time user in this project. Hook injects context telling you to introduce y
 Phase 1 done, Phase 2 not done. Hook injects context telling you the env is ready, ask user to do Phase 2. Invoke `/init` — it will ask Simple vs Pro mode and walk through L0 questions.
 
 ### State S3 — install.json exists
-Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/resume`, `/abandon`, `/next`, `/remember`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`).
+Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/pickup`, `/abandon`, `/next`, `/remember`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`).
 
 ### Session deduplication
 
@@ -294,8 +294,8 @@ Skills are invokable two ways:
 
 - `/init` — **Step 2** of harness setup: fills L0/L1 slots interactively, writes `.harness/state/install.json` as the canonical "configured" marker. Re-runnable for re-configuration with `--force`. Does NOT run detection — bootstrap handles that before /init is invoked.
 - `/next` — workflow state inspector: detects current feature progress and suggests next command. Doesn't auto-invoke; pure wayfinder. Use when unsure which skill to run.
-- `/resume` — session resume: reads `.harness/state/workflow-checkpoints/<feature>.json` and restores stage / artifact / progress state. Auto-surfaced at SessionStart if a checkpoint matches the current git branch. Use after multi-day breaks, cross-device work, or context-compaction loss.
-- `/abandon` — mark a feature dead: moves checkpoint to `_archived/`, logs reason to decision-log. Does NOT touch git or source code (CEO's job). Use when CEO rejects a feature post-spec or when cleaning dormant features from `/resume --list`.
+- `/pickup` — session resume: reads `.harness/state/workflow-checkpoints/<feature>.json` and restores stage / artifact / progress state. Auto-surfaced at SessionStart if a checkpoint matches the current git branch. Use after multi-day breaks, cross-device work, or context-compaction loss.
+- `/abandon` — mark a feature dead: moves checkpoint to `_archived/`, logs reason to decision-log. Does NOT touch git or source code (CEO's job). Use when CEO rejects a feature post-spec or when cleaning dormant features from `/pickup --list`.
 - `/feature-draft <name>` — stage 1, **new-feature mode**
 - `/audit-spec <name>` — stage 1, **audit mode**
 - `/spec-finalize <name>` — stage 2
