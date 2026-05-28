@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# install-into.sh — quick-and-dirty local install of CCC-Harness into a test directory.
+# install-into.sh — quick-and-dirty local install of CCC-MAGI into a test directory.
 #
 # This script is NOT the production installer. It's a local convenience for
 # testing the harness without needing the npx package published. It does
-# what `npx create-ccc-harness` does, but copies from this working dir's
+# what `npx create-ccc-magi` does, but copies from this working dir's
 # outcome/ instead of cloning from GitHub.
 #
 # USAGE:
 #   bash install-into.sh <target-dir>
-#   bash install-into.sh <target-dir> --force                  # overwrite existing CCC-Harness files (implies --force-load-bearing)
+#   bash install-into.sh <target-dir> --force                  # overwrite existing CCC-MAGI files (implies --force-load-bearing)
 #   bash install-into.sh <target-dir> --force-load-bearing     # reset LOAD_BEARING files even if user-modified (backs them up)
 #   bash install-into.sh <target-dir> --dry-run                # show what would be done
 #
@@ -30,7 +30,7 @@ if [ $# -lt 1 ]; then
   cat <<EOF
 Usage: bash install-into.sh <target-dir> [--force] [--force-load-bearing] [--dry-run]
 
-Installs CCC-Harness from this repo's outcome/ into <target-dir>.
+Installs CCC-MAGI from this repo's outcome/ into <target-dir>.
 
 Examples:
   bash install-into.sh ~/Desktop/test-harness-demo
@@ -60,7 +60,7 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source resolution: dev mode (this repo) has harness contents under outcome/.
-# Publish mode (CCC-Harness GitHub repo) has them at the script's same level.
+# Publish mode (CCC-MAGI GitHub repo) has them at the script's same level.
 if [ -d "$SCRIPT_DIR/outcome" ]; then
   SOURCE="$SCRIPT_DIR/outcome"
 else
@@ -99,7 +99,7 @@ if ! command -v jq >/dev/null 2>&1; then
   echo "     Linux:  sudo apt install jq   (or your distro's equivalent)" >&2
   echo "" >&2
   echo "   Alternatively, use the npx installer which does not require jq:" >&2
-  echo "     npx create-ccc-harness@latest" >&2
+  echo "     npx create-ccc-magi@latest" >&2
   exit 1
 fi
 
@@ -162,7 +162,7 @@ sha256_of() {
 ensure_registry() {
   mkdir -p "$REGISTRY_DIR"
   if [ ! -f "$REGISTRY_FILE" ]; then
-    echo '{"harness_version":"0.8.0","shipped_at":"","hashes":{}}' > "$REGISTRY_FILE"
+    echo '{"harness_version":"0.9.0","shipped_at":"","hashes":{}}' > "$REGISTRY_FILE"
   fi
 }
 
@@ -177,7 +177,7 @@ record_hash() {
   local tmp
   tmp="$(mktemp -t ccc-registry.XXXXXX)" || return 1
   jq --arg p "$dst_path" --arg h "$hash_value" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-     '.shipped_at = $ts | .harness_version = "0.8.0" | .hashes[$p] = $h' \
+     '.shipped_at = $ts | .harness_version = "0.9.0" | .hashes[$p] = $h' \
      "$REGISTRY_FILE" > "$tmp" && mv "$tmp" "$REGISTRY_FILE"
 }
 
@@ -206,7 +206,7 @@ if [ ${#EXISTING[@]} -gt 0 ]; then
     echo "    • $m"
   done
   echo ""
-  echo "   CCC-Harness handles these gracefully — the AI-driven bootstrap"
+  echo "   CCC-MAGI handles these gracefully — the AI-driven bootstrap"
   echo "   inside Claude Code will ask you what to do (archive / overwrite / decline)."
   echo "   This installer just gets files on disk."
   echo ""
@@ -241,8 +241,8 @@ declare -a MAPPINGS=(
   "cli-configs/README.md|docs-harness/cli-configs-README.md|file"
   ".claude-plugin/plugin.json|.claude-plugin/plugin.json|file"
   ".gitignore|.gitignore|file"
-  "README.md|CCC_HARNESS_README.md|file"
-  "LICENSE|CCC_HARNESS_LICENSE|file"
+  "README.md|CCC_MAGI_README.md|file"
+  "LICENSE|CCC_MAGI_LICENSE|file"
 )
 
 # ─────────────────────────────────────────────────────────────────────
@@ -280,9 +280,9 @@ is_load_bearing() {
 
 backup_existing() {
   local dst_path="$1"
-  local backup="$dst_path.pre-ccc-harness"
+  local backup="$dst_path.pre-ccc-magi"
   if [ -e "$backup" ]; then
-    backup="$dst_path.pre-ccc-harness.$(date +%Y%m%d-%H%M%S)"
+    backup="$dst_path.pre-ccc-magi.$(date +%Y%m%d-%H%M%S)"
   fi
   mv "$dst_path" "$backup"
   echo "$(basename "$backup")"
@@ -406,7 +406,7 @@ merge_dir_recursive() {
 # Rules:
 #   1. Target absent → copy ours verbatim.
 #   2. Target present →
-#      a. Back up to <path>.pre-ccc-harness ONCE (skip if backup exists).
+#      a. Back up to <path>.pre-ccc-magi ONCE (skip if backup exists).
 #      b. For each of our hook entries (identified by command substring
 #         matching .harness/scripts/<script>), check if same command path
 #         already exists in the corresponding event array; if yes, leave
@@ -438,8 +438,8 @@ merge_json_settings() {
     return 1
   fi
 
-  # Back up the existing file ONCE (skip if .pre-ccc-harness already exists).
-  local backup="$dst_path.pre-ccc-harness"
+  # Back up the existing file ONCE (skip if .pre-ccc-magi already exists).
+  local backup="$dst_path.pre-ccc-magi"
   local backed_up=0
   if [ ! -e "$backup" ]; then
     cp "$dst_path" "$backup"
@@ -590,7 +590,7 @@ for entry in "${MAPPINGS[@]}"; do
       H=$(sha256_of "$DST_PATH")
       record_hash "$dst" "$H"
       if [ "$MERGE_RESULT" = "BACKED_UP" ]; then
-        printf "   ⊕ %-40s → %s (merged; user file backed up to %s.pre-ccc-harness)\n" "$src" "$dst" "$(basename "$dst")"
+        printf "   ⊕ %-40s → %s (merged; user file backed up to %s.pre-ccc-magi)\n" "$src" "$dst" "$(basename "$dst")"
         BACKED_UP=$((BACKED_UP + 1))
       else
         printf "   ⊕ %-40s → %s (re-merged; idempotent)\n" "$src" "$dst"
@@ -663,7 +663,7 @@ if [ "$BACKED_UP" -gt 0 ]; then
   echo "✅ Installed. ($COPIED new, $UPDATED updated, $PRESERVED preserved, $BACKED_UP file(s) backed up)"
   echo ""
   echo "Note: $BACKED_UP existing file(s) at the target had pre-existing user content."
-  echo "They were backed up with .pre-ccc-harness suffix before CCC-Harness's"
+  echo "They were backed up with .pre-ccc-magi suffix before CCC-MAGI's"
   echo "versions were installed."
 else
   echo "✅ Installed. ($COPIED new, $UPDATED updated, $PRESERVED preserved)"
@@ -675,11 +675,21 @@ echo ""
 echo "  cd \"$TARGET\""
 echo "  claude"
 echo ""
-echo "The AI will detect that CCC-Harness needs configuration"
-echo "(because .harness/state/install.json doesn't exist) and walk"
-echo "you through the bootstrap + /init flow."
+echo "🤖 What happens when you open Claude Code:"
 echo ""
-echo "Read first:"
-echo "  CCC_HARNESS_README.md             — overview"
+echo "  Phase 1 — Environment check (~30s)"
+echo "    MAGI Core will greet you and propose two-phase setup."
+echo "    Say yes, and it will detect git/jq/claude/codex automatically."
+echo "    Anything missing → conversational install (no terminal output to interpret)."
+echo ""
+echo "  Phase 2 — Project deployment (~3-15 min)"
+echo "    After env check passes, MAGI Core asks Simple (5 questions, ~3 min)"
+echo "    or Pro (16 questions, ~15 min) mode. The 5 simple questions can be"
+echo "    upgraded to all 16 anytime later by saying \"升级到专业版\" / \"upgrade to pro\"."
+echo ""
+echo "  All progress saved to .harness/state/ — close terminal anytime, /resume picks up."
+echo ""
+echo "Read first (optional):"
+echo "  CCC_MAGI_README.md             — overview"
 echo "  docs-harness/adoption-playbook.md — full walkthrough"
 echo ""

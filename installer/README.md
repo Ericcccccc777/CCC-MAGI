@@ -1,108 +1,137 @@
-# create-ccc-harness
+# create-ccc-magi
 
-Install [CCC-Harness](https://github.com/<OWNER>/CCC-Harness) into a project. One command.
+Install [CCC-MAGI v0.9.0](https://github.com/Ericcccccc777/CCC-MAGI) into a project. One command.
 
 ```bash
 cd /path/to/your/project
-npx create-ccc-harness@latest
+npx create-ccc-magi@latest
 ```
 
-That's it. The installer downloads the harness, places files in canonical locations, sets script permissions, and tells you to open your AI CLI.
+That's it. The installer downloads the harness from GitHub, places files in canonical locations, sets script permissions, and tells you to open your AI CLI.
 
-After install, open Claude Code (or Codex CLI) in the project. The harness's AI-driven bootstrap takes over and walks you through:
-- Detecting any existing harness configs (BMAD / Cursor / etc.)
-- 3-option menu (archive / overwrite / decline)
-- Project configuration via 16 plain-language questions
+After install, open Claude Code (or Codex CLI) in the project. The harness's **two-phase bootstrap** takes over:
+
+- **Phase 1 — Environment check (~30 seconds, conversational)**  
+  MAGI Core greets you and detects what's installed (git, jq, claude, codex). Anything missing → walks you through install conversationally (brew / vendored binary / manual options).
+
+- **Phase 2 — Project deployment (~3-15 minutes, conversational)**  
+  Pick Simple (5 questions, smart defaults) or Pro (16 questions, full identity contract). Can upgrade Simple → Pro anytime later by saying "升级到专业版" / "upgrade to pro".
 
 ## Options
 
 | Flag | Effect |
 |------|--------|
-| `--dry-run` | Print what would be installed; don't write anything |
-| `--force` | Overwrite existing CCC-Harness files; also bypasses git-clean check |
+| `--dry-run`, `-n` | Print what would be installed; don't write anything |
+| `--force`, `-f` | Overwrite existing CCC-MAGI files; bypasses git-clean check |
+| `--force-load-bearing` | Also overwrite `constitution.md` / `CLAUDE.md` / `AGENTS.md` (use carefully — wipes your project identity) |
 | `--ref <tag>` | Install a specific harness version (default: `main`) |
-| `--help` | Show usage |
+| `--version` | Print this installer's version |
+| `--help`, `-h` | Show usage |
+
+## Platform support
+
+| Platform | Status |
+|---|---|
+| macOS (Apple Silicon / Intel) | ✅ Tier 1 |
+| Linux (Ubuntu / Debian / RHEL / Arch) | ✅ Tier 1 |
+| Windows 10/11 + WSL2 (Ubuntu) | ✅ Tier 1 — recommended |
+| Windows 10/11 + Git for Windows (Git Bash) | ⚠️ Tier 2 — community-tested |
+| Windows native (cmd / PowerShell only) | ❌ install Git for Windows first |
+
+CCC-MAGI inherits its platform matrix from Anthropic Claude Code. Anywhere Claude Code runs, CCC-MAGI can run (provided a POSIX shell is reachable for hook execution).
+
+**Windows quick-start:**
+```powershell
+winget install Git.Git
+# OR for a full Linux experience:
+wsl --install -d Ubuntu
+```
 
 ## What gets installed
 
 ```
 your-project/
-├── constitution.md               ← placeholder (filled by /init in next step)
-├── CLAUDE.md                     ← workflow rules + Bootstrap Status Check at top
-├── AGENTS.md                     ← auditor role contract
-├── CCC_HARNESS_README.md         ← harness's own README (your project's README is untouched)
-├── CCC_HARNESS_LICENSE           ← harness's MIT license (your project's LICENSE is untouched)
+├── constitution.md               ← project identity placeholder (filled by /init)
+├── CLAUDE.md                     ← workflow rules + two-phase Bootstrap Status Check
+├── AGENTS.md                     ← MAGI System (7 positions) + auditor brief
+├── CCC_MAGI_README.md            ← harness's own README (your README is preserved)
+├── CCC_MAGI_LICENSE              ← harness's Apache 2.0 license (your LICENSE preserved)
 ├── .harness/
-│   ├── skills/                   ← 9 stage skills (feature-draft, audit-spec, ..., init)
-│   ├── agents/                   ← 3 starter reviewers (frontend / backend / security) + 1 junior programmer (test-fixer) + template
-│   ├── scripts/                  ← shell scripts (auditor-gate.sh, hooks) + standalone-bootstrap.md
-│   └── state/                    ← created by /init (not by this installer); will hold install.json after configuration
-├── .claude/settings.json         ← Claude Code hooks + permissions
+│   ├── skills/                   ← 16 stage skills (feature-draft, audit-spec, ..., resume, abandon)
+│   ├── agents/                   ← 4 reviewer agents (backend / frontend / security / test-fixer)
+│   ├── scripts/                  ← 15 shell scripts (hooks, helpers, env-check, checkpoint-write...)
+│   └── state/                    ← created at runtime (install.json, env-check.json, checkpoints...)
+├── .claude/settings.json         ← Claude Code 5-hook chain + permissions
 ├── .codex/
 │   ├── config.toml               ← Codex CLI config
 │   └── hooks.json                ← Codex hooks
-└── docs-harness/                 ← framework design rationale (5 docs)
+└── docs-harness/                 ← framework design rationale (6 docs)
 ```
 
-The installer **preserves** your existing `README.md` and `LICENSE` (the harness's are renamed to `CCC_HARNESS_*` to avoid collision).
+The installer **preserves** your existing `README.md` and `LICENSE`. The harness's are renamed to `CCC_MAGI_*` to avoid collision.
 
-If you already have `constitution.md`, `CLAUDE.md`, `AGENTS.md`, or `.harness/` from a prior CCC-Harness install, the installer skips them by default. Use `--force` to overwrite.
+## Git-clean check
+
+By default, the installer refuses to run if your target directory has uncommitted changes — installing on a dirty tree mixes harness files with your in-progress edits. Either:
+
+```bash
+git stash         # set aside, install, then git stash pop
+# — or —
+git commit -am "wip" # commit, then install
+# — or —
+npx create-ccc-magi@latest --force   # override
+```
 
 ## Requirements
 
-- **git** (the installer uses `git clone --depth 1` to download)
-- **node >= 18** (for the npx invocation itself)
-- The target directory should be a git repo (`git init` first; the installer warns otherwise)
-- The working tree should be clean (uncommitted changes trigger a warning; `--force` overrides)
+- **git** (for cloning CCC-MAGI from GitHub at install time)
+- **bash** (for executing install-into.sh; Mac/Linux native, Windows via Git Bash or WSL)
+- **node >= 18** (for npx itself)
+- Target directory should be a git repository (`git init` first)
+
+Note: **jq is installed conversationally** during Phase 1 environment check by MAGI Core (not by this installer). The installer doesn't gate on jq presence — that's the harness's job at first interaction.
 
 ## Post-install
 
-Open Claude Code in the directory:
-
 ```bash
-claude
+cd /path/to/your/project
+claude   # or: codex
 ```
 
-Claude reads `CLAUDE.md`, sees the `Bootstrap Status Check` block at the top, sees `.harness/state/install.json` doesn't exist → invokes the bootstrap flow from `.harness/scripts/standalone-bootstrap.md`.
-
-From there it's interactive:
-1. AI scans for existing harness configs (BMAD, Cursor, ad-hoc CLAUDE.md / agent.md, etc.)
-2. AI lists candidates + asks you to confirm
-3. AI presents the 3-option menu
-4. If you pick archive or overwrite, AI archives/deletes the other configs and invokes `/init`
-5. `/init` asks 16 plain-language questions, fills `constitution.md`, writes `install.json`
+Claude Code reads `CLAUDE.md`, sees the **Bootstrap Status Check** block at the top, notices `.harness/state/install.json` doesn't exist → walks you through:
+1. Phase 1 — env check (with conversational jq install if missing)
+2. Phase 2 — Simple or Pro project deployment
 
 Total time: 5–15 minutes for a fresh project.
 
 ## What this installer does NOT do
 
-- **Does NOT run the 3-option menu itself.** That happens inside the AI CLI after install, because the menu requires AI judgment to identify ad-hoc harness configs (e.g., a project with `agent/harness.md` that isn't a known framework).
-- **Does NOT configure project-specific values.** `/init` does that (16 questions, post-install).
-- **Does NOT alter your project's package.json, .gitignore, build configs, etc.** It only places harness files in dedicated locations.
+- **Does NOT install jq for you.** That's Phase 1's conversational job inside MAGI Core. The installer just gets the harness files in place.
+- **Does NOT alter your project's `package.json`, `.gitignore`, build configs, etc.** It only places harness files in dedicated locations.
+- **Does NOT run `/init` itself.** That's Phase 2 of the bootstrap, executed inside Claude Code with full conversational control.
 
 ## Troubleshooting
 
-**"git is not installed"** — install git via your package manager (`brew install git` on macOS).
+**"git is not installed"** — install git via your package manager (`brew install git` on macOS, `winget install Git.Git` on Windows).
+
+**"bash is not installed"** — on Windows, install Git for Windows (`winget install Git.Git`) — it includes Git Bash.
 
 **"Current directory is not a git repository"** — run `git init` first, or use `--force` to install anyway.
 
 **"Working tree has uncommitted changes"** — commit/stash your changes, or use `--force`.
 
-**Clone failed** — verify network connectivity to GitHub. If you're behind a corporate proxy, ensure `git` is configured to use it. For private forks, use `--ref <branch-or-tag>` to target a specific reference your local credentials can reach.
+**Clone failed** — verify network connectivity. For private forks, use `--ref <branch-or-tag>` to target a reference your local credentials can reach.
 
-**Files already exist** — by default the installer preserves existing CCC-Harness files. Use `--force` to overwrite.
+**Files already exist** — by default the installer preserves existing CCC-MAGI files (content-hash registry detects user customizations). Use `--force` to overwrite, `--force-load-bearing` to also overwrite `constitution.md` / `CLAUDE.md` / `AGENTS.md`.
 
 ## License
 
-Apache-2.0 — see `LICENSE` (same as the CCC-Harness repo itself).
+Apache-2.0
 
 ## Repo
 
-Source: https://github.com/Ericcccccc777/CCC-Harness (this `installer/` subdirectory)  
-Harness it installs: https://github.com/Ericcccccc777/CCC-Harness (the repo root)
-
-The installer ships as a subdirectory of the harness repo, so a single `git clone` gets both. The installer's `package.json` `repository.url` reflects this.
+Source: https://github.com/Ericcccccc777/CCC-MAGI
 
 ## Version
 
-0.8.0 — published to npm. Tracks CCC-Harness milestone versioning (v0.1 through v0.8). See the main CCC-Harness repo's release notes for what each milestone delivered.
+0.9.0 — MAGI 7-position AI team system + Simple/Pro onboarding modes + feature-aware session resume + two-phase conversational bootstrap. See [CHANGELOG](https://github.com/Ericcccccc777/CCC-MAGI/releases) on the main repo for details.

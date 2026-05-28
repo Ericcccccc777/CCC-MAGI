@@ -1,17 +1,17 @@
 {
-  "name": "create-ccc-harness",
-  "version": "0.8.0",
-  "description": "Install CCC-Harness into a project — generic AI development harness with cross-model audit, plain-language specs, persistent memory, EARS notation, and 3-section project constitution. Run via `npx create-ccc-harness@latest` in your project directory.",
+  "name": "create-ccc-magi",
+  "version": "0.9.0",
+  "description": "Install CCC-MAGI v0.9.0 into a project — generic AI development harness with MAGI 7-position AI team (Core / Verdict / Planner / Programmer / Tester / Reviewer / Archivist), cross-model audit, Simple+Pro onboarding modes (5 vs 16 questions), feature-aware session resume, and conversational two-phase bootstrap (environment check + project deployment). Drop-in for Claude Code / Codex CLI projects on macOS, Linux, or Windows (WSL2 / Git Bash). Run via `npx create-ccc-magi@latest` in your project directory.",
   "type": "module",
   "bin": {
-    "create-ccc-harness": "./bin.js"
+    "create-ccc-magi": "./bin.js"
   },
   "main": "./bin.js",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "test": "echo 'No tests yet' && exit 0"
+    "test": "echo 'No automated tests yet; smoke-test by running bin.js --dry-run in a temp dir'"
   },
   "files": [
     "bin.js",
@@ -27,8 +27,12 @@
     "cross-model-audit",
     "constitution-driven",
     "persistent-memory",
+    "ccc-magi",
+    "magi-system",
+    "magi-verdict",
+    "session-resume",
     "ears-notation",
-    "ccc"
+    "two-phase-bootstrap"
   ],
   "license": "Apache-2.0",
   "author": {
@@ -37,11 +41,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ericcccccc777/CCC-Harness.git"
+    "url": "git+https://github.com/Ericcccccc777/CCC-MAGI.git"
   },
-  "homepage": "https://github.com/Ericcccccc777/CCC-Harness#readme",
+  "homepage": "https://github.com/Ericcccccc777/CCC-MAGI#readme",
   "bugs": {
-    "url": "https://github.com/Ericcccccc777/CCC-Harness/issues"
+    "url": "https://github.com/Ericcccccc777/CCC-MAGI/issues"
   },
   "publishConfig": {
     "access": "public"
