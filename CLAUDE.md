@@ -75,7 +75,7 @@ First-time user in this project. Hook injects context telling you to introduce y
 Phase 1 done, Phase 2 not done. Hook injects context telling you the env is ready, ask user to do Phase 2. Invoke `/init` — it will ask Simple vs Pro mode and walk through L0 questions.
 
 ### State S3 — install.json exists
-Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/pickup`, `/abandon`, `/next`, `/remember`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`).
+Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/pickup`, `/abandon`, `/next`, `/remember`, `/uninstall`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`).
 
 ### Session deduplication
 
@@ -148,6 +148,7 @@ CEO is a **human** who shouldn't have to memorize slash commands. The CCC-MAGI w
 | "提交" / "commit" / "save it" / "ship" | `/commit` |
 | "改一下" / "改改" / "re-do" / "modify" + 具体说改哪 | re-enter the relevant stage (e.g., `/feature-draft <name>` for spec edits) |
 | "放弃" / "不做了" / "drop this feature" / "kill it" | `/abandon <current-feature>` |
+| "卸载 CCC-MAGI" / "uninstall" / "删除 CCC-MAGI" / "不要 CCC-MAGI 了" / "把这套拆掉" | `/uninstall` |
 | "升级到专业版" / "Pro 版" / "want full questions" / "上专业模式" | `/init --upgrade-to-pro` |
 | "改宪法" / "改身份" / "edit constitution" | `/constitution-edit` |
 | "新加一条红线" / "加 anti-flag 规则" | `/add-constitution-clause` or `/add-anti-flag` (pick by content) |
@@ -472,6 +473,7 @@ Skills are invokable two ways:
 - `/next` — workflow state inspector: detects current feature progress and suggests next command. Doesn't auto-invoke; pure wayfinder. Use when unsure which skill to run.
 - `/pickup` — session resume: reads `.harness/state/workflow-checkpoints/<feature>.json` and restores stage / artifact / progress state. Auto-surfaced at SessionStart if a checkpoint matches the current git branch. Use after multi-day breaks, cross-device work, or context-compaction loss.
 - `/abandon` — mark a feature dead: moves checkpoint to `_archived/`, logs reason to decision-log. Does NOT touch git or source code (CEO's job). Use when CEO rejects a feature post-spec or when cleaning dormant features from `/pickup --list`.
+- `/uninstall` — cleanly remove CCC-MAGI from the project. Detects whether a prior harness archive exists (`old_version_harness/` from bootstrap option 1); if so, offers to restore it. Preserves source code, `docs/features/*.md` specs, git history. Constitutional basis: § 3 (CEO Final Authority).
 - `/feature-draft <name>` — stage 1, **new-feature mode**
 - `/audit-spec <name>` — stage 1, **audit mode**
 - `/spec-finalize <name>` — stage 2
