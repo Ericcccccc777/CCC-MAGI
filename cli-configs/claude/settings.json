@@ -1,6 +1,12 @@
 {
   "_comment_top": "Claude Code settings — rendered from outcome/cli-configs/claude/settings.json at /init. See sibling README.md for what each section does.",
 
+  "_comment_context_management": "Anthropic Context Editing (beta 2025-06-27). Server-side clears stale Read/Bash/Grep tool outputs from context while preserving the decisions to call them. This is the single highest-ROI context-saving mechanism in CCC-MAGI's v2 context architecture — see docs-harness/context-architecture-v2.md § Phase 0.",
+  "betas": ["context-management-2025-06-27"],
+  "context_management": {
+    "clear_tool_uses": true
+  },
+
   "permissions": {
     "_comment": "MCP tool calls allowed without prompting. Default = context7 only. Add project-specific MCPs (backend MCP, GitHub MCP, etc.) at /init or by hand-editing this file.",
     "allow": [
@@ -80,7 +86,17 @@
 
     "SessionStart": [
       {
-        "_comment": "Memory recall (MAGI Archivist): reads .harness/memory/observations.jsonl, scores entries by relevance to the current git branch's feature, and injects the top relevant entries into Claude's additionalContext at session start. Silently no-ops if the memory file is missing or empty.",
+        "_comment": "Memory archive (v2 Phase 2): migrates recall-tier entries older than CCC_ARCHIVE_AGE_DAYS (default 30) into archive/<YYYY-MM>.jsonl. Runs FIRST so memory-recall reads a freshly-pruned recall tier. Also back-fills `id` on legacy v1 entries.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-archive.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comment": "Memory recall v2 (manifest mode): injects ONLY index lines (one per entry, ~80 tokens) for the recall tier. AI fetches bodies on-demand via /recall <id>. ~70% token savings vs v1 eager-injection. See docs-harness/context-architecture-v2.md § Phase 2.",
         "hooks": [
           {
             "type": "command",
@@ -90,11 +106,34 @@
         ]
       },
       {
-        "_comment": "Checkpoint recall (MAGI Archivist): detects current git branch's feature, reads .harness/state/workflow-checkpoints/<feature>.json if it exists, injects additionalContext telling MAGI Core to surface the resume offer to the user. Silent on main/master/develop, on missing checkpoints, or outside git repos. Powers the welcome-back UX of the /pickup skill.",
+        "_comment": "Scratchpad recall (v2 Phase 4): reads .harness/state/scratchpad.md and injects as additionalContext. Working-memory tier — always loaded.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/scratchpad-recall.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "_comment": "Checkpoint recall: detects current git branch's feature, reads .harness/state/workflow-checkpoints/<feature>.json if it exists, injects additionalContext telling MAGI Core to surface the resume offer to the user.",
         "hooks": [
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/checkpoint-recall.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "_comment": "Scratchpad update (v2 Phase 4): fires at end of each AI turn. Instructs AI to rewrite .harness/state/scratchpad.md with current objective / last step / next step / blockers. Manus-style recitation bias against context distraction.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/scratchpad-update.sh",
             "timeout": 5
           }
         ]

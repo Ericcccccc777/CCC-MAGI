@@ -64,12 +64,12 @@ Standard output (in user's locale):
    • 2026-05-26 14:50 — MAGI Verdict: CONCERNS — session_id needs index
    • 2026-05-25 14:05 — CEO: "edge case #3 (race condition) is in scope"
 
-What now?
-   [1] Continue Stage 5 — pick up at src/auth/middleware.ts (recommended)
-   [2] Re-run MAGI Verdict on Stage 4 (re-validate before continuing)
-   [3] /status — see full checkpoint detail
-   [4] /abandon user-login — mark this feature dead
-   [5] Switch to different feature
+What now? (NL-first — just tell me in plain words; slash forms in parens are optional fallback)
+   [1] Continue from where you left off — Stage 5, src/auth/middleware.ts (recommended)
+   [2] Re-validate Stage 4 first — re-run the cross-model auditor
+   [3] See full checkpoint detail
+   [4] Abandon this feature — mark dead, archive checkpoint  (/abandon user-login)
+   [5] Switch to a different feature — just name it
 > 
 ```
 
@@ -83,7 +83,7 @@ What now?
 - Strips prefix `feature/` → feature slug `user-login`
 - Reads `.harness/state/workflow-checkpoints/user-login.json`
 - Surfaces the report above
-- If no checkpoint exists for this branch → tells user: *"No checkpoint for user-login. Start fresh with /feature-draft, or run /pickup --list to see other features."*
+- If no checkpoint exists for this branch → tells user (NL-first): *"No checkpoint for user-login. You can either tell me what new feature to start, or ask me to list other in-progress features (slash fallback: `/feature-draft <name>` or `/pickup --list`)."*
 
 ### Explicit feature name
 ```

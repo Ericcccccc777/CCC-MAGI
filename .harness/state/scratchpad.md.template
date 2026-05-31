@@ -1,0 +1,19 @@
+# Working Scratchpad
+
+> Rewritten by AI at end of every turn (Stop hook). Read at SessionStart. Hard cap: 500 tokens.
+> Empty sections OK on a fresh session. Half-stale is NOT OK — always rewrite if anything changed.
+
+## Current objective
+<one sentence>
+
+## Last step taken
+<what just finished>
+
+## Next step
+<what I plan to do before user input>
+
+## Blockers / open questions
+- (none)
+
+## Decision-relevant context (optional, ≤3 bullets)
+- (none)

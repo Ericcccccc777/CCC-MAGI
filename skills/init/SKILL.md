@@ -27,6 +27,8 @@ This skill's instructions are in English (more stable + token-efficient). When y
 
 The question templates below are written in English; translate them to the user's locale when actually displaying. Slot VALUES that the user types (project name, description, etc.) get written verbatim to constitution.md — don't translate user-entered content.
 
+**TodoWrite items**: if you use the TodoWrite tool to track your /init progress (Step 0 / Step 1 / etc.), **write the `content` field in the user's OS locale**, not in English. The TodoWrite list is shown to the user — keeping it in English while the user is conversing in Chinese / Japanese / Korean breaks the locale contract. Internal field names (`status`, `activeForm`) stay as-is; only the user-readable `content` translates.
+
 ## Where this skill sits in the bootstrap flow
 
 ```

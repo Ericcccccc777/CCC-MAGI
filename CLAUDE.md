@@ -125,6 +125,66 @@ Out-of-scope items (do not surface as concerns or block progress): {{out_of_scop
    Failure mode: Code change lands but spec drifts. Or state-coordination invariant lives only in code and drifts silently.
    Rule: User-visible behavior changes → `{{spec_dir}}<name>.md` updated in the same commit. State-coordination invariants → `{{implementation_dir}}<name>-implementation.md` "State Coordination Invariants" section, same commit. Spec-vs-code drift is caught by `/audit-spec`.
 
+## Turn Structure (load-bearing UX rule)
+
+> **Why this rule exists**: CEO reads your reply linearly. When you interleave file edits with prose, the conversational summary is buried inside a wall of tool calls — CEO has to scroll and hunt for the part where you tell them what you did and what you need from them. Group all the work first, then talk.
+
+### The contract
+
+Every turn that involves any state change (file edit, file write, bash command that modifies state, slash command invocation that writes to disk) follows this order:
+
+```
+1. Do ALL the work first
+   • Read / Bash / Edit / Write / Skill invocations — batched together
+   • If you discover mid-turn that you need user input before proceeding,
+     STOP, ask the question, wait for answer, THEN resume work
+2. Write scratchpad (per Working Scratchpad § Write rule) — internal housekeeping
+3. Emit ONE final user-facing reply at the end, containing:
+   • What you did (1–2 sentences)
+   • Which files you modified (bulleted list with paths)
+   • What the user needs to answer or decide next (if anything)
+   • Any flagged risks or follow-ups
+```
+
+### Why "all work first, then talk" instead of interleaving
+
+The conversational reply is the **only** thing CEO reads carefully. Tool calls are scannable but easily skipped. If your explanation is sandwiched between tool calls, CEO has to scroll to find it. The summary at the END = single, predictable landing zone.
+
+### Exceptions (when interleaving IS allowed)
+
+- **Mid-turn clarifying question**: You discover you need user input before proceeding. Stop, ask, wait. Don't push forward and hope.
+- **Long-running operation**: A build / test run / large download where the CEO benefits from a one-sentence "started X, waiting..." update before the result arrives.
+- **Trivial Q&A turn**: No state change, just answering a question — plain prose is fine, no special structure.
+
+### Anti-patterns to avoid
+
+- ❌ Writing a sentence of prose between every two tool calls ("Let me read this file. ... OK now let me edit it. ... Now let me write the scratchpad. ...")
+- ❌ Burying the "what I need from you" question in the middle of a long modification log
+- ❌ Splitting the summary across multiple chat messages within the same turn
+- ❌ Skipping the final summary because "the diffs are self-explanatory" — they're not, for the CEO
+- ❌ **MOST COMMON VIOLATION — Bug #10 in CCC-MAGI's own bug ledger**: Writing scratchpad AFTER your user-facing reply. If the LAST visible thing on CEO's screen at end-of-turn is a `Write(.harness/state/scratchpad.md)` tool diff (instead of your conversational reply to them), you violated this contract. Scratchpad write MUST be the last tool call BEFORE your text reply, never after.
+
+### Concrete example — the Bug #10 trap
+
+WRONG order (scratchpad write trails the reply):
+
+> [AI text reply]: "我修好了 X，这是改动..."
+> [tool] Write(.harness/state/scratchpad.md) → diff appears as the LAST thing on screen
+> [turn ends]
+
+Result: CEO's last screen view is a file diff, not your explanation. They have to scroll up to find the reply.
+
+RIGHT order (scratchpad write precedes the reply):
+
+> [tool] Read / Bash / Edit / Write the actual work files...
+> [tool] Write(.harness/state/scratchpad.md) → housekeeping, invisible to CEO's attention
+> [AI text reply]: "我修好了 X，这是改动..." → LAST visible thing on screen
+> [turn ends]
+
+Result: CEO's last screen view is your explanation. Scratchpad is silent background state.
+
+**Self-check before every reply**: "Did I update scratchpad this turn? If yes, was the Write call BEFORE my reply text? If state changed and I didn't update scratchpad — go back and update it now, before replying."
+
 ## MAGI Core's Natural-Language Intent Translation (load-bearing UX rule)
 
 > **Read this carefully — it changes how the CEO interacts with the harness.**
@@ -154,6 +214,11 @@ CEO is a **human** who shouldn't have to memorize slash commands. The CCC-MAGI w
 | "新加一条红线" / "加 anti-flag 规则" | `/add-constitution-clause` or `/add-anti-flag` (pick by content) |
 | "记一下: X" / "remember X" / "存档" | `/remember X` |
 | "我环境配置好了吗" / "env ok?" | run `.harness/scripts/env-check.sh` (Bash tool) |
+| "上次我们决定的是啥" / "之前 X 这块的决策" / "what did we decide about X" / "previously" | `/recall <feature\|tag>` (Tier 2 manifest search) |
+| "查 X 的那条历史" / "load SS-...." / "拉出 X 那个 snapshot" | `/recall <id>` (Tier 2 body fetch) |
+| "查一下半年前 / 找历史 / 我们以前是不是…" / "search archive / older" | `/recall --deep <query>` (Tier 3) |
+| "handoff / 转交会话 / 移交 / fresh start with context / 开干净的接着干" | `/handoff` |
+| "offload / 把这个交给 subagent / 找个独立 context 做这个" | `/offload <task>` |
 
 ### Operating principle: be a transparent translator, not a CLI gatekeeper
 
@@ -533,20 +598,149 @@ Hooks are deterministic checks that run automatically.
 
 > **Install-time registry**: `.harness/state/shipped-hashes.json` records SHA-256 of every file the installer shipped, so re-installs can content-hash-detect "user-modified" vs "unmodified" files and safely deliver harness updates without clobbering local changes.
 
-### Memory layer (`.harness/memory/`)
+### Memory layer (`.harness/memory/` + `.harness/state/scratchpad.md`) — v2 3-tier
 
-Cross-session persistence. The harness keeps a small notebook of prior decisions, failures, and observations so each new Claude Code session starts with relevant context instead of blank.
+> Full architectural rationale: `docs-harness/context-architecture-v2.md`.
 
-- `observations.jsonl` — append-only JSONL; one entry per decision/failure/observation
-- `conventions.md` — long-form project conventions (markdown)
+Cross-session persistence in 3 tiers (Letta pattern):
 
-Mechanism:
+| Tier | Location | Purpose | In-context at SessionStart? |
+|---|---|---|---|
+| **1 — Working** | `.harness/state/scratchpad.md` | Current objective + last/next step + blockers; rewritten every turn (Stop hook) | ✅ Always (~500 tokens) |
+| **2 — Recall** | `.harness/memory/sessions/recall/*.jsonl` (`observations` + `snapshots`) | Last 30 days of decisions/failures/snapshots | ✅ Manifest only (~500-1000 tokens), bodies on demand |
+| **3 — Archive** | `.harness/memory/sessions/archive/<YYYY-MM>.jsonl` | Older entries, cold storage | ❌ Never — only via `/recall --deep <query>` |
 
-- **SessionStart hook** (`.harness/scripts/memory-recall.sh`) reads `observations.jsonl`, scores entries by relevance to the current git branch's feature, and injects the top relevant entries into the session's additionalContext.
-- **PreCompaction hook** (`.harness/scripts/memory-snapshot.sh`) instructs Claude (via additionalContext) to summarize the session's key decisions to `observations.jsonl` before context compaction proceeds. Claude does the summarization; the hook just orchestrates the prompt.
-- **`/remember` skill** — user-invokable manual entry. Captures decisions/failures/observations curated by the user.
+Shared (team, committed): `conventions.md` (long-form rules) + `decisions.jsonl` (`/remember` writes here).
 
-Token economics: memory recall adds ~1-3K tokens to session startup. Net savings only materialize on multi-session work on the same feature. Empty memory file → zero token impact.
+Mechanisms:
+
+- **`memory-archive.sh`** (SessionStart) — migrates Tier 2 entries >30 days into Tier 3. Back-fills `id` on legacy entries. Idempotent.
+- **`memory-recall.sh`** (SessionStart) — emits a **manifest** of one-line index entries from Tier 2 (`[<id>] feature=<f> kind=<k> date=<YYYY-MM-DD> focus="<≤80 chars>"`). **Does NOT load entry bodies** — that requires `/recall <id>`.
+- **`scratchpad-recall.sh`** (SessionStart) — reads `scratchpad.md`, injects as additionalContext.
+- **`scratchpad-update.sh`** (Stop hook) — instructs AI to rewrite scratchpad at end of each turn.
+- **`memory-snapshot.sh`** (PreCompaction) — deterministically harvests scratchpad + checkpoint + git status into a snapshot entry. **No LLM call** (was v1; now deprecated).
+- **`/remember`** — user-curated entry into Tier 2 (and Tier 1 shared `decisions.jsonl` for high-signal calls).
+- **`/handoff`** — user-invoked at 95% context. Generates a rich 5-slot snapshot entry into Tier 2.
+- **`/recall <id|feature|tag>`** / **`/recall --deep <query>`** — JIT body fetch.
+
+Token economics (v2):
+- SessionStart cost: ~1-1.5K tokens regardless of project age (Tier 1 + Tier 2 manifest, bounded). v1's eager-injection often hit 2-5K.
+- Per fetch: ~1-2K tokens (body load). Hard cap: ≤3 recall + ≤1 archive search per session.
+- Net: same-or-cheaper than v1 in common cases; only more expensive in extreme-history-mining sessions, where the cost is justified.
+
+## Working Scratchpad (Tier 1 — recitation rule)
+
+> *Architectural rationale: `docs-harness/context-architecture-v2.md § Tier 1`. Inspired by Manus's working-memory pattern.*
+
+`.harness/state/scratchpad.md` is your Tier 1 working memory. It survives compaction and `/clear` because it lives on disk, not in chat.
+
+### Read rule
+
+- SessionStart hook (`scratchpad-recall.sh`) injects the scratchpad contents into your additionalContext automatically. No action required from you on read.
+
+### Write rule (HARD)
+
+At end of **every turn** that involves any state change (an action, decision, tool call, file edit), **rewrite the scratchpad immediately BEFORE your final user-facing message** — not after. Use the Write tool. Hard cap: 500 tokens.
+
+**Order matters for UX**: the user reads your reply linearly. The LAST visible thing on screen should be your conversational reply to them, not a scratchpad file diff. So the correct turn structure is:
+
+```
+1. Do the work (Read / Bash / Edit / etc.)
+2. Decide what your final reply to the user will be (mental, not visible)
+3. Write scratchpad reflecting current state + your planned next step  ← internal housekeeping
+4. Emit your final user-facing reply                                   ← user's last reading experience
+```
+
+Skip the rewrite ONLY if this turn was a trivial Q&A with no state change (e.g., user said "thanks", "ok", a simple greeting).
+
+### Most common violation (Bug #10 in CCC-MAGI's own ledger)
+
+The single most frequent way AI breaks this rule is: **writing the scratchpad AFTER emitting the user-facing reply text**. Sequence ends up as:
+
+> [text reply] → [Write scratchpad] → [turn ends]
+
+This is WRONG. The Write must be the LAST tool call BEFORE the reply text:
+
+> [Write scratchpad] → [text reply] → [turn ends]
+
+**Self-check trigger**: every time you're about to emit a reply, ask yourself "did anything change this turn (file edit, decision, new bug found, plan update)? If yes — STOP, write scratchpad first, THEN reply." If you catch yourself having already replied without updating scratchpad, write it now and accept the UX hit; don't make it worse by skipping.
+
+This rule is non-negotiable even for tiny state changes (one-line bug-ledger update, one decision noted). Skip only on truly state-free turns.
+
+### Template
+
+```markdown
+# Working Scratchpad
+
+## Current objective
+<one sentence>
+
+## Last step taken
+<what just finished>
+
+## Next step
+<what to do before user input>
+
+## Blockers / open questions
+- <bullets or (none)>
+
+## Decision-relevant context (optional, ≤3 bullets)
+- <bullets or omit section>
+```
+
+### Why this rule exists
+
+Forced end-of-turn recitation of the global objective induces a recency bias toward staying on goal. Without it, the AI drifts during long multi-step tasks — the failure mode Drew Breunig calls "context distraction" (the model over-indexes on history rather than synthesizing forward). The 500-token cost per session is paid for in maintained focus on tasks longer than ~10 turns.
+
+### Anti-patterns to avoid
+
+- ❌ Telling the user "I'm updating my scratchpad" — silent operation
+- ❌ Putting decisions/observations here that belong in `/remember` or `/handoff`
+- ❌ Letting it bloat past 500 tokens with historical detail
+- ❌ Skipping the rewrite "because the task is small" — small tasks ARE the drift trap
+
+## Memory Calling Rules (HARD — enforced by AI self-check)
+
+> *Constitutional grounding: `./constitution.md § 1` (cross-model audit) + `docs-harness/context-architecture-v2.md § 3`.*
+
+The 3-tier memory layer **only** stays cheap if the AI follows these rules. Without them, the AI will fetch bodies "for completeness" and turn the savings into losses.
+
+### Tier 1 (Working / `scratchpad.md`)
+
+- **MUST** read at SessionStart (handled by hook, zero choice).
+- **MUST** rewrite at end of each turn (Stop hook prompts you).
+- Empty scratchpad is OK on a fresh session. Half-stale scratchpad is NOT OK — rewrite even if "nothing significant happened."
+
+### Tier 2 (Recall — fetch body via `/recall <id>`)
+
+**You MAY fetch a body only if ONE of these is true**:
+
+1. **User explicit reference**: words like "之前 / 上次 / 上回 / before / previously / we decided / 之前我们定的 / last time"
+2. **Feature exact match**: current task's feature exactly equals a manifest entry's `feature` field
+3. **Focus overlap**: a manifest entry's `focus="..."` describes a prior decision relevant to the action you're about to take (overlap, not mere topical relatedness)
+
+**HARD CAP**: ≤ 3 body fetches per session. Counter file: `.harness/state/_recall-count-<session-id>`.
+
+### Tier 3 (Archive — fetch via `/recall --deep <query>`)
+
+**You MAY deep-search only if ONE of these is true**:
+
+1. User explicitly asks: "查一下半年前 / search history / older / archive / what was decided ages ago"
+2. The feature in the current task is **not present** in the recall manifest
+3. The code you are editing has `git blame` showing the author/edit is >30 days old (pre-recall-window)
+
+**HARD CAP**: ≤ 1 deep search per session.
+
+### Prohibitions (also HARD)
+
+- ❌ "For completeness" fetches — recall is opportunistic, not exhaustive
+- ❌ "Multiple manifest entries look interesting" → fetch each one
+- ❌ Deep-search when the question is clearly about current work
+- ❌ Re-fetch after cap is reached without explicit CEO override
+
+### Why these rules exist
+
+Without rules, agent-driven memory degenerates into "load everything to be safe" — the exact failure mode passive eager-injection had. The rules trade slightly-stricter fetch criteria for stable per-session token cost. See `docs-harness/context-architecture-v2.md § 3` for the empirical reasoning.
 
 ## Harness Hygiene (git policy)
 

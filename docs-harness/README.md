@@ -9,6 +9,7 @@ This directory holds the harness's **own design docs** — not project-feature d
 | `design-spec.md` | Architectural rationale — the WHY behind the operating model, cross-model audit, two-file spec, lanes, etc. | Onboarding; before extending the harness |
 | `adoption-playbook.md` | Step-by-step guide for installing the harness in a new or existing project | When `/init` is too narrow and you want the full playbook |
 | `retrospective-notes.md` | Generalized lessons from real-world use (LLM-workflow patterns, sweep methodology, when to delete vs fix) | Periodically; before non-trivial feature work |
+| `context-architecture-v2.md` | 3-tier memory layout (working / recall / archival), AI calling rules, snapshot schema, trigger surfaces | Before touching `memory-*.sh`, `scratchpad-*.sh`, `/handoff`, `/recall`, or `/offload` |
 
 ## What was removed from the original
 

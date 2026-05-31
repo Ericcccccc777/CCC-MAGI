@@ -1,6 +1,6 @@
 ---
 name: next
-description: Inspect the current workflow state and suggest the next CCC-MAGI command. Use when the user doesn't know which skill to invoke next, or wants a sanity check on workflow progress. Reads constitution.md + spec_dir + git state; does NOT auto-invoke any other skill. Trigger when the user invokes /next, says "what's next", "where am I", "next step", "what should I do", or similar workflow-disambiguation intent.
+description: Inspect the current workflow state and suggest the next CCC-MAGI command. Use when the user doesn't know which skill to invoke next, or wants a sanity check on workflow progress. Reads constitution.md + spec_dir + git state; does NOT auto-invoke any other skill. Trigger when the user invokes /next OR says any of these (any language; match by intent, not exact wording) — English "what's next", "where am I", "next step", "what should I do", "what now", "I'm lost", "which skill should I run"; 中文「下一步干嘛」「下一步该跑啥」「接下来咋办」「接下来呢」「现在该做啥」「现在该跑哪个 skill」「我该跑啥」「我迷路了」「下一步推荐」; 日本語「次は何」「次どうする」「次のステップ」; 한국어「다음 뭐 해야」「다음 단계」「뭘 해야 돼」; or similar workflow-disambiguation intent in any locale.
 allowed-tools: Read, Bash(test:*), Bash(ls:*), Bash(git rev-parse:*), Bash(git status:*), Bash(git branch:*), Bash(grep:*), Bash(find:*)
 argument-hint: <optional feature name>
 ---
@@ -196,10 +196,10 @@ Detected state:
 
 Reason: <one-sentence explanation>
 
-You can also:
-  - Switch features: /next <other-feature-name>
-  - Start something new: /feature-draft <new-feature>
-  - Audit an existing feature: /audit-spec <feature>
+You can also (NL-first — just tell me in plain words; slash forms shown in parens only as fallback):
+  - Switch features: name the other feature (e.g., "看 X 这个 feature")
+  - Start something new: tell me what to build (e.g., "做个 X 功能")
+  - Audit an existing feature: ask me to check it (e.g., "审一下 X")
   - See full workflow stages: see CLAUDE.md § Workflow
 ```
 
