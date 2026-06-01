@@ -1,7 +1,7 @@
 {
   "name": "create-ccc-magi",
-  "version": "0.9.0",
-  "description": "Install CCC-MAGI v0.9.0 into a project — generic AI development harness with MAGI 7-position AI team (Core / Verdict / Planner / Programmer / Tester / Reviewer / Archivist), cross-model audit, Simple+Pro onboarding modes (5 vs 16 questions), feature-aware session resume, and conversational two-phase bootstrap (environment check + project deployment). Drop-in for Claude Code / Codex CLI projects on macOS, Linux, or Windows (WSL2 / Git Bash). Run via `npx create-ccc-magi@latest` in your project directory.",
+  "version": "0.10.1",
+  "description": "Install CCC-MAGI v0.10.1 into a project — generic AI development harness with MAGI 7-position AI team (Core / Verdict / Planner / Programmer / Tester / Reviewer / Archivist), cross-model audit, Simple+Pro onboarding modes (5 vs 16 questions), feature-aware session resume, and conversational two-phase bootstrap (environment check + project deployment). Drop-in for Claude Code / Codex CLI projects on macOS, Linux, or Windows (WSL2 / Git Bash). Run via `npx create-ccc-magi@latest` in your project directory.",
   "type": "module",
   "bin": {
     "create-ccc-magi": "./bin.js"

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// create-ccc-magi — npx entry point for CCC-MAGI v0.9.0 installation.
+// create-ccc-magi — npx entry point for CCC-MAGI v0.10.1 installation.
 //
 // Strategy: thin Node wrapper that clones CCC-MAGI from GitHub to a temp dir,
 // then execs `bash install-into.sh <target>` to do the actual install. This
@@ -14,7 +14,7 @@
 //   npx create-ccc-magi@latest           # install latest into current dir
 //   npx create-ccc-magi@latest --dry-run # show what would happen
 //   npx create-ccc-magi@latest --force   # overwrite existing files
-//   npx create-ccc-magi@latest --ref v0.9.0  # pin specific harness version
+//   npx create-ccc-magi@latest --ref v0.10.1  # pin specific harness version
 
 import { execSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
@@ -53,7 +53,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (help) {
-  console.log(`create-ccc-magi — Install CCC-MAGI v0.9.0 into current directory
+  console.log(`create-ccc-magi — Install CCC-MAGI v0.10.1 into current directory
 
 USAGE
   npx create-ccc-magi@latest [options]
@@ -219,7 +219,7 @@ Common causes:
   - GitHub temporarily unreachable
 
 Retry: npx create-ccc-magi@latest
-Or pin a known-good version: npx create-ccc-magi@latest --ref v0.9.0
+Or pin a known-good version: npx create-ccc-magi@latest --ref v0.10.1
 `);
 }
 
