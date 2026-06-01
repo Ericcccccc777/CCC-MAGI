@@ -389,53 +389,26 @@ Without progress, CEO doesn't know how long the round will take and may abandon 
 
 ## Workflow
 
-Two sides, three lanes. The **CEO (you, human)** sets intent. The **MAGI System** (the AI team) implements + reviews — see `AGENTS.md § MAGI System` for the 7 positions. Concretely:
+Two sides (CEO + MAGI system), three lanes (Full / Stability-fix / Trivial). 9 stages:
 
-- **MAGI Core** (your primary CLI, e.g. Claude Code) — orchestrator + workflow manager. Talks to you. Spawns subagents.
-- **MAGI Verdict** (default `{{auditor_model}}`, e.g. Codex) — cross-model auditor. **Judgment authority. Not under MAGI Core's chain of command** — independent reviewer per Universal Core.
-- **MAGI Planner / Programmer / Tester** — played by MAGI Core during the matching stage (mode switch, not separate processes).
-- **MAGI Reviewer** — `{{junior_reviewers}}` rule-enforcement plugins (backend / frontend / security). Mechanical. Cite rule source; never invent.
-- **MAGI Archivist** — `memory-recall.sh` / `memory-snapshot.sh` hook services.
+1. **Draft / as-built spec** — `/feature-draft <name>` (new) or `/audit-spec <name>` (existing)
+2. **Finalize spec** — `/spec-finalize <name>` (auditor cross-check)
+3. **Design schema** — `/db-schema <name>` (skip if no backend)
+4. **Write execution plan** — `/execution-plan <name>` (per-file checklist + auditor)
+5. **Implement** — `/implement <name>` (mechanical reviewer + cross-model audit)
+6. **Auto tests** — `/test-fix` (skip if `test_required = false`)
+7. **CEO smoke test** — manual; mandated by Constitution § 4
+8. **Commit & push** — `/commit` (Conventional Commits; plan file deleted in this commit)
+9. **Watch after release** — check `{{error_tracker}}` within 24h for new errors
 
-Judgment is MAGI Verdict's; rule enforcement is MAGI Reviewer's; orchestration is MAGI Core's; intent is yours.
+**Lanes:**
+- **Full workflow** — new feature / intent change / schema change / new dependency. All 9 stages.
+- **Stability-fix** — bug fix, intent unchanged. Skip 1–3. **Failing test is mandatory** (write before fix).
+- **Trivial-change** — <20 LOC, no new feature/schema/dependency. Skip 1–3. Auditor in Quick mode (BLOCKING-only).
 
-The workflow runs in two **modes** that share Stages 2–9. Stage 1 differs by mode:
+Do not reorder stages. Do not advance until the current stage's artifact exists or CEO approved skipping. Lane decisions are Tech-Lead inferred + CEO-confirmed; never silently auto-changed mid-flow.
 
-- **New-feature mode** — for shipping new features. Stage 1 paraphrases CEO intent, runs an 8-category edge-case round, then writes a plain-language spec.
-- **Audit mode** — for verifying existing features. Stage 1 runs the same intent rounds, then a fresh general-purpose subagent scans the codebase for an as-built read; the auditor independently reviews; CEO decides each delta; output is the same two-file model.
-
-Stage-specific tools are in `.harness/` — see Tool map below.
-
-1. **Draft / as-built spec** — `/feature-draft <name>` (new-feature mode) **or** `/audit-spec <name>` (audit mode, fresh-context subagent + auditor review)
-2. **Finalize spec** — `/spec-finalize <name>` (auditor final cross-check)
-3. **Design schema** (when data model changes; **skip if project has no backend**) — `/db-schema <name>`
-4. **Write execution plan** — `/execution-plan <name>` (per-file checklist + auditor judgment audit)
-5. **Implement per plan** — `/implement <name>` (mechanical reviewer chain + auditor judgment)
-6. **Auto tests** — `/test-fix` (test-fixer subagent + auditor audit). **Skipped if `test_required = false`.**
-7. **User smoke test** — CEO runs the application manually against the spec's smoke-test procedures (`{{spec_dir}}<name>.md` only — implementation file not consulted). *Mandated by Constitution § 4.*
-8. **Commit & push** — `/commit` using Conventional Commits, with affected scenario IDs in the message body. Plan file is deleted in this commit. Pushed to GitHub only after **both** the CEO smoke test (Stage 7) **and** the auditor audit have passed.
-9. **Watch after release** — for any change shipped, check `{{error_tracker}}` within 24h for new error groups or a drop in error-free rate. If anything spiked, hotfix or roll back before moving on.
-
-Do not reorder stages. Do not advance to the next stage until the current stage's artifact exists or the user has approved skipping. Stages may only be skipped via one of the two explicit lanes below.
-
-### Cross-model audit (operationalizing Constitution § 1)
-
-The constitutional invariant is in `./constitution.md § 1`. Below is how it is operationalized stage-by-stage:
-
-- Audit strength scales with change size: full review on the standard lanes, BLOCKING-only on the trivial lane.
-- The auditor is invoked at stages 2, 3, 4, 5, 6 (post-fix), and on every commit gate.
-- The auditor emits JSON per `AGENTS.md § Verdict output`.
-- `FAIL` halts the flow; `CONCERNS` advances with a logged warning (see `.harness/audits/concerns-*.json`); `PASS with advisory_items` advances silently; `WAIVED` is a CEO override and is rejected by the gate if any blocking item is `category: "universal-core"`.
-
-### Lanes
-
-A change picks one of three lanes; lane decisions are Tech-Lead inferred and CEO-confirmed (never silently auto-changed mid-flow).
-
-**Full workflow.** New feature, intent change (audit delta), schema change, or new external dependency. All 9 stages.
-
-**Stability-fix lane.** Bug fix or hotfix where intent is unchanged, no new feature surface, no schema change, no new dependency. Skip stages 1–3. **Failing test is mandatory** (if `test_required = true`) — write it before the fix, confirm it fails on the broken code, then fix and watch it go green. Path-based reviewer auto-fire on the diff (Stage 5) plus auditor audit on the fix correctness + test legitimacy (Stage 6).
-
-**Trivial-change lane.** < 20 LOC, no new feature surface, no schema change, no new dependency, no intent change (typo, copy tweak, single-line bug fix, dependency bump). Skip stages 1–3. Stage 4 reduces to applying the change with path-based reviewer auto-fire; Stage 5 confirms existing tests still pass. Auditor runs in **Quick mode (BLOCKING-only)** — security, data loss, and outright defects only. Stage 7 (smoke) skipped only for pure copy/text/translation; spot-check for any logic change. If the auditor's Quick audit surfaces non-trivial concerns, the lane is wrong — surface to CEO and re-classify.
+**Cross-model audit** runs at stages 2, 3, 4, 5, 6 (post-fix), and every commit gate. JSON verdict per `AGENTS.md § Verdict output`: `FAIL` halts, `CONCERNS` advances with logged warning, `PASS` silent, `WAIVED` rejected if any blocking item is `universal-core`.
 
 ### Release lanes
 
@@ -451,182 +424,84 @@ A change picks one of three lanes; lane decisions are Tech-Lead inferred and CEO
      environment promotion, secret rotations). -->
 {{backend_change_lane}}
 
-Knowing the lane in advance lets you triage a bug correctly: "panic-fix in 30min" vs. "plan for 48h with a workaround in the meantime."
+> **For stage internals, mode-vs-lane distinction, audit operationalization detail, and MAGI position responsibilities, see `.harness/docs/workflow.md`.**
 
 ## Two-file feature spec model
 
 Every feature has up to two docs:
 
-- `{{spec_dir}}<name>.md` — **CEO domain.** Plain language, no tech terms. Happy path, edge-case behaviors, scenario classification (`[Required automated test]` / `[Smoke test only]`), smoke-test procedures. CEO signs off; CEO is the only one who reads this end-to-end at smoke-test time. **Categorical list of tech terms that must NEVER appear here** (translate to behavior instead): framework / library names, hook / function names, store / state names, router / navigation APIs, RPC / function / table / column names, payload shapes (JSON field lists), file paths, migration timestamps, SDK error type names, HTTP status codes as primary verbs, query key constants, **test file paths and test descriptions**. **The shape test:** if a non-engineer reading the sentence aloud would stumble, the sentence belongs in the implementation file. Translate to outcome ("nothing about the user reaches the device before the gate is passed"), not mechanism ("the RPC returns only `{state, reason, dormancy_required}`").
+- `{{spec_dir}}<name>.md` — **CEO domain.** Plain language, no tech terms. Happy path + edge-case behaviors + scenario classification (`[Required automated test]` / `[Smoke test only]`) + smoke-test procedures. CEO signs off; CEO is the sole end-to-end reader at smoke-test time.
+- `{{implementation_dir}}<name>-implementation.md` — **manager domain (optional).** Routing tables, component map, state keys, access-control policies, library+version notes, i18n key index, boundary contracts, scenario→automated-test map. Tech Lead and reviewers read this; CEO doesn't have to. **All audit-delta ledgers (Stage 1 audit findings, code-vs-spec reconciliation) belong in this file — never in `<name>.md`.**
 
-- `{{implementation_dir}}<name>-implementation.md` — **manager domain (optional).** Routing tables, component map, state keys, access-control policies, library + version notes, i18n key index, boundary contracts, **scenario → automated test map**. Tech Lead and reviewers read this; CEO doesn't have to. Simple features may skip this file entirely; complex features typically have a rich one. **All audit-delta ledgers (Stage 1 audit findings, code-vs-spec reconciliation) belong in this file — never in `<name>.md`.** By definition they track how code matches spec, which is manager-domain content. The CEO spec records intent and behavior; the implementation file records how the code currently honors that intent.
+**CEO file BANS 16 categories of tech terms** (translate to behavior instead): framework / library names, hook / function names, store / state names, router / navigation APIs, RPC / function / table / column names, payload shapes, file paths, migration timestamps, SDK error type names, HTTP status codes as primary verbs, query key constants, test file paths and test descriptions. **The shape test:** if a non-engineer reading the sentence aloud would stumble, move to implementation file.
 
-### Manager-file functional requirements: EARS notation
-
-Functional requirements in `{{implementation_dir}}<name>-implementation.md` use **EARS notation** (Easy Approach to Requirements Syntax). EARS is structured natural language — each requirement names the trigger and the expected behavior in a testable format.
-
-**Primary pattern** (event-driven — covers ~80% of cases):
-
-```
-WHEN [trigger/condition] THE SYSTEM SHALL [expected behavior]
-```
-
-Examples:
-- `WHEN the user submits the OTP form with a valid code, THE SYSTEM SHALL navigate to home screen within 500ms.`
-- `WHEN the upload request returns 401, THE SYSTEM SHALL clear local session and redirect to login.`
-- `WHEN a user cancels the upload mid-stream, THE SYSTEM SHALL delete the partial S3 object within 60s.`
-
-**Other EARS variants** (use when the primary pattern doesn't fit):
-
-| Variant | Pattern | When to use |
-|---|---|---|
-| Ubiquitous | `THE SYSTEM SHALL [behavior]` | Always-true invariant (no trigger) |
-| Event-driven (primary) | `WHEN [event] THE SYSTEM SHALL [response]` | Most functional requirements |
-| Unwanted behavior | `IF [undesired event] THEN THE SYSTEM SHALL [recovery]` | Error handling, anomaly recovery |
-| State-driven | `WHILE [state] THE SYSTEM SHALL [behavior]` | Constraints that hold during a state |
-| Optional | `WHERE [feature included] THE SYSTEM SHALL [behavior]` | Behavior gated by a feature flag |
-
-**Why EARS for manager domain:**
-- Each `SHALL` clause maps directly to a test assertion. Stage 6 (`/test-fix`) can generate tests from EARS requirements with minimal interpretation.
-- All-caps keywords (`WHEN`, `THE SYSTEM SHALL`) scan visually as load-bearing — distinguishes functional requirements from architectural notes / library version notes / scenario→test mappings (which stay as prose).
-- Industry standard (AWS Kiro default, NASA / aerospace adoption).
-
-**Where EARS does NOT apply:**
-- `{{spec_dir}}<name>.md` (CEO domain). The CEO file stays plain prose — no `SHALL`, no all-caps keywords. The 16-category tech-term ban in the CEO file (see § above) implicitly excludes EARS keywords; this section makes it explicit: **CEO file = no EARS.**
-- Manager-file sections OTHER than functional requirements: routing tables, component maps, store keys, RLS policies, library + version notes, i18n key index, boundary contracts, scenario→test maps — these stay as their natural format (tables, lists, prose). EARS is for the **Functional requirements** section only.
-
-**Migration note:** existing manager files with prose-style functional requirements don't need to be retroactively rewritten. New manager files written from this point on should use EARS for the Functional requirements section. Run `/audit-spec <name>` to surface drift — including manager-file requirements that could be promoted to EARS.
+**Manager file uses EARS notation** for functional requirements: `WHEN <event> THE SYSTEM SHALL <response>` is the primary pattern (covers ~80% of cases). 4 other variants exist (Ubiquitous / Unwanted-behavior / State-driven / Optional). **CEO file never uses EARS.** Each `SHALL` clause maps directly to a test assertion.
 
 The CEO spec is the canonical source of truth. The implementation file is a working notebook.
 
+> **For EARS variant table, the full 16-category ban list explanation, "why EARS" rationale, and migration guidance, see `.harness/docs/spec-model.md`.**
+
 ## Doc-in-sync responsibility
 
-> *Constitutional basis: `./constitution.md § 5` (Spec and reality stay in sync). Operational details below.*
+> *Constitutional basis: `./constitution.md § 5` (Spec and reality stay in sync).*
 
-Specs at `{{spec_dir}}<name>.md` are load-bearing only when they match reality. Drift kills them.
+Any commit that changes a feature's data model, public API, or user-visible behavior MUST update the matching `{{spec_dir}}<name>.md` in the same commit (applies to all lanes). Internal-only changes (file split, query refactor with same shape) update `{{implementation_dir}}<name>-implementation.md` instead. Plan files (`{{spec_dir}}<name>-plan.md`) are transient — **delete at Stage 8 commit**. Drift is caught by `/audit-spec <name>` (fresh-subagent re-derivation + MAGI Verdict review).
 
-**Rule.** Any commit that changes a feature's data model, public API, or user-visible behavior MUST update the corresponding `{{spec_dir}}<name>.md` in the same commit. This applies to commits made via any lane — full workflow, stability-fix, or trivial-change. If only the technical surface changes (file split, query refactor with same shape), update `{{implementation_dir}}<name>-implementation.md` instead.
+Exceptions: stylistic refactors, internal renames, formatting, and bug fixes that preserve external behavior do not require doc updates.
 
-**Exceptions.** Stylistic refactors, internal renames, formatting, and bug fixes that preserve external behavior do not require doc updates.
-
-**Cross-feature touches.** When a change touches multiple features' surfaces, update the doc for the feature that _owns_ the affected surface, not just the feature you happened to be working in. The owner is whichever feature's spec was the original source of that artifact.
-
-**Plan files are transient.** `{{spec_dir}}<name>-plan.md` is the Stage 4 execution checklist. Once the implementation lands at Stage 8, the plan has done its job — delete it as part of the commit that ships the implementation. Stale plan files with un-ticked checkboxes mislead future-you.
-
-**Catching drift.** If you suspect a spec has drifted from reality, run `/audit-spec <name>` to produce a fresh as-built reading from code (fresh subagent author; **MAGI Verdict** reviews independently), then iterate to a corrected canonical spec. The audit mechanism IS the maintenance mechanism.
+> **For cross-feature ownership rules and the maintenance-mechanism rationale, see `.harness/docs/doc-sync.md`.**
 
 ## Tool map
 
-### Bootstrap (not a skill; see top of this file)
+### Skills (`.harness/skills/`)
 
-Before any skill runs, the Bootstrap Status Check at the top of this file decides whether harness is configured. If not:
-- **CCC mode**: CCC's bundled Step 1 driver runs (detects existing harness + 3-option menu + git clone)
-- **Standalone mode**: `.harness/scripts/standalone-bootstrap.md` runs (same logic minus git clone, since user already cloned manually)
+Invokable as `/<skill-name>` (forwarded via `.claude/commands/` shims) or via natural language phrases listed in each skill's `description` field (see § MAGI Core's Natural-Language Intent Translation).
 
-Both bootstrap paths converge on invoking `/init` to fill project-specific values.
-
-### Slash commands & skills (`.harness/skills/`)
-
-Each skill lives at `.harness/skills/<name>/SKILL.md`. Skills with a `description` are auto-discoverable and create the `/<name>` invocation.
-
-Skills are invokable two ways:
-
-- **Slash syntax**: `/<skill-name> <args>` (e.g., `/remember 这事很重要`). Forwarded via `.claude/commands/` shims to the actual skill at `.harness/skills/<name>/SKILL.md`.
-- **Natural language**: phrases listed in each skill's `description` field will trigger the same skill (e.g., "记一下: 这事很重要" triggers /remember). See individual SKILL.md `description` for accepted phrases.
-
-- `/init` — **Step 2** of harness setup: fills L0/L1 slots interactively, writes `.harness/state/install.json` as the canonical "configured" marker. Re-runnable for re-configuration with `--force`. Does NOT run detection — bootstrap handles that before /init is invoked.
-- `/next` — workflow state inspector: detects current feature progress and suggests next command. Doesn't auto-invoke; pure wayfinder. Use when unsure which skill to run.
-- `/pickup` — session resume: reads `.harness/state/workflow-checkpoints/<feature>.json` and restores stage / artifact / progress state. Auto-surfaced at SessionStart if a checkpoint matches the current git branch. Use after multi-day breaks, cross-device work, or context-compaction loss.
-- `/abandon` — mark a feature dead: moves checkpoint to `_archived/`, logs reason to decision-log. Does NOT touch git or source code (CEO's job). Use when CEO rejects a feature post-spec or when cleaning dormant features from `/pickup --list`.
-- `/uninstall` — cleanly remove CCC-MAGI from the project. Detects whether a prior harness archive exists (`old_version_harness/` from bootstrap option 1); if so, offers to restore it. Preserves source code, `docs/features/*.md` specs, git history. Constitutional basis: § 3 (CEO Final Authority).
-- `/feature-draft <name>` — stage 1, **new-feature mode**
-- `/audit-spec <name>` — stage 1, **audit mode**
-- `/spec-finalize <name>` — stage 2
-- `/db-schema <name>` — stage 3 (skip if no backend)
-- `/execution-plan <name>` — stage 4
-- `/implement <name>` — stage 5
-- `/test-fix` — stage 6 (skip if `test_required = false`)
-- `/commit` — stage 8
-- `/constitution-edit` — edit Section 2 / Section 3 / slot registry of constitution.md. Cannot modify Section 1 (Universal Core — harness-guaranteed invariants). Generates a versioned Sync Impact Report at the top of constitution.md (Spec-Kit-pattern audit trail).
-- `/add-constitution-clause` — append to Section 3 of constitution (new project-specific red line)
-- `/add-anti-flag` — grow the L2 anti-flag rules over time (in AGENTS.md)
-
-### Constitution versioning
-
-`constitution.md` follows semver. Edits via `/constitution-edit` prepend a Sync Impact Report HTML comment at the top of the file documenting:
-- Version bump (MAJOR / MINOR / PATCH)
-- What changed in which section
-- Downstream templates that may need review
-
-Ad-hoc edits (raw `vim constitution.md`) skip the report. Use `/constitution-edit` for material changes — the audit trail is worth it.
-
-Semver rules:
-- **MAJOR** — removes / substantively changes an existing principle or slot
-- **MINOR** — adds a new principle or slot
-- **PATCH** — typo / clarification / non-semantic rewording
-
-Section 1 (Universal Core) is harness-guaranteed and cannot be modified by `/constitution-edit`.
+| Category | Skills |
+|---|---|
+| **Workflow stages** | `/feature-draft` `/audit-spec` `/spec-finalize` `/db-schema` `/execution-plan` `/implement` `/test-fix` `/commit` |
+| **Session navigation** | `/next` `/pickup` `/abandon` `/handoff` `/offload` |
+| **Memory** | `/recall` `/remember` |
+| **Constitution / harness config** | `/init` `/constitution-edit` `/add-constitution-clause` `/add-anti-flag` |
+| **Lifecycle** | `/uninstall` |
 
 ### Subagents (`.harness/agents/`)
 
-Subagents enforce **mechanical rules only** — they do not exercise judgment, propose new patterns, or evaluate business logic. Judgment is MAGI Verdict's job; pattern proposals belong to MAGI Core; intent decisions are CEO's. A subagent finding always cites the rule source (a `CLAUDE.md` or rule file); if it can't, that's not a finding to report.
+Subagents enforce **mechanical rules only** — they do not exercise judgment, propose new patterns, or evaluate business logic. A finding always cites the rule source (a `CLAUDE.md` or rule file); if it can't, it's not a reportable finding.
 
-**Core MAGI positions (built-in):**
-- **MAGI Planner** — Stage 1 + 4. Played by MAGI Core: turns CEO intent into a plain-language spec, then a per-file execution plan.
-- **MAGI Programmer** — Stage 5. Played by MAGI Core: implements per the plan.
-- **MAGI Tester** — Stage 6. Played by `test-fixer` subagent (fresh context, so it doesn't inherit Programmer's rationalizations).
-- **MAGI Verdict** — Stages 2-6 + commit gate. Cross-model judgment auditor (default `{{auditor_model}}`). Single-engine fallback (fresh-context same-model) when no second model available.
-- **MAGI Archivist** — Hook-triggered (SessionStart / PreCompaction). Memory layer service.
+- **MAGI Planner / Programmer / Tester** — MAGI Core in matching stage mode (mode switch, not separate processes)
+- **MAGI Verdict** — Stages 2–6 + commit gate. Cross-model judgment auditor (default `{{auditor_model}}`). Single-engine fallback (fresh-context same-model) when no second model available.
+- **MAGI Reviewer plugins** — `{{junior_reviewers}}` (mechanical, cite rule source; never invent)
+- **test-fixer** — junior **programmer** (not reviewer): fresh-context test writer. Spawned by `/test-fix`.
+- **MAGI Archivist** — SessionStart / PreCompaction hook services.
 
-**MAGI Reviewer plugins** (`{{junior_reviewers}}` — user picks at /init):
-<!-- ⟦L1⟧ Filled per project. Examples shipped: frontend-reviewer,
-     backend-reviewer, security-reviewer, infra-reviewer. User selects
-     which plugins to enable based on tech stack. -->
+### Hooks (`.claude/settings.json`, `.codex/hooks.json`)
 
-**Test programmer:**
-- `test-fixer` — junior **programmer** (not reviewer): writes/edits test code from a fresh context. Spawned by `/test-fix`; does not exercise judgment about whether the test is right — that's the auditor's job in the post-fix audit.
+Deterministic checks that run automatically:
 
-### Hooks (`.harness/settings.json`)
-
-Hooks are deterministic checks that run automatically.
-
-- **Pre-commit typecheck** — blocks commit if static type/syntax check fails. Script: `scripts/precommit-typecheck.sh`.
-- **Pre-commit lint bans** — blocks commit if anti-flag patterns are found. Script: `scripts/lint-bans.sh`.
-- **Pre-commit cycles** — blocks commit if a dependency cycle is detected (enabled only if `dependency_flow` is non-empty). Script: `scripts/precommit-cycles.sh`.
-- **Post-edit format** — runs the project's formatter on edited files. Script: `scripts/format-edit.sh`.
-- **Budget pressure monitor** — `outcome/scripts/budget-monitor.sh` (UserPromptSubmit). Monitors transcript size; emits `additionalContext` at 50%/75%/90% of `CCC_CONTEXT_BUDGET` (default 200000 tokens) advising Claude to prefer cheaper models for subagents, skip Explore-type research, recommend `/compact`. Advisory-only; can't force model switch (Claude Code doesn't expose runtime model switching to hooks). Silent under 50%.
-
-> **Install-time registry**: `.harness/state/shipped-hashes.json` records SHA-256 of every file the installer shipped, so re-installs can content-hash-detect "user-modified" vs "unmodified" files and safely deliver harness updates without clobbering local changes.
+| Trigger | Script | Purpose |
+|---|---|---|
+| Pre-commit | `precommit-typecheck.sh` / `lint-bans.sh` / `precommit-cycles.sh` | Block commit on type errors / anti-flag patterns / dependency cycles |
+| Post-edit | `format-edit.sh` | Run project formatter on edited files |
+| UserPromptSubmit | `bootstrap-check.sh` / `budget-monitor.sh` | Decide bootstrap state; advisory on context budget at 50/75/90% |
+| SessionStart | `memory-recall.sh` / `scratchpad-recall.sh` / `memory-archive.sh` | Inject Tier 1 + Tier 2 manifest; rotate Tier 2→3 |
+| PreCompaction | `memory-snapshot.sh` | Harvest scratchpad + checkpoint + git status into a snapshot |
+| Stop | `scratchpad-update.sh` | Instructs AI to rewrite scratchpad at turn end |
 
 ### Memory layer (`.harness/memory/` + `.harness/state/scratchpad.md`) — v2 3-tier
 
-> Full architectural rationale: `docs-harness/context-architecture-v2.md`.
+Cross-session persistence (Letta pattern):
 
-Cross-session persistence in 3 tiers (Letta pattern):
-
-| Tier | Location | Purpose | In-context at SessionStart? |
+| Tier | Location | Purpose | At SessionStart |
 |---|---|---|---|
-| **1 — Working** | `.harness/state/scratchpad.md` | Current objective + last/next step + blockers; rewritten every turn (Stop hook) | ✅ Always (~500 tokens) |
-| **2 — Recall** | `.harness/memory/sessions/recall/*.jsonl` (`observations` + `snapshots`) | Last 30 days of decisions/failures/snapshots | ✅ Manifest only (~500-1000 tokens), bodies on demand |
-| **3 — Archive** | `.harness/memory/sessions/archive/<YYYY-MM>.jsonl` | Older entries, cold storage | ❌ Never — only via `/recall --deep <query>` |
+| **1 — Working** | `.harness/state/scratchpad.md` | Current objective + last/next step + blockers; ≤500 tokens, rewritten every turn | ✅ Always loaded |
+| **2 — Recall** | `.harness/memory/sessions/recall/*.jsonl` | Last 30 days of decisions/failures/snapshots | ✅ Manifest only (~500-1K tokens); bodies via `/recall <id>` |
+| **3 — Archive** | `.harness/memory/sessions/archive/<YYYY-MM>.jsonl` | Older entries, cold storage | ❌ Only via `/recall --deep <query>` |
 
-Shared (team, committed): `conventions.md` (long-form rules) + `decisions.jsonl` (`/remember` writes here).
+Bounded SessionStart cost: ~1-1.5K tokens regardless of project age. Hard cap: ≤3 recall body fetches + ≤1 archive search per session.
 
-Mechanisms:
-
-- **`memory-archive.sh`** (SessionStart) — migrates Tier 2 entries >30 days into Tier 3. Back-fills `id` on legacy entries. Idempotent.
-- **`memory-recall.sh`** (SessionStart) — emits a **manifest** of one-line index entries from Tier 2 (`[<id>] feature=<f> kind=<k> date=<YYYY-MM-DD> focus="<≤80 chars>"`). **Does NOT load entry bodies** — that requires `/recall <id>`.
-- **`scratchpad-recall.sh`** (SessionStart) — reads `scratchpad.md`, injects as additionalContext.
-- **`scratchpad-update.sh`** (Stop hook) — instructs AI to rewrite scratchpad at end of each turn.
-- **`memory-snapshot.sh`** (PreCompaction) — deterministically harvests scratchpad + checkpoint + git status into a snapshot entry. **No LLM call** (was v1; now deprecated).
-- **`/remember`** — user-curated entry into Tier 2 (and Tier 1 shared `decisions.jsonl` for high-signal calls).
-- **`/handoff`** — user-invoked at 95% context. Generates a rich 5-slot snapshot entry into Tier 2.
-- **`/recall <id|feature|tag>`** / **`/recall --deep <query>`** — JIT body fetch.
-
-Token economics (v2):
-- SessionStart cost: ~1-1.5K tokens regardless of project age (Tier 1 + Tier 2 manifest, bounded). v1's eager-injection often hit 2-5K.
-- Per fetch: ~1-2K tokens (body load). Hard cap: ≤3 recall + ≤1 archive search per session.
-- Net: same-or-cheaper than v1 in common cases; only more expensive in extreme-history-mining sessions, where the cost is justified.
+> **For per-skill descriptions, constitution versioning semver rules, full hook trigger semantics, memory mechanism inventory, and token economics, see `.harness/docs/tool-map.md`.**
+> **For memory architecture rationale, see `docs-harness/context-architecture-v2.md`.**
 
 ## Working Scratchpad (Tier 1 — recitation rule)
 
@@ -744,55 +619,17 @@ Without rules, agent-driven memory degenerates into "load everything to be safe"
 
 ## Harness Hygiene (git policy)
 
-> **CCC-MAGI = "butler in your project"**. The harness lives in your project to serve you, but the line between "team-shared infrastructure" and "personal runtime state" is **load-bearing for git hygiene**. Both must be committed correctly — wrong policy on either side breaks team collaboration or pollutes shared history.
+CCC-MAGI files split into two camps — wrong policy on either side breaks team collaboration or pollutes shared history.
 
-### Committed to git (team-shared)
+**Committed to git** (team-shared, must NOT be `.gitignore`d):
+`constitution.md` · `CLAUDE.md` · `AGENTS.md` · `.harness/skills/` · `.harness/agents/` · `.harness/scripts/` · `.harness/docs/` · `.harness/state/install.json` · `.harness/memory/conventions.md` · `.claude/settings.json` · `.codex/config.toml` · `.codex/hooks.json` · `docs-harness/` · `CCC_MAGI_README.md` · `CCC_MAGI_LICENSE`
 
-Everyone on the team uses the same harness setup. Inconsistency here causes "works on my machine" pain:
+**Gitignored** (personal / runtime / regenerable, must NOT be tracked):
+`.harness/memory/observations.jsonl` · `.harness/memory/decision-log.md` · `.harness/audits/` · `.harness/state/auditor-approvals/` · `.harness/state/test-fix/` · `.harness/state/workflow-checkpoints/` · `.harness/state/_active.json` · `.harness/state/shipped-hashes.json` · `.harness/state/auditor.env` · `.claude/commands/` · `.ccc-magi-temp/` · `old_version_harness/`
 
-- `constitution.md` — project's WHAT (Sections 1+2+3). Slot values define project identity.
-- `CLAUDE.md` (this file) — workflow + lanes + operating principles. Team contract.
-- `AGENTS.md` — universal AI-tool project context + auditor (MAGI) brief.
-- `CCC_MAGI_README.md` / `CCC_MAGI_LICENSE` — harness self-documentation.
-- `.harness/skills/` — all stage skills. Team uses same skill set.
-- `.harness/agents/` — reviewer + test-fixer agent definitions.
-- `.harness/scripts/` — hook scripts (deterministic enforcement layer).
-- `.harness/state/install.json` — the 16/5 L0 slot answers. **Especially critical**: team must agree on project identity.
-- `.harness/memory/conventions.md` — long-form project conventions (rules everyone follows).
-- `.claude/settings.json` — Claude Code hook wiring. Enforcement consistency.
-- `.codex/config.toml` + `.codex/hooks.json` — Codex CLI configuration.
-- `docs-harness/` — design rationale. Useful onboarding reference for teammates.
+**Self-policing**: if a gitignored path is tracked, run `git rm --cached -r <path>` then commit. If a committed path is missing from git, add it back so collaborators stay in sync.
 
-### Gitignored (personal / runtime / regenerable)
-
-Per-developer state. Sharing these creates merge conflict noise or pollutes audit signal:
-
-- `.harness/memory/observations.jsonl` — your personal AI session notes (each dev has own).
-- `.harness/memory/decision-log.md` — your personal CEO decisions (each dev has own).
-- `.harness/audits/` — runtime audit verdict logs (regenerated each audit; merge-conflict source).
-- `.harness/state/auditor-approvals/` — per-feature/per-stage verdict JSON (regenerable).
-- `.harness/state/test-fix/` — test-fixer attempt logs (transient).
-- `.harness/state/workflow-checkpoints/` — your session progress cards (per-developer).
-- `.harness/state/_active.json` — currently-active feature pointer.
-- `.harness/state/shipped-hashes.json` — install-time content-hash registry (regenerated per install).
-- `.harness/state/auditor.env` — per-machine secrets / model ID overrides.
-- `.claude/commands/` — auto-generated slash-command shims (derived from skills).
-- `.ccc-magi-temp/` / `old_version_harness/` — installer transient artifacts.
-
-### Self-policing
-
-If you find any of the **gitignored** paths above tracked by git (`git ls-files | grep ...`), it's a hygiene break. Recover with:
-
-```bash
-git rm --cached -r <path>
-git commit -m "chore: gitignore CCC-MAGI runtime artifacts"
-```
-
-If you find a **committed** path missing from git (e.g., `.harness/skills/` is `.gitignore`d), team alignment is at risk. Add it back to git so collaborators stay in sync.
-
-### Trade-off acknowledged
-
-This split deviates from a pure "harness as invisible tool" philosophy. CCC-MAGI is **visible in your repo** — teammates see `constitution.md` and `.harness/skills/` in their clone. The benefit (team-shared identity + deterministic enforcement) outweighs the cost (~30 harness files visible in repo). If you're a solo developer and want the harness fully invisible, you can locally `.gitignore` everything except the harness's slot output (`docs/features/*.md`) — but you lose easy onboarding for any future collaborator.
+> **For the design rationale, "butler in your project" philosophy, and solo-dev invisibility variant, see `.harness/docs/git-hygiene.md`.**
 
 ## Rule sources
 

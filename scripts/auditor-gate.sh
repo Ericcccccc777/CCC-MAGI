@@ -16,6 +16,19 @@
 #   AUDITOR_GATE_PRESET — optional preset name (loaded from
 #                         .harness/scripts/auditor-prompts/<preset>.md if exists)
 #   AUDITOR_GATE_TARGET_LABEL — optional human-readable label for the target
+#   AUDITOR_GATE_TARGET_MODE  — "full" (default) | "diff" | "diff-against:<rev>"
+#                         full              = embed entire target file (legacy behavior)
+#                         diff              = embed `git diff HEAD -- <target>` (working-tree change)
+#                         diff-against:<rev>= embed `git diff <rev> -- <target>`
+#                         When diff is empty (untracked / no change), falls back to full.
+#                         Use diff for code-change audits (Stage 5 implement) to cut input
+#                         tokens 60-80%. Use full for artifact audits (specs / plans / schemas).
+#
+# PROMPT-CACHE NOTE
+#   The prompt is assembled as [PRESET_PREFIX → FOCUS → TARGET]. OpenAI / Anthropic both
+#   apply automatic prefix caching when consecutive calls share the same opening tokens.
+#   DO NOT reorder these three parts — putting the variable TARGET last keeps the
+#   stable prefix cacheable across calls within the 5-min TTL window.
 #
 # EXIT CODES
 #   0 — PASS, CONCERNS, or WAIVED (all advance; caller reads JSON for nuance)
@@ -81,6 +94,65 @@ if [ -n "${AUDITOR_GATE_PRESET:-}" ]; then
 fi
 
 FULL_PROMPT="${PRESET_PREFIX}${FOCUS}"
+
+# ─────────────────────────────────────────────────────────────────────
+# Resolve TARGET content (full file / diff / diff-against:<rev>)
+# Computed once here so both invoke_codex and invoke_claude_fresh share
+# identical TARGET_BLOCK — keeps logic in one place + prompt cache stable.
+# ─────────────────────────────────────────────────────────────────────
+TARGET_MODE="${AUDITOR_GATE_TARGET_MODE:-full}"
+TARGET_BLOCK=""
+
+resolve_target_block() {
+  [ -z "$TARGET" ] && return 0
+
+  case "$TARGET_MODE" in
+    full)
+      if [ -f "$TARGET" ]; then
+        TARGET_BLOCK=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
+      fi
+      ;;
+    diff)
+      # Working-tree diff for this file/path. Empty result = no staged or unstaged
+      # change → fall back to full so the auditor still has something to look at.
+      if command -v git >/dev/null 2>&1; then
+        local diff_text
+        diff_text="$(git diff HEAD -- "$TARGET" 2>/dev/null || true)"
+        if [ -n "$diff_text" ]; then
+          TARGET_BLOCK=$'\n\n=== TARGET (diff) ===\n'"$diff_text"
+        elif [ -f "$TARGET" ]; then
+          echo "info: AUDITOR_GATE_TARGET_MODE=diff returned empty for $TARGET — falling back to full file" >&2
+          TARGET_BLOCK=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
+        fi
+      else
+        echo "warning: TARGET_MODE=diff requested but git not on PATH — falling back to full" >&2
+        [ -f "$TARGET" ] && TARGET_BLOCK=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
+      fi
+      ;;
+    diff-against:*)
+      local rev="${TARGET_MODE#diff-against:}"
+      if command -v git >/dev/null 2>&1; then
+        local diff_text
+        diff_text="$(git diff "$rev" -- "$TARGET" 2>/dev/null || true)"
+        if [ -n "$diff_text" ]; then
+          TARGET_BLOCK=$'\n\n=== TARGET (diff vs '"$rev"') ===\n'"$diff_text"
+        elif [ -f "$TARGET" ]; then
+          echo "info: AUDITOR_GATE_TARGET_MODE=diff-against:$rev returned empty — falling back to full file" >&2
+          TARGET_BLOCK=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
+        fi
+      else
+        echo "warning: TARGET_MODE=diff-against requested but git not on PATH — falling back to full" >&2
+        [ -f "$TARGET" ] && TARGET_BLOCK=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
+      fi
+      ;;
+    *)
+      echo "warning: unknown AUDITOR_GATE_TARGET_MODE=$TARGET_MODE — falling back to full" >&2
+      [ -f "$TARGET" ] && TARGET_BLOCK=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
+      ;;
+  esac
+}
+
+resolve_target_block
 
 # ─────────────────────────────────────────────────────────────────────
 # JSON output schema
@@ -157,6 +229,8 @@ TEMP_OUTPUT="$(mktemp /tmp/auditor-gate.XXXXXX)"
 invoke_codex() {
   # Codex CLI 0.130.0+ removed `--file <path>` support. Embed TARGET content
   # in the prompt body instead (same pattern as invoke_claude_fresh).
+  # TARGET_BLOCK was resolved upstream by resolve_target_block (honors
+  # AUDITOR_GATE_TARGET_MODE = full / diff / diff-against:<rev>).
   local schema_file="$(mktemp /tmp/schema.XXXXXX)"
   if [ "$MODE" = "review" ]; then
     echo "$REVIEW_SCHEMA" > "$schema_file"
@@ -164,10 +238,7 @@ invoke_codex() {
     echo "$DIAGNOSTIC_SCHEMA" > "$schema_file"
   fi
 
-  local prompt_with_target="$FULL_PROMPT"
-  if [ -n "$TARGET" ] && [ -f "$TARGET" ]; then
-    prompt_with_target+=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
-  fi
+  local prompt_with_target="${FULL_PROMPT}${TARGET_BLOCK}"
 
   codex exec \
     --model "$AUDITOR_MODEL_ID" \
@@ -180,11 +251,7 @@ invoke_codex() {
 invoke_claude_fresh() {
   # Single-engine fallback: invoke Claude with --output-format json in a fresh
   # context (no prior session). Lower bias-cancellation but preserves discipline.
-  local target_text=""
-  if [ -n "$TARGET" ] && [ -f "$TARGET" ]; then
-    target_text=$'\n\n=== TARGET ===\n'"$(cat "$TARGET")"
-  fi
-
+  # TARGET_BLOCK was resolved upstream by resolve_target_block.
   local schema_hint=""
   if [ "$MODE" = "review" ]; then
     schema_hint=$'\n\nRespond with JSON only matching schema: {"verdict": "PASS" | "CONCERNS" | "FAIL" | "WAIVED", "risk_score": 0-10, "waiver_reason": "string (required if WAIVED)", "blocking_items": [{"category": "universal-core" | "strong" | "advisory", "rule_source": "...", "finding": "..."}], "advisory_items": [{"rule_source": "...", "finding": "..."}]}'
@@ -192,7 +259,7 @@ invoke_claude_fresh() {
     schema_hint=$'\n\nRespond with JSON only matching schema: {"hypotheses": [{"summary": "...", "evidence": "...", "next_step": "..."}, ...]}'
   fi
 
-  claude --output-format json --no-session -- "${FULL_PROMPT}${schema_hint}${target_text}" > "$TEMP_OUTPUT"
+  claude --output-format json --no-session -- "${FULL_PROMPT}${schema_hint}${TARGET_BLOCK}" > "$TEMP_OUTPUT"
 }
 
 invoke_none() {
