@@ -349,9 +349,9 @@ Branch on results:
 
 **Branch 1 — Both Claude + Codex installed** (Tier 1 ideal):
 ```
-You have both Claude Code and Codex CLI. Recommended setup:
-  [1] ⭐ Cross-model: Claude writes, Codex audits (Tier 1 — best bias cancellation)
-  [2] Single-engine: just Claude with fresh-context fallback (Tier 2)
+You have both Claude Code and Codex CLI. Pick auditor:
+  [1] ⭐ Codex review (use Codex CLI as auditor, default gpt-5.5)
+  [2] Same model (current writer also reviews, fresh context)
   [3] Skip audit entirely (⚠️ violates Universal Core — NOT recommended)
 > 
 ```
@@ -359,9 +359,9 @@ You have both Claude Code and Codex CLI. Recommended setup:
 **Branch 2 — Only your current CLI installed**:
 ```
 You're using Claude Code. Codex CLI is not installed.
-  [1] Install Codex CLI now (1 command — opens https://github.com/openai/codex)
-      Then use Codex as MAGI Verdict (Tier 1)
-  [2] Single-engine: use fresh-context Claude as auditor (Tier 2 — works fine)
+  [1] Install Codex CLI now, then use Codex review (default gpt-5.5)
+      (1 command — opens https://github.com/openai/codex)
+  [2] Same model (current writer also reviews, fresh context)
   [3] Skip audit entirely (⚠️ NOT recommended)
 > 
 ```
@@ -371,8 +371,8 @@ You're using Claude Code. Codex CLI is not installed.
 You're using <detected CLI>. Note: CCC-MAGI is Tier-3 tested on this CLI 
 (some hooks may not fire — see README § CLI compatibility).
 
-  [1] Use your current CLI as both writer + fresh-context auditor (Tier 2)
-  [2] Install Codex CLI separately to act as auditor (Tier 1, recommended)
+  [1] Same model (current writer also reviews, fresh context)
+  [2] Install Codex CLI as auditor (Codex review, default gpt-5.5)
   [3] Skip audit (⚠️ NOT recommended)
 > 
 ```
