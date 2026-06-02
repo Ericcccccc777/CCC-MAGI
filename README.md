@@ -188,19 +188,20 @@ When you upgrade CCC-MAGI, Section 1 may change (carefully, with migration notes
 
 ## Platform support
 
-| Platform | Claude Code CLI | CCC-MAGI hooks | Status |
+| Platform | Installer (`npx`) | CCC-MAGI hooks | Status |
 |---|---|---|---|
 | macOS (Apple Silicon / Intel) | ✅ native | ✅ all hooks fire | **Tier 1** — fully tested |
 | Linux (Ubuntu / Debian / RHEL / Fedora / Arch) | ✅ native | ✅ all hooks fire | **Tier 1** — fully tested |
 | Windows 10/11 + WSL2 (Ubuntu) | ✅ via WSL | ✅ all hooks fire | **Tier 1** — same as Linux |
-| Windows 10/11 native + Git Bash | ✅ native (Node.js) | ⚠️ hooks need Git Bash in PATH | **Tier 2** — community-tested |
-| Windows 10/11 native + cmd/PowerShell only | ✅ native (Node.js) | ❌ shell hooks won't fire | **Tier 3** — install Git Bash or WSL |
+| Windows 10/11 + Git for Windows, from Git Bash | ✅ native | ✅ all hooks fire | **Tier 1** — full support |
+| Windows 10/11 + Git for Windows, from PowerShell/cmd | ✅ auto-detects Git Bash (v0.10.2+) | ⚠️ hooks need Claude Code launched from Git Bash | **Tier 2** — install works, hooks limited |
+| Windows 10/11 without Git for Windows | ❌ installer guides you to install it | ❌ | **Tier 3** — `winget install Git.Git` and retry |
 
 **Recommendation by user type:**
 
 - **macOS / Linux**: just install and go.
-- **Windows (no Linux background)**: install Git for Windows (free, includes Git Bash) — `winget install Git.Git`
-- **Windows with Linux comfort**: WSL2 + Ubuntu — `wsl --install -d Ubuntu`
+- **Windows (no Linux background)**: install Git for Windows (free, includes bash) — `winget install Git.Git`. Then you can run `npx create-ccc-magi@latest` from PowerShell, cmd, OR Git Bash — bash is auto-discovered. For full hooks support, launch Claude Code from Git Bash.
+- **Windows with Linux comfort**: WSL2 + Ubuntu — `wsl --install -d Ubuntu`. Full Linux parity.
 
 CCC-MAGI inherits its platform matrix from Claude Code itself. Anywhere Claude Code runs, CCC-MAGI can run, provided a POSIX shell is reachable for hook execution.
 
@@ -602,19 +603,20 @@ SessionStart 成本有界（约 1-1.5K token，不随项目年龄增长）。硬
 
 ## 平台支持
 
-| 平台 | Claude Code CLI | CCC-MAGI hook | 状态 |
+| 平台 | 安装器（`npx`） | CCC-MAGI hook | 状态 |
 |---|---|---|---|
 | macOS（Apple Silicon / Intel） | ✅ 原生 | ✅ 所有 hook 触发 | **Tier 1** —— 充分测试 |
 | Linux（Ubuntu / Debian / RHEL / Fedora / Arch） | ✅ 原生 | ✅ 所有 hook 触发 | **Tier 1** —— 充分测试 |
 | Windows 10/11 + WSL2（Ubuntu） | ✅ 通过 WSL | ✅ 所有 hook 触发 | **Tier 1** —— 同 Linux |
-| Windows 10/11 原生 + Git Bash | ✅ 原生（Node.js） | ⚠️ hook 需 Git Bash 在 PATH | **Tier 2** —— 社区测试 |
-| Windows 10/11 原生 + cmd/PowerShell | ✅ 原生（Node.js） | ❌ shell hook 不触发 | **Tier 3** —— 装 Git Bash 或 WSL |
+| Windows 10/11 + Git for Windows，从 Git Bash 启动 | ✅ 原生 | ✅ 所有 hook 触发 | **Tier 1** —— 完整支持 |
+| Windows 10/11 + Git for Windows，从 PowerShell/cmd 启动 | ✅ 自动检测 Git Bash（v0.10.2+） | ⚠️ hook 需从 Git Bash 启动 Claude Code | **Tier 2** —— 装能装，hook 受限 |
+| Windows 10/11 未装 Git for Windows | ❌ 安装器会引导你装 | ❌ | **Tier 3** —— `winget install Git.Git` 后重试 |
 
 **按用户类型推荐：**
 
 - **macOS / Linux**：装上就用
-- **Windows（无 Linux 背景）**：装 Git for Windows（免费，含 Git Bash）—— `winget install Git.Git`
-- **Windows（有 Linux 经验）**：WSL2 + Ubuntu —— `wsl --install -d Ubuntu`
+- **Windows（无 Linux 背景）**：装 Git for Windows（免费，含 bash）—— `winget install Git.Git`。装好后 PowerShell / cmd / Git Bash 都能跑 `npx create-ccc-magi@latest`，bash 自动发现。如果要 hook 完整工作，从 Git Bash 启动 Claude Code
+- **Windows（有 Linux 经验）**：WSL2 + Ubuntu —— `wsl --install -d Ubuntu`，完整 Linux parity
 
 CCC-MAGI 继承 Claude Code 的平台矩阵。只要 Claude Code 能跑、有可达的 POSIX shell，CCC-MAGI 就能跑。
 

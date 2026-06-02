@@ -1,6 +1,6 @@
 # create-ccc-magi
 
-Install [CCC-MAGI v0.10.1](https://github.com/Ericcccccc777/CCC-MAGI) into a project. One command.
+Install [CCC-MAGI v0.10.2](https://github.com/Ericcccccc777/CCC-MAGI) into a project. One command.
 
 ```bash
 cd /path/to/your/project
