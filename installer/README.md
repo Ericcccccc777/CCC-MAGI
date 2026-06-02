@@ -30,22 +30,25 @@ After install, open Claude Code (or Codex CLI) in the project. The harness's **t
 
 ## Platform support
 
-| Platform | Status |
-|---|---|
-| macOS (Apple Silicon / Intel) | ✅ Tier 1 |
-| Linux (Ubuntu / Debian / RHEL / Arch) | ✅ Tier 1 |
-| Windows 10/11 + WSL2 (Ubuntu) | ✅ Tier 1 — recommended |
-| Windows 10/11 + Git for Windows (Git Bash) | ⚠️ Tier 2 — community-tested |
-| Windows native (cmd / PowerShell only) | ❌ install Git for Windows first |
+| Platform | Installer (`npx`) | Hooks |
+|---|---|---|
+| macOS (Apple Silicon / Intel) | ✅ Tier 1 | ✅ all fire |
+| Linux (Ubuntu / Debian / RHEL / Arch) | ✅ Tier 1 | ✅ all fire |
+| Windows 10/11 + WSL2 (Ubuntu) | ✅ Tier 1 | ✅ all fire |
+| Windows 10/11 + Git for Windows, from Git Bash | ✅ Tier 1 (v0.10.2+) | ✅ all fire |
+| Windows 10/11 + Git for Windows, from PowerShell/cmd | ✅ Tier 2 (v0.10.2+ auto-detects bash) | ⚠️ launch Claude Code from Git Bash for full hook support |
+| Windows 10/11 without Git for Windows | ❌ installer guides you to install it | ❌ |
 
-CCC-MAGI inherits its platform matrix from Anthropic Claude Code. Anywhere Claude Code runs, CCC-MAGI can run (provided a POSIX shell is reachable for hook execution).
-
-**Windows quick-start:**
+**Windows quick-start** (PowerShell):
 ```powershell
 winget install Git.Git
+winget install jqlang.jq
+winget install OpenJS.NodeJS.LTS
 # OR for a full Linux experience:
 wsl --install -d Ubuntu
 ```
+
+For comprehensive cross-platform install instructions (incl. Claude Code, Codex, China mirror notes), see [main README § Step 0](https://github.com/Ericcccccc777/CCC-MAGI#step-0-install-prerequisites-5-10-min-one-time).
 
 ## What gets installed
 
@@ -84,12 +87,15 @@ npx create-ccc-magi@latest --force   # override
 
 ## Requirements
 
-- **git** (for cloning CCC-MAGI from GitHub at install time)
-- **bash** (for executing install-into.sh; Mac/Linux native, Windows via Git Bash or WSL)
-- **node >= 18** (for npx itself)
+Install these **BEFORE** running `npx create-ccc-magi@latest`. The installer fails fast if any hard prereq is missing.
+
+- **git** — clone CCC-MAGI from GitHub
+- **bash 3.2+** — execute install-into.sh; Mac/Linux native, Windows via Git for Windows (v0.10.2+ auto-discovers it)
+- **jq** — hard prereq (install-into.sh's check-prereqs.sh fails fast if missing). Install: `brew install jq` (macOS), `winget install jqlang.jq` (Windows), `sudo apt install jq` (Debian/Ubuntu)
+- **node >= 18** — for npx itself
 - Target directory should be a git repository (`git init` first)
 
-Note: **jq is installed conversationally** during Phase 1 environment check by MAGI Core (not by this installer). The installer doesn't gate on jq presence — that's the harness's job at first interaction.
+For comprehensive per-platform install commands (incl. Claude Code, Codex CLI), see [main README § Step 0](https://github.com/Ericcccccc777/CCC-MAGI#step-0-install-prerequisites-5-10-min-one-time).
 
 ## Post-install
 
@@ -106,15 +112,17 @@ Total time: 5–15 minutes for a fresh project.
 
 ## What this installer does NOT do
 
-- **Does NOT install jq for you.** That's Phase 1's conversational job inside MAGI Core. The installer just gets the harness files in place.
+- **Does NOT install jq for you.** jq is a **hard prereq** you must install before running `npx`. See [Requirements](#requirements) above.
 - **Does NOT alter your project's `package.json`, `.gitignore`, build configs, etc.** It only places harness files in dedicated locations.
 - **Does NOT run `/init` itself.** That's Phase 2 of the bootstrap, executed inside Claude Code with full conversational control.
 
 ## Troubleshooting
 
-**"git is not installed"** — install git via your package manager (`brew install git` on macOS, `winget install Git.Git` on Windows).
+**"git is not installed"** — install git via your package manager (`brew install git` on macOS, `winget install Git.Git` on Windows, `sudo apt install git` on Debian/Ubuntu).
 
-**"bash is not installed"** — on Windows, install Git for Windows (`winget install Git.Git`) — it includes Git Bash.
+**"jq is required but not installed"** — install jq: `brew install jq` (macOS), `winget install jqlang.jq` (Windows), `sudo apt install jq` (Debian/Ubuntu).
+
+**"bash is not installed"** — on Windows, install Git for Windows (`winget install Git.Git`) — it includes bash. v0.10.2+ auto-discovers it from PowerShell/cmd.
 
 **"Current directory is not a git repository"** — run `git init` first, or use `--force` to install anyway.
 
@@ -134,4 +142,9 @@ Source: https://github.com/Ericcccccc777/CCC-MAGI
 
 ## Version
 
-0.9.0 — MAGI 7-position AI team system + Simple/Pro onboarding modes + feature-aware session resume + two-phase conversational bootstrap. See [CHANGELOG](https://github.com/Ericcccccc777/CCC-MAGI/releases) on the main repo for details.
+See current version and release notes: https://github.com/Ericcccccc777/CCC-MAGI/releases
+
+Latest highlights:
+- **v0.10.2** — Windows Git Bash auto-discovery (PowerShell/cmd compat); cross-platform installer prereq checks
+- **v0.10.1** — auditor diff-mode env var; CLAUDE.md slim (821→658 lines); 5 reference docs externalized to `.harness/docs/`
+- **v0.10.0** — v2 context architecture: 3-tier memory (working / recall / archive) + budget pressure monitor

@@ -207,14 +207,93 @@ CCC-MAGI inherits its platform matrix from Claude Code itself. Anywhere Claude C
 
 ---
 
-## Prerequisites
+## Step 0: Install prerequisites (5-10 min, one-time)
 
-- **git** — required
-- **bash 3.2+** — macOS default; Linux ships 4+; Windows via Git Bash or WSL
-- **jq** — required for JSON-handling hooks. **Auto-installed if missing** during Phase 1 environment check
-- **At least one AI CLI**: Claude Code (`claude`) or Codex CLI (`codex`). Both = Tier 1 cross-model audit
+Before you run `npx create-ccc-magi@latest`, install these on your machine. **The installer fails fast if any hard prereq is missing** — better to install them up front than to hit errors mid-install.
 
-The harness's Phase 1 environment check (`.harness/scripts/env-check.sh`) runs automatically on first interaction. If anything is missing, MAGI Core walks you through installation conversationally — no terminal output to interpret yourself.
+### What you need
+
+| Tool | Why | Hard prereq? |
+|---|---|---|
+| **git** | clone CCC-MAGI from GitHub; harness uses git for checkpoints | ✅ required |
+| **bash 3.2+** | run install-into.sh and harness hooks | ✅ required (macOS/Linux native; Windows via Git for Windows) |
+| **jq** | JSON parsing in hooks + auditor verdict handling | ✅ required (`install-into.sh` fails fast if missing) |
+| **Node.js ≥ 18** | for `npx` itself | ✅ required |
+| **Claude Code** OR **Codex CLI** | the AI you'll actually talk to | ✅ at least one (both = Tier 1 cross-model audit) |
+
+### macOS
+
+```bash
+# 1. Homebrew (skip if you already have it)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. git (most Macs have it; if not, brew fixes it)
+brew install git
+
+# 3. jq + Node.js
+brew install jq node
+
+# 4. Claude Code (primary CLI)
+npm install -g @anthropic-ai/claude-code
+
+# 5. Codex CLI (recommended auditor for Tier 1 cross-model audit)
+npm install -g @openai/codex
+```
+
+### Windows 10/11 (PowerShell)
+
+```powershell
+# 1. Git for Windows (includes bash that v0.10.2+ installer auto-discovers)
+winget install Git.Git
+
+# 2. jq
+winget install jqlang.jq
+
+# 3. Node.js LTS
+winget install OpenJS.NodeJS.LTS
+
+# 4. Claude Code
+npm install -g @anthropic-ai/claude-code
+
+# 5. Codex CLI (optional but recommended)
+npm install -g @openai/codex
+```
+
+**Important**: after install, **close and re-open PowerShell** so the new PATH entries take effect.
+
+### Linux (Ubuntu / Debian)
+
+```bash
+sudo apt update
+sudo apt install -y git jq nodejs npm
+sudo npm install -g @anthropic-ai/claude-code
+sudo npm install -g @openai/codex   # optional
+```
+
+For RHEL / Fedora / Arch: swap `apt install` for `yum install` / `dnf install` / `pacman -S` accordingly.
+
+### Mainland China tips
+
+- **npm slow / timeout?** Switch to Taobao mirror:
+  ```bash
+  npm config set registry https://registry.npmmirror.com
+  ```
+- **GitHub clone slow / timing out?** You'll likely need a VPN. CCC-MAGI's installer clones from GitHub, so reliable GitHub access is required.
+- **Claude Code / Codex CLI login** may require VPN depending on your account type / region.
+
+### Verify everything is ready
+
+```bash
+git --version       # any
+jq --version        # 1.5+
+node --version      # v18+
+claude --version    # any (if Claude Code installed)
+codex --version     # any (if Codex CLI installed)
+```
+
+If all print versions without "command not found", you're ready for `npx create-ccc-magi@latest`.
+
+> After install, the harness's Phase 1 environment check (`.harness/scripts/env-check.sh`) runs on your first chat with Claude Code, confirming everything is wired up correctly.
 
 ---
 
@@ -622,14 +701,93 @@ CCC-MAGI 继承 Claude Code 的平台矩阵。只要 Claude Code 能跑、有可
 
 ---
 
-## 前置依赖
+## 第 0 步：环境准备（5-10 分钟，一次性）
 
-- **git** —— 必须
-- **bash 3.2+** —— macOS 默认；Linux 都是 4+；Windows 用 Git Bash 或 WSL
-- **jq** —— 处理 JSON 的 hook 需要。Phase 1 环境检查时**缺失自动安装**
-- **至少一个 AI CLI**：Claude Code (`claude`) 或 Codex CLI (`codex`)。两者都有 = Tier 1 跨模型审计
+在跑 `npx create-ccc-magi@latest` **之前**，先把下面这些装好。**任何硬依赖缺失，installer 会立刻报错退出** —— 提前装好比中途撞错好得多。
 
-框架的 Phase 1 环境检查（`.harness/scripts/env-check.sh`）会在首次交互自动跑。缺什么 MAGI Core 会用对话引导你装 —— 不用你自己解读终端输出。
+### 你需要装的东西
+
+| 工具 | 用途 | 硬依赖？ |
+|---|---|---|
+| **git** | 从 GitHub 拉 CCC-MAGI；harness 用 git 做 checkpoint | ✅ 必须 |
+| **bash 3.2+** | 跑 install-into.sh + harness hooks | ✅ 必须（macOS/Linux 原生；Windows 装 Git for Windows 自带） |
+| **jq** | hook 里解析 JSON + 处理审计 verdict | ✅ 必须（`install-into.sh` 缺它直接报错退出） |
+| **Node.js ≥ 18** | `npx` 自己需要 | ✅ 必须 |
+| **Claude Code** 或 **Codex CLI** | 你实际对话的 AI | ✅ 至少装一个（两个都装 = Tier 1 跨模型审计） |
+
+### macOS
+
+```bash
+# 1. Homebrew（已装可跳过）
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. git（多数 Mac 已有；没有的话 brew 装）
+brew install git
+
+# 3. jq + Node.js
+brew install jq node
+
+# 4. Claude Code（主 CLI）
+npm install -g @anthropic-ai/claude-code
+
+# 5. Codex CLI（推荐 —— 跟 Claude 配对做跨模型审计 Tier 1）
+npm install -g @openai/codex
+```
+
+### Windows 10/11（PowerShell 跑）
+
+```powershell
+# 1. Git for Windows（含 bash，v0.10.2+ installer 会自动找到）
+winget install Git.Git
+
+# 2. jq
+winget install jqlang.jq
+
+# 3. Node.js LTS
+winget install OpenJS.NodeJS.LTS
+
+# 4. Claude Code
+npm install -g @anthropic-ai/claude-code
+
+# 5. Codex CLI（可选但推荐）
+npm install -g @openai/codex
+```
+
+**重要**：装完后**关掉 PowerShell 再打开**，新的 PATH 才生效。
+
+### Linux（Ubuntu / Debian）
+
+```bash
+sudo apt update
+sudo apt install -y git jq nodejs npm
+sudo npm install -g @anthropic-ai/claude-code
+sudo npm install -g @openai/codex   # 可选
+```
+
+RHEL / Fedora / Arch：把 `apt install` 换成 `yum install` / `dnf install` / `pacman -S`。
+
+### 中国大陆用户提示
+
+- **npm 慢或超时？** 切换淘宝镜像：
+  ```bash
+  npm config set registry https://registry.npmmirror.com
+  ```
+- **GitHub clone 慢或超时？** 大概率需要 VPN。CCC-MAGI 的 installer 是从 GitHub clone 的，所以必须能稳定访问 GitHub
+- **Claude Code / Codex CLI 登录**可能需要 VPN，看你账号类型 / 地区
+
+### 验证准备就绪
+
+```bash
+git --version       # 任何版本
+jq --version        # 1.5+
+node --version      # v18+
+claude --version    # 任何（如果装了 Claude Code）
+codex --version     # 任何（如果装了 Codex CLI）
+```
+
+如果上面 5 条都正常打印版本（没有 "command not found"），就可以跑 `npx create-ccc-magi@latest` 了。
+
+> 装完 CCC-MAGI 后，第一次跟 Claude Code 对话时，harness 的 Phase 1 环境检查（`.harness/scripts/env-check.sh`）会自动跑一遍，确认所有依赖都正确连上。
 
 ---
 
