@@ -253,7 +253,21 @@ After the user answers Q2 (`project_description`), pause the question flow and r
 
 Generate the suggestions in **one pass** (all slots at once — saves tokens and reveals AI's understanding consistency to user).
 
-Then for each subsequent question (Q3-Q16), present the question + show the suggestion:
+Then for each subsequent question (Q3-Q16), present the question + show the suggestion.
+
+#### Presentation rule (HARD — for UX consistency)
+
+**For multi-choice questions** (Pattern A below; the labeled option lists in Pattern B; the menus in Simple mode Q3/Q4/Q5; the 3-option auditor menu in Step 2C; `[Y]/[n]` confirmations):
+
+→ **Use Claude Code's `AskUserQuestion` tool**, not plain-text `[1] [2] [3]` prompts.
+
+`AskUserQuestion` renders an interactive arrow-key menu — significantly better UX for non-technical CEOs than asking them to type letters or numbers (no typo risk, language-independent, visual feedback, accessible). The text examples below (e.g., `[a] early  [b] beta ...`) describe the **content** of options, not the literal rendering.
+
+**For free-text questions** (Pattern B's "[E] write your own" branch; Pattern C's free-form input; the project_description Q2 which has no fixed options):
+
+→ Plain text Q&A is correct — the user is typing, not picking.
+
+**Why this matters**: CCC-MAGI's audience includes non-technical founders. The arrow-key menu lets them scan options and pick without touching letters. Without this rule, AI behavior is inconsistent across sessions (real bug observed in v0.10.2 testing: same `/init` flow rendered as text on macOS vs interactive menus on Windows). Make every session feel like the Windows session did.
 
 #### Pattern A — Fixed-options question (multiple choice with highlighted default)
 
