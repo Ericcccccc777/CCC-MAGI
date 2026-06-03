@@ -10,6 +10,13 @@
 #   3. New 75% [4] option: /offload <task> for subagent isolation.
 #   4. Same-level dedup: 50/75/90 advisories only fire on threshold CROSS
 #      (not every prompt). Tracked in .harness/state/_budget-last-level.
+#
+# v2.1 (v0.10.3) CHANGES:
+#   5. Auto-detect context budget from transcript's `model` field instead of
+#      hardcoded 200K. Eliminates false-positive warnings for users on
+#      extended-context models (e.g., Opus 4.7 [1m] = 1,000,000 tokens).
+#      Resolution order: $CCC_CONTEXT_BUDGET env var (explicit override)
+#      → transcript model lookup → 200K safe fallback.
 
 set -eu
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -60,10 +67,49 @@ if [ "$APPROX_TOKENS" -eq 0 ] 2>/dev/null; then
   APPROX_TOKENS=$((SIZE_BYTES / 4))
 fi
 
-# ─── Compute percentage ─────────────────────────────────────────────
-CONTEXT_BUDGET="${CCC_CONTEXT_BUDGET:-200000}"
+# ─── Detect model + resolve context budget ──────────────────────────
+# Priority: explicit env var > transcript model detection > 200K fallback.
+# Detection looks up the most recent assistant turn's `model` field in the
+# JSONL transcript; maps known model families to their context limits.
+DETECTED_MODEL=""
+if command -v jq >/dev/null 2>&1; then
+  MODEL_LINE=$(tac "$TRANSCRIPT_PATH" 2>/dev/null | grep -m1 '"model"' || tail -100 "$TRANSCRIPT_PATH" 2>/dev/null | grep '"model"' | tail -1)
+  if [ -n "$MODEL_LINE" ]; then
+    DETECTED_MODEL=$(printf '%s' "$MODEL_LINE" | jq -r '.message.model // .model // empty' 2>/dev/null || echo "")
+  fi
+fi
+
+CONTEXT_BUDGET="${CCC_CONTEXT_BUDGET:-}"
+if [ -z "$CONTEXT_BUDGET" ]; then
+  # Map model identifier to context size. The `[1m]` suffix marks Anthropic's
+  # 1M-token extended-context tier (separate model ID with different pricing).
+  case "$DETECTED_MODEL" in
+    *"[1m]"*)
+      CONTEXT_BUDGET=1000000  # Claude Opus/Sonnet 1M extended context
+      ;;
+    claude-opus-*|claude-sonnet-*|claude-haiku-*)
+      CONTEXT_BUDGET=200000   # Standard Claude 4.x models (Opus/Sonnet/Haiku)
+      ;;
+    *gpt-5*|*o3*|*o4*)
+      CONTEXT_BUDGET=200000   # OpenAI flagship — conservative; override via env for higher
+      ;;
+    *gpt-4*)
+      CONTEXT_BUDGET=128000   # gpt-4 / gpt-4o / gpt-4-turbo standard
+      ;;
+    *)
+      CONTEXT_BUDGET=200000   # Unknown model — safe default matches pre-detection behavior
+      ;;
+  esac
+fi
+
 if [ "$CONTEXT_BUDGET" -le 0 ]; then exit 0; fi
 PCT=$((APPROX_TOKENS * 100 / CONTEXT_BUDGET))
+
+# Build a short model label for warning messages (so users can see what was
+# detected without grepping logs). Empty if unknown.
+MODEL_LABEL=""
+[ -n "$DETECTED_MODEL" ] && MODEL_LABEL=" / model: $DETECTED_MODEL"
+[ -n "${CCC_CONTEXT_BUDGET:-}" ] && MODEL_LABEL="$MODEL_LABEL (override via CCC_CONTEXT_BUDGET)"
 
 # ─── Determine level ────────────────────────────────────────────────
 LEVEL=""
@@ -115,7 +161,7 @@ echo "$LEVEL" > "$LEVEL_FILE"
 # ─── Compose message per level ──────────────────────────────────────
 case "$LEVEL" in
   medium)
-    MSG="⚠️ BUDGET WATCH (~${PCT}% of ${CONTEXT_BUDGET} tokens). Soft warning.
+    MSG="⚠️ BUDGET WATCH (~${PCT}% of ${CONTEXT_BUDGET} tokens${MODEL_LABEL}). Soft warning.
 
 Suggested for the rest of this session:
   • Prefer Sonnet over Opus for subagent dispatches where the task allows
@@ -125,7 +171,7 @@ Suggested for the rest of this session:
 Behavior change is advisory; don't refuse work."
     ;;
   high)
-    MSG="⚠️⚠️ BUDGET PRESSURE (~${PCT}% of ${CONTEXT_BUDGET} tokens). Firm warning.
+    MSG="⚠️⚠️ BUDGET PRESSURE (~${PCT}% of ${CONTEXT_BUDGET} tokens${MODEL_LABEL}). Firm warning.
 
 Strongly recommended:
   • Avoid Explore-type research subagents unless multi-file exploration is required
@@ -139,7 +185,7 @@ NEW 4-option exit menu (surface to CEO at end-of-turn):
   [4] continue            dismiss; I'll keep going at ~${PCT}%"
     ;;
   critical)
-    MSG="🚨 BUDGET CRITICAL (~${PCT}% of ${CONTEXT_BUDGET} tokens). Hard warning.
+    MSG="🚨 BUDGET CRITICAL (~${PCT}% of ${CONTEXT_BUDGET} tokens${MODEL_LABEL}). Hard warning.
 
 Required:
   • TELL THE USER EXPLICITLY in your next response: 'Context is at ~${PCT}% — strongly recommend /handoff or /compact before continuing major work.'
@@ -149,7 +195,7 @@ Required:
 If user does nothing, the 95% menu will fire next."
     ;;
   critical-95)
-    MSG="🚨🚨 BUDGET 95%+ (~${PCT}% of ${CONTEXT_BUDGET} tokens). Hard limit nearing.
+    MSG="🚨🚨 BUDGET 95%+ (~${PCT}% of ${CONTEXT_BUDGET} tokens${MODEL_LABEL}). Hard limit nearing.
 
 CRITICAL INSTRUCTION: at the END of your current response (after completing the user's request, NOT mid-task), surface this 3-option menu in their OS locale:
 
