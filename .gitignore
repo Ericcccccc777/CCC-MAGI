@@ -52,6 +52,10 @@
 # Active feature pointer (per-developer current branch tracking)
 .harness/state/_active.json
 
+# Transient absorb draft — staged prior-harness content awaiting /init
+# consumption (written by harness-absorb, deleted after /init renders).
+.harness/state/_absorb-draft.json
+
 
 # === Per-install regenerated registries ===============================
 # Content-hash registry of files at install time. Regenerated on every

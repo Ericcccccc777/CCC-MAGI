@@ -297,6 +297,42 @@ After auditor-gate passes for Stage 4:
 
 ---
 
+## Project todolist — suggestion flow (Stage 4)
+
+The `<feature>.todo.md` / TodoWrite list above is the **per-file execution
+checklist for this feature** (transient, deleted at commit). Separately, the
+**project todolist** (`.harness/state/todolist.json`, function-grouped, durable —
+see `.harness/docs/todolist.md`) records *what this project is building over its
+lifetime*. Stage 4 is the natural moment to seed it: the plan has just named the
+discrete pieces of work for this feature.
+
+**Run the suggestion flow** (per `/todolist` skill § AI-suggestion): from the
+plan, extract the discrete user-meaningful pieces of work (not the file list —
+the capabilities), and propose them to the CEO for opt-in under this feature's
+function. Example:
+
+```
+📋 要把这些加进项目待办吗?(功能:<feature>)
+   ⚪ <capability 1>
+   ⚪ <capability 2>
+回复「都加」/「加 1」/「不用」即可。
+```
+
+On CEO acceptance, seed them (status `todo` — planned, not yet built):
+
+```bash
+.harness/scripts/todolist-write.sh --add-function \
+  --fn-id <feature-slug> --fn-title "<feature display name>" --linked-feature <feature-slug>
+.harness/scripts/todolist-write.sh --add-item \
+  --fn-id <feature-slug> --item-text "<capability 1>" --source plan --item-status todo
+# ...one --add-item per accepted capability
+```
+
+**MAGI suggests; the CEO decides.** If the CEO declines, add nothing — do not
+nag. This keeps the todolist the CEO's roadmap, not an auto-generated dump.
+
+---
+
 ## Final message to CEO (with TodoWrite — Stage 4 → Stage 5)
 
 After Stage 4 completes (execution plan written + auditor verdict), this is the **MOST important UX moment in the workflow**: CEO needs to SEE what's about to be changed before any code is written.

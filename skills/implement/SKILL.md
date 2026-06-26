@@ -289,6 +289,24 @@ Update TWO things in parallel (so /pickup + the visible todolist both stay accur
 
 This makes `/pickup` reports show: *"3/8 files done — continue at src/auth/middleware.ts (next)"*.
 
+**1b. Project todolist (durable, function-grouped — `.harness/docs/todolist.md`):**
+
+Distinct from the per-file checklist above. When implementation of this feature
+begins, flip the feature's todolist items from `todo` → `doing` (they were
+seeded as `todo` by Stage 4's suggestion flow). They become `done` at `/commit`
+(Stage 8), not here — Stage 5 means "code written", not "shipped".
+
+```bash
+# At Stage 5 start, for each todolist item of this feature being implemented now:
+.harness/scripts/todolist-write.sh --list   # find the feature's fn-id + item ids
+.harness/scripts/todolist-write.sh --set-item-status --fn-id <feature-slug> --item-id <id> --item-status doing
+```
+
+If Stage 4 was skipped (trivial / stability-fix lane) and the feature has no
+todolist entry yet, optionally run the `/todolist` suggestion flow now to record
+what's being built — but only suggest; don't silently add. The function status
+auto-derives to `in-progress` once any item is `doing`.
+
 **2. Visible TodoList (for CEO real-time visibility):**
 
 **For Claude Code** (`CLAUDE_PROJECT_DIR` set): use the built-in **TaskUpdate tool** (the same task list /execution-plan populated). For each file you complete:

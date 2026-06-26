@@ -75,7 +75,7 @@ First-time user in this project. Hook injects context telling you to introduce y
 Phase 1 done, Phase 2 not done. Hook injects context telling you the env is ready, ask user to do Phase 2. Invoke `/init` — it will ask Simple vs Pro mode and walk through L0 questions.
 
 ### State S3 — install.json exists
-Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/pickup`, `/abandon`, `/next`, `/remember`, `/uninstall`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`).
+Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/pickup`, `/abandon`, `/next`, `/todolist`, `/remember`, `/uninstall`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`, `/harness-absorb` for carrying a prior harness forward on takeover).
 
 ### Session deduplication
 
@@ -212,7 +212,10 @@ CEO is a **human** who shouldn't have to memorize slash commands. The CCC-MAGI w
 | "升级到专业版" / "Pro 版" / "want full questions" / "上专业模式" | `/init --upgrade-to-pro` |
 | "改宪法" / "改身份" / "edit constitution" | `/constitution-edit` |
 | "新加一条红线" / "加 anti-flag 规则" | `/add-constitution-clause` or `/add-anti-flag` (pick by content) |
+| "把我现有的规则并进来" / "吸收老配置" / "absorb my existing harness" / "keep my old CLAUDE.md rules" / "기존 설정 흡수" | `/harness-absorb` |
 | "记一下: X" / "remember X" / "存档" | `/remember X` |
+| "看看待办" / "todolist" / "整体进度" / "我们做到哪了" / "what's left" / "what have we built" | `/todolist` (view) |
+| "把 X 加进待办" / "加个任务 X" / "X 做完了" / "add X to todolist" / "mark X done" | `/todolist` (add/update) |
 | "我环境配置好了吗" / "env ok?" | run `.harness/scripts/env-check.sh` (Bash tool) |
 | "上次我们决定的是啥" / "之前 X 这块的决策" / "what did we decide about X" / "previously" | `/recall <feature\|tag>` (Tier 2 manifest search) |
 | "查 X 的那条历史" / "load SS-...." / "拉出 X 那个 snapshot" | `/recall <id>` (Tier 2 body fetch) |
@@ -461,8 +464,9 @@ Invokable as `/<skill-name>` (forwarded via `.claude/commands/` shims) or via na
 |---|---|
 | **Workflow stages** | `/feature-draft` `/audit-spec` `/spec-finalize` `/db-schema` `/execution-plan` `/implement` `/test-fix` `/commit` |
 | **Session navigation** | `/next` `/pickup` `/abandon` `/handoff` `/offload` |
+| **Project tracking** | `/todolist` |
 | **Memory** | `/recall` `/remember` |
-| **Constitution / harness config** | `/init` `/constitution-edit` `/add-constitution-clause` `/add-anti-flag` |
+| **Constitution / harness config** | `/init` `/harness-absorb` `/constitution-edit` `/add-constitution-clause` `/add-anti-flag` |
 | **Lifecycle** | `/uninstall` |
 
 ### Subagents (`.harness/agents/`)

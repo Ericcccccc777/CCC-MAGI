@@ -36,12 +36,13 @@ Existing harness present?
   ↓                          (handled by:)
   Step 1 — Bootstrap         standalone-bootstrap.md  OR  CCC bundled Step 1 driver
   - Detect existing harness
-  - 3-option menu (archive / overwrite / decline)
-  - Archive or delete other configs
+  - 4-option menu (absorb-and-merge / archive only / delete / skip)
+  - Absorb (carry old rules forward via harness-absorb) or archive/delete other configs
   ↓
   Step 2 — /init (this skill)
   - Project mode detection
-  - L0 question flow
+  - Project understanding card (analyze → present → confirm)   ← Step 1.5
+  - L0 question flow (only asks what wasn't already confirmed)
   - Slot filling
   - Template rendering
   - Validation
@@ -213,9 +214,38 @@ Record the result as `project_mode`. The Step 2 question flow uses different def
 
 ---
 
+## Step 1.5 — Project understanding card (analyze → present → confirm, BEFORE asking)
+
+> **Why**: a mature project shouldn't be asked things we can already infer from the code, or things the user already wrote in their prior harness. Show what we know first; confirm; then ask only the gaps. This is the "先分析 → 列理解 → 确认 → 再追问" UX.
+
+1. **Gather what's already known**:
+   - Run the brownfield auto-detect (Step 2 § Brownfield-mode adjustments + Step 3 L1 auto-detect): `project_name`, `project_description`, `project_stage`, `team_size`, `tech_stack`, `repo_structure`, `test_framework`, `test_runner_command`, `feature_folder_pattern`, client/backend paths, `backend_db_type`.
+   - **If `.harness/state/_absorb-draft.json` exists** (the user picked bootstrap option [1] absorb-and-merge), load it and MERGE its confirmed `slots` + `section3_red_lines` + `anti_flag_rules` + `rule_sources` on top of auto-detect. The absorb skill already had the user confirm these — carry them as `confirmed`.
+2. **Present ONE understanding card** (user's locale, plain language):
+   ```
+   为了给你更好的体验,我先了解了一下你的项目,下面是我理解到的 —— 你看看对不对:
+
+   📦 项目:<project_name> · <project_description>
+   🧱 技术栈:<tech_stack>     🗂 结构:<repo_structure>     🧪 测试:<test_framework + command>
+   🎯 我推测它主要在意:<primary_concern 猜测>
+   🧭 从你原来的 harness 读到、已准备并入(若有):
+       • <红线 / anti-flag / 身份 摘要,逐条带来源>
+   ⚠️ 与 CCC 不可破底线冲突、已忽略(若有):<列出>
+
+   这些理解对吗?可以逐条说「第N条改成…」「删掉第N条」「漏了X」。没问题就说「对 / 继续」。
+   ```
+3. **Apply corrections.** Mark every value the user confirms here as `confirmed` — Step 2 will NOT re-ask these.
+4. **Greenfield degrade**: if little can be inferred (greenfield, no absorb draft), collapse the card to a single line — "I'll start it like this: `<defaults>`. OK?" — confirm and move on. Never make a near-empty project sit through the full card.
+
+After confirmation, consume + delete `_absorb-draft.json` (its content is now reflected in confirmed slots and will be rendered into constitution.md / AGENTS.md at Step 4).
+
+---
+
 ## Step 2 — L0 slot question flow
 
 The slot inventory and ordering live in `constitution.md` § Slot registry (17 L0 slots — Block A through Block E below). What changes between modes is **how many of those 17 get explicitly asked vs defaulted**.
+
+> **Skip already-confirmed slots (from Step 1.5).** Any slot the user confirmed on the understanding card — whether auto-detected from the code or absorbed from a prior harness — is already final. Do NOT re-ask it; carry it through and show it as ✓ confirmed in the final confirmation block. Mode (Simple/Pro) still governs which of the **remaining** slots get asked vs defaulted. On a mature project with a rich absorbed harness, this can shrink Simple's 5 questions and Pro's 16 down to just the few that genuinely couldn't be inferred.
 
 ### Question inventory (full Pro mode = 16 asked + 1 auto)
 
@@ -574,10 +604,12 @@ If Step 6 validation fails, `install.json` should still be written (the install 
 
 **MUST contain COMPLETE slot state** — every L0 and resolved L1 slot value gets recorded. This lets downstream skills (/feature-draft, /resume, /constitution-edit, etc.) read project state without re-reading constitution.md and re-parsing slots. The full schema:
 
+> **Schema version 3** (was 2): adds the `absorption` block (prior-harness provenance). **Migration**: a pre-existing v2 `install.json` has no `absorption` key — readers MUST treat a missing `absorption` as `{ "absorbed_from": [] }` and never error on it. No rewrite of old files is required.
+
 ```bash
 cat > .harness/state/install.json <<JSON
 {
-  "schema_version": 2,
+  "schema_version": 3,
 
   "installed_at": "<ISO-8601 timestamp, e.g., 2026-05-28T10:00:00Z>",
   "harness_version": "<package version, e.g., 0.9.0>",
@@ -591,6 +623,14 @@ cat > .harness/state/install.json <<JSON
   },
 
   "project_mode": "<greenfield|brownfield>",
+
+  "absorption": {
+    "_comment": "Provenance of any prior-harness content absorbed at takeover (bootstrap option 1, via harness-absorb). Absent or empty absorbed_from if nothing was absorbed.",
+    "absorbed_from":    [<list of source files/dirs, e.g., ["CLAUDE.md.pre-ccc-magi", ".cursor/rules/", "copilot-instructions.md"]>],
+    "absorbed_at":      "<ISO-8601, or null>",
+    "carried_forward":  {"section2_identity": N, "section3_red_lines": N, "anti_flag_rules": N, "rule_sources": N, "slots": N},
+    "skipped_conflicts": [<rules NOT absorbed because they'd weaken Universal Core, each {"text": "...", "reason": "..."}>]
+  },
 
   "slots": {
     "_comment": "All L0 + resolved L1 slot values. Source: constitution.md § Slot registry. Every key here should match a slot name in that registry.",

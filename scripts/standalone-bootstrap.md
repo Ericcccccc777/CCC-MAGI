@@ -115,7 +115,7 @@ These files / directories are **part of CCC-MAGI itself** OR were created BY CCC
 
 Distinct from Layers 1-4 (other harnesses) and Layer 5 (CCC-MAGI self): any file matching `*.pre-ccc-magi` (or `*.pre-ccc-magi.<timestamp>`) is the USER's original file content, preserved automatically when we installed our load-bearing files. These should be surfaced to the user in a dedicated 🟡 section so they understand what those files are (and can decide whether to view / restore / delete them).
 
-Do NOT include these in the 3-option menu set (Step C). The 3-option menu is for "what to do with the user's prior harness configs"; the backups are already preserved and need no archive/delete action. If the user later wants to restore one, that's a manual step.
+Do NOT include these in the 4-option menu set (Step C). The 4-option menu is for "what to do with the user's prior harness configs"; the backups are already preserved and need no archive/delete action. If the user later wants to restore one, that's a manual step.
 
 ---
 
@@ -210,29 +210,35 @@ Then proceed to Step E.
 
 ---
 
-## Step C — Present 3-option menu
+## Step C — Present 4-option menu
 
 After user says "done" **AND the confirmed set is non-empty**, present this menu (display in user's locale):
 
 ```
 How would you like to handle these harness files?
 
-  [1] Take over + archive (recommended ★)
-      → Create old_version_harness/ at project root
-      → Move the confirmed files/dirs into it
-      → Then start CCC-MAGI configuration (/init flow)
-      → Lowest risk: your old files are preserved and reviewable anytime
+  [1] Take over + absorb-and-merge (recommended ★)
+      → First READ your existing harness and carry its rules / identity / conventions
+        FORWARD into the CCC-MAGI constitution ("做加法" — add, don't discard)
+      → Show you a confirmable "here's what I understood" list; nothing lands until you OK it
+      → Then archive your originals into old_version_harness/ (still backed up, reviewable anytime)
+      → Best of both: your accumulated rules survive AND CCC-MAGI takes over cleanly
 
-  [2] Take over + delete
+  [2] Take over + archive only (no absorb)
+      → Create old_version_harness/ at project root, move the confirmed files/dirs into it
+      → Start fresh configuration WITHOUT carrying old content forward
+      → Your old files are preserved and reviewable anytime
+
+  [3] Take over + delete
       → Permanently delete the confirmed files/dirs
       → CCC-MAGI takes over the project
       → Warning: deletion is not recoverable
 
-  [3] Skip CCC-MAGI this session
+  [4] Skip CCC-MAGI this session
       → For this conversation only, treat CCC-MAGI as not present and continue with the user's request
-      → On the next CLI session, this prompt will appear again (until the user picks 1/2 or removes CCC-MAGI files manually)
+      → On the next CLI session, this prompt will appear again (until the user picks 1/2/3 or removes CCC-MAGI files manually)
 
-Please enter 1 / 2 / 3:
+Please enter 1 / 2 / 3 / 4:
 ```
 
 Wait for user response.
@@ -241,7 +247,23 @@ Wait for user response.
 
 ## Step D — Execute the chosen option
 
-### If user picks 1 (Take over + archive)
+### If user picks 1 (Take over + absorb-and-merge)
+
+1. Invoke the **`harness-absorb`** skill (`.harness/skills/harness-absorb/SKILL.md`), passing the confirmed harness file/dir list. It reads the old harness, extracts + classifies its content, shows the user a confirmable "understanding card + diff", and (on confirmation) stages the result to `.harness/state/_absorb-draft.json`. It NEVER absorbs anything that weakens Universal Core (Section 1), and NEVER writes `constitution.md` / `AGENTS.md` itself.
+2. **Only after the user confirms the absorb diff**, archive the originals (same mechanics as option 2). Confirm once more (display in user's locale):
+   ```
+   Absorbed your rules into the new constitution. Now archiving your originals:
+     mkdir old_version_harness
+     mv <file-1> old_version_harness/
+     ...
+   Confirm? (yes / no)
+   ```
+   On `yes`: create `old_version_harness/`, `mv` each confirmed file/dir in, and write `old_version_harness/README.md` documenting what was moved + **that its content was absorbed into the CCC-MAGI constitution**.
+3. Proceed to Step E. `/init` (Step F) will read `_absorb-draft.json`, pre-fill the confirmed slots, and skip the questions already answered.
+
+> If the user declines the absorb diff entirely (wants nothing carried forward), fall back to option 2 (archive only) — archive the originals without staging any draft.
+
+### If user picks 2 (Take over + archive only)
 
 1. Confirm with user one more time (display in user's locale):
    ```
@@ -258,7 +280,7 @@ Wait for user response.
    - Write `old_version_harness/README.md` documenting what was moved (file list, date, reason).
 3. Proceed to Step E.
 
-### If user picks 2 (Take over + delete)
+### If user picks 3 (Take over + delete)
 
 1. **Show an explicit warning + require typed confirmation** (display in user's locale):
    ```
@@ -274,10 +296,10 @@ Wait for user response.
 2. If user types exactly `DELETE` (untranslated — accept the literal English word as the safety phrase, even if conversing in another language):
    - Use the `Bash` tool to `rm -rf` each confirmed file/dir.
 3. If user types anything else:
-   - Abort the delete action; fall back to the 3-option menu.
+   - Abort the delete action; fall back to the 4-option menu.
 4. Proceed to Step E.
 
-### If user picks 3 (Skip this session)
+### If user picks 4 (Skip this session)
 
 1. Acknowledge (display in user's locale):
    ```
@@ -296,13 +318,13 @@ Wait for user response.
 
 ### If user picks anything else
 
-Repeat the 3-option menu. Do not improvise variants.
+Repeat the 4-option menu. Do not improvise variants.
 
 ---
 
 ## Step E — Phase 1: Environment check
 
-**Reached if**: user picked 1 or 2 in Step C, OR confirmed-set was empty (Step B special case).
+**Reached if**: user picked 1, 2, or 3 in Step C, OR confirmed-set was empty (Step B special case).
 
 Before filling project-specific values, verify the environment has the required dependencies (jq, git, at least one AI CLI). This is the "Phase 1" of the new two-phase bootstrap.
 
@@ -389,7 +411,7 @@ The environment is verified; now fill project-specific values (L0 slots in `cons
    
    If you've decided against CCC-MAGI for good, manually delete .harness/ and constitution.md.
    ```
-4. **If user says skip**: treat exactly like Step C option 3 — decline CCC-MAGI for this session. This branch is most relevant when Step E was reached via Step B's empty-confirmed-set jump (the user never saw the Step C menu and now wants to back out). Acknowledge (display in user's locale):
+4. **If user says skip**: treat exactly like Step C option 4 — decline CCC-MAGI for this session. This branch is most relevant when Step E was reached via Step B's empty-confirmed-set jump (the user never saw the Step C menu and now wants to back out). Acknowledge (display in user's locale):
    ```
    OK, this session won't use CCC-MAGI.
    I'll proceed with your requests normally.
@@ -410,9 +432,9 @@ The environment is verified; now fill project-specific values (L0 slots in `cons
 
 The bootstrap is complete when ONE of the following is true:
 
-1. User picked option 3 → conversation continues without harness this session
-2. User picked option 1 or 2 AND user declined Step E → environment is cleaned but config not yet filled (next session: bootstrap sees no install.json → re-prompts; CLAUDE.md still has bootstrap block)
-3. User picked option 1 or 2 AND completed `/init` → `install.json` exists → fully configured
+1. User picked option 4 → conversation continues without harness this session
+2. User picked option 1, 2, or 3 AND user declined Step E → environment is cleaned but config not yet filled (next session: bootstrap sees no install.json → re-prompts; CLAUDE.md still has bootstrap block)
+3. User picked option 1, 2, or 3 AND completed `/init` → `install.json` exists → fully configured
 
 For case 3 only, output the completion marker on its own line:
 
@@ -427,11 +449,13 @@ This marker is for CCC's terminal monitor. In standalone mode CCC isn't watching
 ## Rules you MUST follow
 
 - **Never skip the user-confirmation loops.** Steps B and C require explicit user input each time.
-- **Never delete files in option 1.** Option 1 = move (mv), not delete (rm). Files go to `old_version_harness/`.
-- **Never execute option 2 without the typed "DELETE" confirmation.** Anything other than exact `DELETE` aborts.
-- **Never write `install.json` if the user picked option 3.** The whole point of option 3 is that the user can re-decide next session.
-- **Never invoke `.harness/skills/*` skills under option 3.** Pretend they don't exist for this session.
-- **Never improvise the 3-option menu text.** Show exactly the wording above so behavior is predictable.
+- **Option 1 (absorb) MUST show the confirmable diff and get the user's OK BEFORE archiving.** Order is absorb → confirm → archive originals. Never archive-then-absorb, and never delete anything during absorb.
+- **Absorb never overrides Universal Core.** The `harness-absorb` skill must report (not stage) any old rule that would weaken `constitution.md § Section 1`.
+- **Never delete files in options 1 or 2.** Both archive = move (mv) to `old_version_harness/`, not delete (rm).
+- **Never execute option 3 without the typed "DELETE" confirmation.** Anything other than exact `DELETE` aborts.
+- **Never write `install.json` if the user picked option 4.** The whole point of option 4 is that the user can re-decide next session.
+- **Never invoke `.harness/skills/*` skills under option 4.** Pretend they don't exist for this session. (Option 1 deliberately DOES invoke `harness-absorb` — that's the exception.)
+- **Never improvise the 4-option menu text.** Show exactly the wording above so behavior is predictable.
 - **Never advance past Step B without user typing "done".** No silent advance.
 
 ---
