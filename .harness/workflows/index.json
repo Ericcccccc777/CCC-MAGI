@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "_doc": "Workflow template registry. Each template at .harness/workflows/templates/<id>.json defines an ordered `stages` list. The active selection for a project lives at .harness/state/workflow-template.json. Three ABSTRACT SLOTS (VERIFY-GATE / HUMAN-REVIEW / WATCH) are bound by each template to a type-appropriate concrete stage; the dashboard and skills read the bound stage. Lanes (full / stability-fix / trivial) are an orthogonal intensity axis applied WITHIN any template.",
+  "default_template": "full-stack",
+  "abstract_slots": ["VERIFY-GATE", "HUMAN-REVIEW", "WATCH"],
+  "stage_schema": {
+    "n": "1-based order (int)",
+    "id": "stable kebab-case id",
+    "title": "human display name",
+    "skill": "skill name to invoke, or null for guidance/manual stages",
+    "slot": "abstract slot this stage binds (VERIFY-GATE|HUMAN-REVIEW|WATCH), or null",
+    "lanes": "lanes this stage runs in; omit = all lanes. Spec stages are typically [\"full\"]",
+    "optional_if": "human-readable condition under which this stage is skipped, or null",
+    "desc": "one-line plain-language description"
+  },
+  "lanes": {
+    "full": "New feature / intent change / schema change / new dependency — all stages",
+    "stability-fix": "Bug fix, intent unchanged — skip spec stages (lanes:[full]); failing test mandatory",
+    "trivial": "<20 LOC, no new feature/schema/dependency — skip spec stages; auditor Quick mode"
+  },
+  "templates": [
+    {
+      "id": "full-stack",
+      "title": "Full-stack service",
+      "summary": "Backend + DB web app. The original 9-stage pipeline.",
+      "detect": ["server/api routes + a DB driver/ORM (prisma, drizzle, sqlalchemy, mongoose)", "supabase/ or server/ or api/ dirs", "package.json/requirements with both web + db deps"]
+    },
+    {
+      "id": "frontend",
+      "title": "Frontend / SPA / marketing site",
+      "summary": "Design-heavy, visual QA, usually no DB.",
+      "detect": ["react/vue/svelte + vite/next static, no server/db deps", "index.html + component dirs", "design-token / tailwind / vanilla-extract setup"]
+    },
+    {
+      "id": "mobile",
+      "title": "Mobile app (iOS/Android)",
+      "summary": "Device testing, store review, staged rollout.",
+      "detect": ["Package.swift / *.xcodeproj / ios/", "android/ + gradle", "app.json + Expo / react-native dep", "pubspec.yaml (Flutter)"]
+    },
+    {
+      "id": "library",
+      "title": "Library / CLI / SDK",
+      "summary": "API-first, semver, docs, publish — no UI.",
+      "detect": ["bin field in package.json", "[lib] in Cargo.toml", "setup.py / pyproject with no app entrypoint", "publishes to npm/PyPI/crates"]
+    },
+    {
+      "id": "data-ml",
+      "title": "Data / ML / eval-driven",
+      "summary": "Experiments, datasets, evals-as-tests.",
+      "detect": ["*.ipynb notebooks", "dvc.yaml / data versioning", "mlflow / wandb deps", "torch / sklearn / transformers deps"]
+    },
+    {
+      "id": "content",
+      "title": "Content / writing / docs",
+      "summary": "Articles & docs (not code): structure, edit, fact-check.",
+      "detect": ["mostly .md/.mdx/.rst, no source dir", "mkdocs.yml / docusaurus.config", "content/ or posts/ or docs/ as the primary tree"]
+    }
+  ]
+}

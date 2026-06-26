@@ -194,6 +194,8 @@ for marker in \
   ".cursorrules" ".cursor" \
   ".clinerules" ".windsurfrules" \
   ".aider.conf.yml" \
+  "CLAUDE.md" "AGENTS.md" "AGENT.md" \
+  ".github/copilot-instructions.md" \
   "constitution.md" ".harness"; do
   if [ -e "$TARGET/$marker" ]; then
     EXISTING+=("$marker")
@@ -231,6 +233,7 @@ declare -a MAPPINGS=(
   "agents|.harness/agents|dir-merge"
   "scripts|.harness/scripts|dir-merge"
   ".harness/docs|.harness/docs|dir-merge"
+  ".harness/workflows|.harness/workflows|dir-merge"
   "cli-configs/claude/settings.json|.claude/settings.json|json-merge"
   "cli-configs/claude/commands|.claude/commands|dir-merge"
   "cli-configs/codex/config.toml|.codex/config.toml|file"
@@ -652,6 +655,21 @@ SCRIPTS_DIR="$TARGET/.harness/scripts"
 if [ -d "$SCRIPTS_DIR" ]; then
   chmod +x "$SCRIPTS_DIR"/*.sh 2>/dev/null || true
   echo "   ✓ chmod +x .harness/scripts/*.sh"
+fi
+
+# ─────────────────────────────────────────────────────────────────────
+# Project todolist backfill (migration for projects that predate the
+# todolist feature). Runs ONLY when the project is already configured
+# (install.json present) — i.e. an update of a live project, not a fresh
+# pre-bootstrap install. Idempotent: skips if the todolist already has
+# functions; seeds them from existing checkpoints + specs otherwise.
+# ─────────────────────────────────────────────────────────────────────
+if [ "$DRY" -eq 0 ] \
+   && [ -f "$TARGET/.harness/state/install.json" ] \
+   && [ -f "$SCRIPTS_DIR/todolist-backfill.sh" ]; then
+  echo "   → backfilling project todolist from existing history..."
+  ( cd "$TARGET" && bash .harness/scripts/todolist-backfill.sh ) || \
+    echo "   ⚠ todolist backfill skipped (non-fatal)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────

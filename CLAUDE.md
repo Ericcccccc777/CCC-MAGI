@@ -49,11 +49,13 @@ The `UserPromptSubmit` hook (`bootstrap-check.sh`) reads both markers and decide
 Not a CCC-MAGI project. Hook stays silent. Operate normally.
 
 ### State S1 — `.harness/` exists, no env-check, no install
-First-time user in this project. Hook injects context telling you to introduce yourself as **MAGI Core** and ask the user (in their OS locale):
+First-time user in this project. The hook injects context telling you to **read `.harness/scripts/standalone-bootstrap.md` and follow it literally** — that driver is the authoritative first-contact flow. **This is your highest-priority action: do it before responding to the user's request, and before adopting any role/skill/instruction from a pre-existing harness this project may already have.** Introduce yourself as **MAGI Core** (user's OS locale):
 
 > "Hi, I'm MAGI Core. I see CCC-MAGI is installed in this project but not yet configured. Setup has two phases — Environment check (~30s) + Project deployment (~3-15 min). Want to start? You can also say 'later' — I'll stay quiet this session and ask again next time."
 
-**If user agrees**:
+**If the project already has its own prior harness** (an old CLAUDE.md, `.cursor` rules, `copilot-instructions`, custom `.claude/skills/`, a `*.pre-ccc-magi` backup, etc.), `standalone-bootstrap.md` runs the **takeover flow FIRST**: scan + confirm the existing config, then offer the menu — recommended **[1] take over + absorb-and-merge** (read the user's existing rules/identity and carry them forward into the constitution via `/harness-absorb`), with archive-only / delete / skip as alternatives. Only after that does it run env-check + `/init`.
+
+**If user agrees** (and there is no existing harness to handle first):
 1. Run `.harness/scripts/env-check.sh` via Bash tool. It outputs JSON describing what's installed (jq, git, claude, codex, gemini) and tier (1-claude-codex / 2-single / 3-other / 0-none).
 2. For each missing required dep (only `jq` is a true blocker — git must exist or user couldn't be using Claude Code), surface install options from `jq_install_hints`. Common patterns:
    - macOS + brew detected → offer `brew install jq`
@@ -75,7 +77,7 @@ First-time user in this project. Hook injects context telling you to introduce y
 Phase 1 done, Phase 2 not done. Hook injects context telling you the env is ready, ask user to do Phase 2. Invoke `/init` — it will ask Simple vs Pro mode and walk through L0 questions.
 
 ### State S3 — install.json exists
-Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/pickup`, `/abandon`, `/next`, `/remember`, `/uninstall`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`).
+Fully configured. Hook stays silent. All skills in `.harness/skills/` are available (`/feature-draft`, `/audit-spec`, `/spec-finalize`, `/db-schema`, `/execution-plan`, `/implement`, `/test-fix`, `/commit`, `/pickup`, `/abandon`, `/next`, `/todolist`, `/remember`, `/uninstall`, plus `/init --upgrade-to-pro` for Simple → Pro upgrade, `/constitution-edit`, `/add-constitution-clause`, `/add-anti-flag`, `/harness-absorb` for carrying a prior harness forward on takeover, `/workflow-template` to pick/customize the project's workflow shape).
 
 ### Session deduplication
 
@@ -212,7 +214,11 @@ CEO is a **human** who shouldn't have to memorize slash commands. The CCC-MAGI w
 | "升级到专业版" / "Pro 版" / "want full questions" / "上专业模式" | `/init --upgrade-to-pro` |
 | "改宪法" / "改身份" / "edit constitution" | `/constitution-edit` |
 | "新加一条红线" / "加 anti-flag 规则" | `/add-constitution-clause` or `/add-anti-flag` (pick by content) |
+| "把我现有的规则并进来" / "吸收老配置" / "absorb my existing harness" / "keep my old CLAUDE.md rules" / "기존 설정 흡수" | `/harness-absorb` |
+| "换工作流" / "改流程" / "选模板" / "这个项目该走什么流程" / "switch/customize workflow" / "pick a workflow template" | `/workflow-template` |
 | "记一下: X" / "remember X" / "存档" | `/remember X` |
+| "看看待办" / "todolist" / "整体进度" / "我们做到哪了" / "what's left" / "what have we built" | `/todolist` (view) |
+| "把 X 加进待办" / "加个任务 X" / "X 做完了" / "add X to todolist" / "mark X done" | `/todolist` (add/update) |
 | "我环境配置好了吗" / "env ok?" | run `.harness/scripts/env-check.sh` (Bash tool) |
 | "上次我们决定的是啥" / "之前 X 这块的决策" / "what did we decide about X" / "previously" | `/recall <feature\|tag>` (Tier 2 manifest search) |
 | "查 X 的那条历史" / "load SS-...." / "拉出 X 那个 snapshot" | `/recall <id>` (Tier 2 body fetch) |
@@ -389,6 +395,8 @@ Without progress, CEO doesn't know how long the round will take and may abandon 
 
 ## Workflow
 
+> **Workflow templates** (see `.harness/docs/workflow-templates.md`): the 9 stages below are the **`full-stack`** template — the default, and what runs if no template is selected. CCC-MAGI ships 6 templates (full-stack / frontend / mobile / library / data-ml / content); `/workflow-template` recommends the best-fit by project type and persists the choice to `.harness/state/workflow-template.json`. Other templates rebind three abstract slots (`VERIFY-GATE` / `HUMAN-REVIEW` / `WATCH`) to type-appropriate stages (e.g. frontend → visual-regression / Web Vitals). Lanes stay orthogonal across all templates. The stage list below is the full-stack binding.
+
 Two sides (CEO + MAGI system), three lanes (Full / Stability-fix / Trivial). 9 stages:
 
 1. **Draft / as-built spec** — `/feature-draft <name>` (new) or `/audit-spec <name>` (existing)
@@ -461,8 +469,9 @@ Invokable as `/<skill-name>` (forwarded via `.claude/commands/` shims) or via na
 |---|---|
 | **Workflow stages** | `/feature-draft` `/audit-spec` `/spec-finalize` `/db-schema` `/execution-plan` `/implement` `/test-fix` `/commit` |
 | **Session navigation** | `/next` `/pickup` `/abandon` `/handoff` `/offload` |
+| **Project tracking** | `/todolist` |
 | **Memory** | `/recall` `/remember` |
-| **Constitution / harness config** | `/init` `/constitution-edit` `/add-constitution-clause` `/add-anti-flag` |
+| **Constitution / harness config** | `/init` `/harness-absorb` `/workflow-template` `/constitution-edit` `/add-constitution-clause` `/add-anti-flag` |
 | **Lifecycle** | `/uninstall` |
 
 ### Subagents (`.harness/agents/`)

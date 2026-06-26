@@ -46,7 +46,7 @@ See `CLAUDE.md` for the full operating manual.
 
 <!-- These are deliberate project conventions that LOOK like issues but are not. Flagging them produces false positives that erode auditor signal.
 
-The harness ships this section empty. /init seeds 3-5 examples based on the detected tech stack. /add-anti-flag grows the list as the project develops conventions.
+The harness ships this section empty. /init seeds 3-5 examples based on the detected tech stack. /add-anti-flag grows the list as the project develops conventions. When CCC-MAGI takes over a project that had a prior harness, /harness-absorb may seed this section with "never/always/forbidden"-style rules carried forward from the old harness (after the user confirms them).
 
 Default format for each rule:
   - **<Convention X> is correct, <alternative Y> is BANNED.**

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "library",
+  "title": "Library / CLI / SDK",
+  "summary": "API-first package with no UI. Spec is the public API contract (frozen before implementation); adds semver-breaking check, doc/changelog generation, publish, and a consumer dry-run as the human smoke test.",
+  "stages": [
+    { "n": 1,  "id": "api-contract-spec","title": "API contract spec",     "skill": "feature-draft",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Design + freeze the public surface (the 'schema' here is the type/API signature)." },
+    { "n": 2,  "id": "spec-audit",       "title": "Finalize spec",          "skill": "spec-finalize",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Cross-model audit locks the API contract." },
+    { "n": 3,  "id": "plan",             "title": "Execution plan",         "skill": "execution-plan", "slot": null,          "lanes": null,     "optional_if": null, "desc": "Per-file change checklist + audit." },
+    { "n": 4,  "id": "implement",        "title": "Implement",              "skill": "implement",      "slot": null,          "lanes": null,     "optional_if": null, "desc": "Write the code per plan; review + cross-model audit." },
+    { "n": 5,  "id": "verify",           "title": "Tests + doctests",       "skill": "test-fix",       "slot": "VERIFY-GATE", "lanes": null,     "optional_if": "test_required is false", "desc": "Unit tests + usage-examples-as-tests across a runtime/platform matrix." },
+    { "n": 6,  "id": "semver-check",     "title": "Semver breaking check",  "skill": null,             "slot": null,          "lanes": null,     "optional_if": null, "desc": "api-extractor / cargo-semver-checks — catch accidental breaking changes." },
+    { "n": 7,  "id": "api-docs-gen",     "title": "API docs + changelog",   "skill": null,             "slot": null,          "lanes": null,     "optional_if": null, "desc": "Generate TSDoc/rustdoc + Changesets/semantic-release changelog." },
+    { "n": 8,  "id": "consumer-dryrun",  "title": "Consumer dry-run",       "skill": null,             "slot": "HUMAN-REVIEW","lanes": null,     "optional_if": null, "desc": "Install the package as a real consumer and run the quickstart (mandatory)." },
+    { "n": 9,  "id": "commit",           "title": "Commit & publish",       "skill": "commit",         "slot": null,          "lanes": null,     "optional_if": null, "desc": "Conventional commit; then publish to npm/PyPI/crates." },
+    { "n": 10, "id": "watch-adoption",   "title": "Watch issues + adoption", "skill": null,            "slot": "WATCH",       "lanes": null,     "optional_if": null, "desc": "Issue tracker + download metrics + downstream breakage reports." }
+  ]
+}

@@ -61,12 +61,19 @@ const args = process.argv.slice(2);
 let dryRun = false;
 let force = false;
 let forceLoadBearing = false;
+let isUpdate = false;
 let ref = "main";
 let help = false;
 
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
-  if (a === "--dry-run" || a === "-n") dryRun = true;
+  // `update` is a positional subcommand: refresh an already-installed project.
+  // It runs the same content-hash incremental install (preserves user-modified
+  // files, updates unchanged harness internals) and triggers the todolist
+  // backfill. It deliberately does NOT imply --force (which would overwrite the
+  // user's constitution.md / CLAUDE.md).
+  if (a === "update") isUpdate = true;
+  else if (a === "--dry-run" || a === "-n") dryRun = true;
   else if (a === "--force" || a === "-f") force = true;
   else if (a === "--force-load-bearing") forceLoadBearing = true;
   else if (a === "--ref" || a === "-r") { ref = args[++i] || "main"; }
@@ -86,10 +93,21 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (help) {
-  console.log(`create-ccc-magi — Install CCC-MAGI v0.10.2 into current directory
+  console.log(`create-ccc-magi — Install or update CCC-MAGI in the current directory
 
 USAGE
-  npx create-ccc-magi@latest [options]
+  npx create-ccc-magi@latest [options]          # install into current dir
+  npx create-ccc-magi@latest update [options]   # update an already-installed project
+
+COMMANDS
+  update                   Refresh an existing CCC-MAGI install: pulls the latest
+                           harness, updates unmodified internal files (skills,
+                           scripts, docs) while PRESERVING your constitution.md,
+                           CLAUDE.md and AGENTS.md and all .harness/state, and
+                           backfills the project todolist from existing workflow
+                           history. Safe to run anytime. Add --force-load-bearing
+                           to also refresh the constitution/CLAUDE/AGENTS templates
+                           (your versions are backed up first).
 
 OPTIONS
   --dry-run, -n            Show what would be installed; don't write anything
@@ -216,7 +234,12 @@ After install, retry: npx create-ccc-magi@latest
 
 // ─── Target directory ─────────────────────────────────────────────────
 const target = resolve(process.cwd());
-log(`📂 Install target: ${target}`);
+if (isUpdate) {
+  log(`🔄 Update mode — refreshing CCC-MAGI in: ${target}`);
+  log(`   (preserves constitution.md / CLAUDE.md / AGENTS.md and .harness/state)`);
+} else {
+  log(`📂 Install target: ${target}`);
+}
 
 // ─── Git-clean check (unless --force) ─────────────────────────────────
 if (!force && !dryRun) {

@@ -230,6 +230,21 @@ Log the commit decision:
   --evidence "$(git rev-parse --short HEAD)"
 ```
 
+**Mark the project todolist done.** Shipping a feature completes its work, so flip
+the feature's todolist items `doing` → `done` (the function status auto-derives
+to `done` once all its items are done — see `.harness/docs/todolist.md`):
+
+```bash
+# For each item of this feature that this commit shipped:
+.harness/scripts/todolist-write.sh --list   # find the feature's fn-id + item ids
+.harness/scripts/todolist-write.sh --set-item-status --fn-id <feature-slug> --item-id <id> --item-status done
+```
+
+If the feature shipped only part of its planned items, mark only those `done` and
+leave the rest `todo` — the function stays `in-progress`, correctly reflecting
+that more is planned. The todolist is committed (team-shared), so this update
+lands in the same commit as the code.
+
 If you smoke-tested and decided NOT to ship (rollback / defer), do NOT archive — leave the checkpoint open so resume works:
 
 ```bash
