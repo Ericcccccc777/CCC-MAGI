@@ -233,6 +233,7 @@ declare -a MAPPINGS=(
   "agents|.harness/agents|dir-merge"
   "scripts|.harness/scripts|dir-merge"
   ".harness/docs|.harness/docs|dir-merge"
+  ".harness/workflows|.harness/workflows|dir-merge"
   "cli-configs/claude/settings.json|.claude/settings.json|json-merge"
   "cli-configs/claude/commands|.claude/commands|dir-merge"
   "cli-configs/codex/config.toml|.codex/config.toml|file"

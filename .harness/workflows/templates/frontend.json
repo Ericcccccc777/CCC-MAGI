@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "id": "frontend",
+  "title": "Frontend / SPA / marketing site",
+  "summary": "Design-heavy web UI with no backend. Drops DB schema; the design-system contract replaces it. Verify splits into visual + a11y + performance gates; watch targets Web Vitals.",
+  "stages": [
+    { "n": 1,  "id": "spec",            "title": "Draft spec",              "skill": "feature-draft",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Plain-language spec of screens, flows, and visual intent." },
+    { "n": 2,  "id": "spec-audit",      "title": "Finalize spec",           "skill": "spec-finalize",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Cross-model audit locks the spec." },
+    { "n": 3,  "id": "design-tokens",   "title": "Design-system contract",  "skill": null,             "slot": null,          "lanes": ["full"], "optional_if": "no design system in use", "desc": "Agree the tokens/components contract (the artifact a DB schema would have been)." },
+    { "n": 4,  "id": "plan",            "title": "Execution plan",          "skill": "execution-plan", "slot": null,          "lanes": null,     "optional_if": null, "desc": "Per-file change checklist + audit." },
+    { "n": 5,  "id": "implement",       "title": "Implement (visual loop)", "skill": "implement",      "slot": null,          "lanes": null,     "optional_if": null, "desc": "Build UI; render + screenshot + grade against design criteria, iterate." },
+    { "n": 6,  "id": "visual-regression","title": "Visual regression",      "skill": "test-fix",       "slot": "VERIFY-GATE", "lanes": null,     "optional_if": "test_required is false", "desc": "Snapshot/visual diff (Playwright/Chromatic/Percy)." },
+    { "n": 7,  "id": "a11y-gate",       "title": "Accessibility gate",      "skill": null,             "slot": null,          "lanes": null,     "optional_if": null, "desc": "axe-core / Lighthouse a11y vs WCAG threshold." },
+    { "n": 8,  "id": "perf-budget",     "title": "Performance budget",      "skill": null,             "slot": null,          "lanes": null,     "optional_if": null, "desc": "Lighthouse CI assertions (LCP<2.5s, INP<200ms, CLS<0.1)." },
+    { "n": 9,  "id": "human-review",    "title": "CEO smoke test",          "skill": null,             "slot": "HUMAN-REVIEW","lanes": null,     "optional_if": "trivial lane + pure copy change", "desc": "Real human runs the UI against the smoke-test procedure (mandatory)." },
+    { "n": 10, "id": "commit",          "title": "Commit & push",           "skill": "commit",         "slot": null,          "lanes": null,     "optional_if": null, "desc": "Conventional commit; doc-in-sync." },
+    { "n": 11, "id": "watch-webvitals", "title": "Watch Web Vitals",        "skill": null,             "slot": "WATCH",       "lanes": null,     "optional_if": null, "desc": "Check RUM / Core Web Vitals field data after release." }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "data-ml",
+  "title": "Data / ML / eval-driven",
+  "summary": "Experiment-driven ML work. Spec is problem + eval criteria; schema becomes dataset versioning; implement is train+track; evals ARE the tests; the human reviews an eval dashboard; watch tracks production drift.",
+  "stages": [
+    { "n": 1,  "id": "eval-spec",          "title": "Problem + eval spec",   "skill": "feature-draft",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Problem statement + eval criteria + dataset + model-card intent." },
+    { "n": 2,  "id": "spec-audit",         "title": "Finalize spec",         "skill": "spec-finalize",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Cross-model audit locks the problem + eval definition." },
+    { "n": 3,  "id": "dataset-version",    "title": "Dataset schema + version","skill": "db-schema",     "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Define dataset schema + version it (DVC)." },
+    { "n": 4,  "id": "experiment-plan",    "title": "Experiment plan",       "skill": "execution-plan", "slot": null,          "lanes": null,     "optional_if": null, "desc": "Plan experiments / ablations + audit." },
+    { "n": 5,  "id": "train-track",        "title": "Train + EDA + track",   "skill": "implement",      "slot": null,          "lanes": null,     "optional_if": null, "desc": "Train with experiment tracking (MLflow / W&B)." },
+    { "n": 6,  "id": "eval-gate",          "title": "Eval gate",             "skill": "test-fix",       "slot": "VERIFY-GATE", "lanes": null,     "optional_if": null, "desc": "Evals are the tests. Error-analysis first, then write evaluators for observed failures." },
+    { "n": 7,  "id": "eval-dashboard-review","title": "Eval dashboard review","skill": null,            "slot": "HUMAN-REVIEW","lanes": null,     "optional_if": null, "desc": "Human reviews transcripts + calibrates judges (mandatory)." },
+    { "n": 8,  "id": "commit",             "title": "Commit (code+data+run)","skill": "commit",         "slot": null,          "lanes": null,     "optional_if": null, "desc": "Commit binds code + data hash + run id for reproducibility." },
+    { "n": 9,  "id": "promote-pipeline",   "title": "Promote to pipeline",   "skill": null,             "slot": null,          "lanes": null,     "optional_if": null, "desc": "Notebook → containerized pipeline → model registry." },
+    { "n": 10, "id": "watch-drift",        "title": "Watch drift + canary",  "skill": null,             "slot": "WATCH",       "lanes": null,     "optional_if": null, "desc": "Monitor production drift; shadow/canary before full promote." }
+  ]
+}

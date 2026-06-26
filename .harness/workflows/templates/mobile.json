@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "mobile",
+  "title": "Mobile app (iOS/Android)",
+  "summary": "Native/cross-platform app. Adds platform-guideline + permissions stages; the human smoke test moves onto a real device via a beta build; tail covers store review and staged rollout with crash watch.",
+  "stages": [
+    { "n": 1,  "id": "spec",              "title": "Draft spec (+ platform guidelines)", "skill": "feature-draft",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Spec including Apple HIG / Material conformance (store-review blockers)." },
+    { "n": 2,  "id": "spec-audit",        "title": "Finalize spec",          "skill": "spec-finalize",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Cross-model audit locks the spec." },
+    { "n": 3,  "id": "schema",            "title": "Local data / sync schema","skill": "db-schema",      "slot": null,          "lanes": ["full"], "optional_if": "no local persistence / offline sync", "desc": "Design local store / offline-sync schema (only if persistence)." },
+    { "n": 4,  "id": "permissions-decl",  "title": "Permissions declaration","skill": null,             "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Declare + justify each OS permission (unjustified perms get rejected)." },
+    { "n": 5,  "id": "plan",              "title": "Execution plan",         "skill": "execution-plan", "slot": null,          "lanes": null,     "optional_if": null, "desc": "Per-file change checklist + audit." },
+    { "n": 6,  "id": "implement",         "title": "Implement",              "skill": "implement",      "slot": null,          "lanes": null,     "optional_if": null, "desc": "Write the code per plan; review + cross-model audit." },
+    { "n": 7,  "id": "device-matrix-test","title": "Device matrix tests",    "skill": "test-fix",       "slot": "VERIFY-GATE", "lanes": null,     "optional_if": "test_required is false", "desc": "Automated tests across a device/OS matrix." },
+    { "n": 8,  "id": "ota-vs-native",     "title": "OTA-vs-native decision", "skill": null,             "slot": null,          "lanes": null,     "optional_if": null, "desc": "JS-only change → OTA (EAS Update/CodePush); native change → store build." },
+    { "n": 9,  "id": "beta-distribution", "title": "Beta build smoke test",  "skill": null,             "slot": "HUMAN-REVIEW","lanes": null,     "optional_if": null, "desc": "Real human exercises a TestFlight / Play internal / EAS build (mandatory)." },
+    { "n": 10, "id": "store-submit",      "title": "Store submit & review",  "skill": null,             "slot": null,          "lanes": null,     "optional_if": "OTA-only change", "desc": "Submit to App Store / Play; await manual review." },
+    { "n": 11, "id": "commit",            "title": "Commit & push",          "skill": "commit",         "slot": null,          "lanes": null,     "optional_if": null, "desc": "Conventional commit; doc-in-sync." },
+    { "n": 12, "id": "staged-rollout",    "title": "Staged rollout + crash watch","skill": null,        "slot": "WATCH",       "lanes": null,     "optional_if": null, "desc": "10%→100% with Crashlytics/ANR watch + rollback." }
+  ]
+}

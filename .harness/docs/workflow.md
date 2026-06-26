@@ -2,6 +2,8 @@
 
 > **Reference for `CLAUDE.md § Workflow`.** Loaded on demand when AI needs full stage internals, mode-vs-lane distinction, or cross-model audit operationalization. The compact summary in CLAUDE.md is the load-bearing version; this file is the elaboration.
 
+> **Templates note:** the stages described here are the **`full-stack`** template (the default). The same lane/mode/audit mechanics apply to all 6 workflow templates; only the stage list changes per template. See `.harness/docs/workflow-templates.md` for the template system and `/workflow-template` for selection.
+
 ## Two sides, three lanes (full picture)
 
 The **CEO (you, human)** sets intent. The **MAGI System** (the AI team) implements + reviews — see `AGENTS.md § MAGI System` for the 7 positions. Concretely:

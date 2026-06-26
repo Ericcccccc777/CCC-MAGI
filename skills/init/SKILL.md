@@ -531,6 +531,16 @@ L2 slots (`anti_flag_rules`, `project_red_lines`) start empty.
 
 ---
 
+## Step 3.5 — Recommend the workflow template
+
+Before rendering, pick the project's workflow shape. Invoke the **`workflow-template`** skill (`.harness/skills/workflow-template/SKILL.md`) in `--recommend` mode: it detects the project type from repo signals (reuse the `tech_stack` / paths already auto-detected above), recommends the best-fit of the 6 templates, confirms in ONE question (never gates), allows skip/reorder/add customization, and persists `.harness/state/workflow-template.json`.
+
+- Greenfield with no strong signals → recommend `full-stack` (the default) and move on.
+- If the user defers, leave the file absent — the project runs on `full-stack` by default and can switch later via `/workflow-template`.
+- Universal Core gates (cross-model audit, human smoke test) survive any template choice — the skill enforces this.
+
+---
+
 ## Step 4 — Render templates
 
 For each file in the harness package, produce the rendered version with double-brace placeholders replaced.

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "full-stack",
+  "title": "Full-stack service",
+  "summary": "Backend + DB web app. Identical to CCC-MAGI's original 9-stage pipeline — selecting this changes nothing for existing projects.",
+  "stages": [
+    { "n": 1, "id": "spec",         "title": "Draft / as-built spec",   "skill": "feature-draft", "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Write the plain-language feature spec (or /audit-spec for existing)." },
+    { "n": 2, "id": "spec-audit",   "title": "Finalize spec",           "skill": "spec-finalize", "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Cross-model audit locks the spec." },
+    { "n": 3, "id": "schema",       "title": "Design schema",           "skill": "db-schema",     "slot": null,          "lanes": ["full"], "optional_if": "backend_db_type is none", "desc": "Design DB tables / RLS / functions." },
+    { "n": 4, "id": "plan",         "title": "Execution plan",          "skill": "execution-plan","slot": null,          "lanes": null,     "optional_if": null, "desc": "Per-file change checklist + audit." },
+    { "n": 5, "id": "implement",    "title": "Implement",               "skill": "implement",     "slot": null,          "lanes": null,     "optional_if": null, "desc": "Write the code per plan; mechanical review + cross-model audit." },
+    { "n": 6, "id": "verify",       "title": "Auto tests",              "skill": "test-fix",      "slot": "VERIFY-GATE", "lanes": null,     "optional_if": "test_required is false", "desc": "Write/repair automated tests until green." },
+    { "n": 7, "id": "human-review", "title": "CEO smoke test",          "skill": null,            "slot": "HUMAN-REVIEW","lanes": null,     "optional_if": "trivial lane + pure copy change", "desc": "Real human runs the app against the smoke-test procedure (mandatory)." },
+    { "n": 8, "id": "commit",       "title": "Commit & push",           "skill": "commit",        "slot": null,          "lanes": null,     "optional_if": null, "desc": "Conventional commit; plan file deleted; doc-in-sync." },
+    { "n": 9, "id": "watch",        "title": "Watch after release",     "skill": null,            "slot": "WATCH",       "lanes": null,     "optional_if": null, "desc": "Check the error tracker within 24h for new errors." }
+  ]
+}

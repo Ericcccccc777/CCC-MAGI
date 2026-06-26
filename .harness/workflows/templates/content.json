@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "content",
+  "title": "Content / writing / docs",
+  "summary": "Articles & docs, not code. Spec is a brief + outline (tagged by Diátaxis type); implement is a 3-pass edit ladder; 'tests' become fact-check + style-lint; the human gate is an editorial review. No compile/schema.",
+  "stages": [
+    { "n": 1, "id": "brief-outline",    "title": "Brief + outline",      "skill": "feature-draft",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Content brief + outline, tagged Diátaxis type (tutorial/how-to/reference/explanation)." },
+    { "n": 2, "id": "structure-audit",  "title": "Structure audit",      "skill": "spec-finalize",  "slot": null,          "lanes": ["full"], "optional_if": null, "desc": "Cross-model audit of outline structure + coverage." },
+    { "n": 3, "id": "plan",             "title": "Section plan",         "skill": "execution-plan", "slot": null,          "lanes": null,     "optional_if": null, "desc": "Per-section writing checklist." },
+    { "n": 4, "id": "edit-ladder",      "title": "Draft + edit ladder",  "skill": "implement",      "slot": null,          "lanes": null,     "optional_if": null, "desc": "Draft → developmental edit → line edit → copy edit." },
+    { "n": 5, "id": "fact-check",       "title": "Fact-check",           "skill": "test-fix",       "slot": "VERIFY-GATE", "lanes": null,     "optional_if": null, "desc": "Verify every claim + citation." },
+    { "n": 6, "id": "style-lint",       "title": "Style lint",           "skill": null,             "slot": null,          "lanes": null,     "optional_if": null, "desc": "Vale vs style guide + readability threshold." },
+    { "n": 7, "id": "editorial-review", "title": "Editorial review",     "skill": null,             "slot": "HUMAN-REVIEW","lanes": null,     "optional_if": null, "desc": "Human editor signs off (mandatory)." },
+    { "n": 8, "id": "publish",          "title": "Commit & publish",     "skill": "commit",         "slot": null,          "lanes": null,     "optional_if": null, "desc": "Commit; publish the content." },
+    { "n": 9, "id": "watch-engagement", "title": "Watch engagement",     "skill": null,             "slot": "WATCH",       "lanes": null,     "optional_if": "non-web content", "desc": "Monitor engagement / corrections after publish (web content)." }
+  ]
+}
