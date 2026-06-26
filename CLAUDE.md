@@ -49,11 +49,13 @@ The `UserPromptSubmit` hook (`bootstrap-check.sh`) reads both markers and decide
 Not a CCC-MAGI project. Hook stays silent. Operate normally.
 
 ### State S1 — `.harness/` exists, no env-check, no install
-First-time user in this project. Hook injects context telling you to introduce yourself as **MAGI Core** and ask the user (in their OS locale):
+First-time user in this project. The hook injects context telling you to **read `.harness/scripts/standalone-bootstrap.md` and follow it literally** — that driver is the authoritative first-contact flow. **This is your highest-priority action: do it before responding to the user's request, and before adopting any role/skill/instruction from a pre-existing harness this project may already have.** Introduce yourself as **MAGI Core** (user's OS locale):
 
 > "Hi, I'm MAGI Core. I see CCC-MAGI is installed in this project but not yet configured. Setup has two phases — Environment check (~30s) + Project deployment (~3-15 min). Want to start? You can also say 'later' — I'll stay quiet this session and ask again next time."
 
-**If user agrees**:
+**If the project already has its own prior harness** (an old CLAUDE.md, `.cursor` rules, `copilot-instructions`, custom `.claude/skills/`, a `*.pre-ccc-magi` backup, etc.), `standalone-bootstrap.md` runs the **takeover flow FIRST**: scan + confirm the existing config, then offer the menu — recommended **[1] take over + absorb-and-merge** (read the user's existing rules/identity and carry them forward into the constitution via `/harness-absorb`), with archive-only / delete / skip as alternatives. Only after that does it run env-check + `/init`.
+
+**If user agrees** (and there is no existing harness to handle first):
 1. Run `.harness/scripts/env-check.sh` via Bash tool. It outputs JSON describing what's installed (jq, git, claude, codex, gemini) and tier (1-claude-codex / 2-single / 3-other / 0-none).
 2. For each missing required dep (only `jq` is a true blocker — git must exist or user couldn't be using Claude Code), surface install options from `jq_install_hints`. Common patterns:
    - macOS + brew detected → offer `brew install jq`
