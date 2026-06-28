@@ -24,6 +24,13 @@ if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
   exit 0
 fi
 
+# Internal harness state/memory files (scratchpad, checkpoints, memory jsonl)
+# are never user source — skip them. The scratchpad is rewritten every turn;
+# running a formatter on it adds a needless post-turn blip with no benefit.
+case "$FILE" in
+  */.harness/state/*|*/.harness/memory/*) exit 0 ;;
+esac
+
 # ─────────────────────────────────────────────────────────────────────
 # CUSTOMIZE: per-extension formatter
 # ─────────────────────────────────────────────────────────────────────
