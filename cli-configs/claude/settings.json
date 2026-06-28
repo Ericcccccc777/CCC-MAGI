@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/bootstrap-check.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/bootstrap-check.sh",
             "timeout": 10
           }
         ]
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/budget-monitor.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/budget-monitor.sh",
             "timeout": 5
           }
         ]
@@ -48,20 +48,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/precommit-typecheck.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/precommit-typecheck.sh",
             "timeout": 120,
             "statusMessage": "Running typecheck before commit..."
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/lint-bans.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/lint-bans.sh",
             "timeout": 30,
             "statusMessage": "Scanning for anti-flag patterns before commit..."
           },
           {
             "type": "command",
             "_comment": "Cycles check is only meaningful if `dependency_flow` slot is non-empty. /init removes this entry on projects that opt out.",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/precommit-cycles.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/precommit-cycles.sh",
             "timeout": 60,
             "statusMessage": "Checking for dependency cycles..."
           }
@@ -76,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/format-edit.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/format-edit.sh",
             "timeout": 30,
             "statusMessage": "Running formatter..."
           }
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-archive.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-archive.sh",
             "timeout": 10
           }
         ]
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-recall.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-recall.sh",
             "timeout": 10
           }
         ]
@@ -110,7 +110,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/scratchpad-recall.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/scratchpad-recall.sh",
             "timeout": 5
           }
         ]
@@ -120,7 +120,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/checkpoint-recall.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/checkpoint-recall.sh",
             "timeout": 5
           }
         ]
@@ -133,7 +133,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/scratchpad-update.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/scratchpad-update.sh",
             "timeout": 5
           }
         ]
@@ -146,7 +146,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-snapshot.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-snapshot.sh",
             "timeout": 10
           }
         ]

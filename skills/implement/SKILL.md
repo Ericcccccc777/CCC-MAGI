@@ -269,7 +269,7 @@ After reading the execution plan but before writing any code:
 
 ```bash
 TOTAL_FILES=$(grep -cE '^\s*-\s+\`?[^[:space:]\`]+' docs/features/<feature>-plan.md | tr -d ' ')
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage 5 \
   --stage-in-progress "$(jq -nc --argjson total "$TOTAL_FILES" '{stage_number:5, files_total:$total, files_done_list:[], files_remaining_list:[], last_action:"Stage 5 started", resume_hint:"Run /implement to begin"}')"
@@ -282,7 +282,7 @@ Update TWO things in parallel (so /pickup + the visible todolist both stay accur
 **1. Checkpoint (for /pickup):**
 ```bash
 # Call this AFTER every file the implementer fully completes (not on partial edits)
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --file-done <path/to/file>
 ```
@@ -298,8 +298,8 @@ seeded as `todo` by Stage 4's suggestion flow). They become `done` at `/commit`
 
 ```bash
 # At Stage 5 start, for each todolist item of this feature being implemented now:
-.harness/scripts/todolist-write.sh --list   # find the feature's fn-id + item ids
-.harness/scripts/todolist-write.sh --set-item-status --fn-id <feature-slug> --item-id <id> --item-status doing
+bash .harness/scripts/todolist-write.sh --list   # find the feature's fn-id + item ids
+bash .harness/scripts/todolist-write.sh --set-item-status --fn-id <feature-slug> --item-id <id> --item-status doing
 ```
 
 If Stage 4 was skipped (trivial / stability-fix lane) and the feature has no
@@ -334,7 +334,7 @@ sed -i.bak "s|^- \[~\] \*\*N.\*\* \`<file>\`|- [x] **N.** \`<file>\`|" .harness/
 After all files complete + reviewer chain + auditor-gate passes:
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage 6 \
   --stage-complete 5 \
@@ -342,7 +342,7 @@ After all files complete + reviewer chain + auditor-gate passes:
   --append-audit "$(jq -c '{stage:5, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage5.json)"
 
 # Log any escalation or override:
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 5 --by "CEO" \
   --decision "<e.g. 'override frontend-reviewer false positive on FlashList ref'>"
 ```

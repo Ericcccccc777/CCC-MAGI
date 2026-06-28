@@ -350,7 +350,7 @@ Stage 1 in audit mode is complete when:
 At successful completion, write the checkpoint with `mode: audit`:
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --create-if-missing \
   --mode audit \
@@ -361,7 +361,7 @@ At successful completion, write the checkpoint with `mode: audit`:
   --artifact-implementation docs/features/<feature-slug>-implementation.md
 
 # Each accepted delta is a CEO decision worth logging:
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 1 --by "CEO" \
   --decision "<e.g. 'accept delta D-3 (login OTP timing changed to 60s)'>" \
   --evidence ".harness/audits/<feature>-as-built-<date>.md"

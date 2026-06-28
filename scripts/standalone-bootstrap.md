@@ -337,7 +337,7 @@ Before filling project-specific values, verify the environment has the required 
 
 2. Run the environment detector via Bash tool:
    ```bash
-   .harness/scripts/env-check.sh
+   bash .harness/scripts/env-check.sh
    ```
    It outputs JSON with `required` (jq/git status), `ai_clis` (claude/codex/gemini presence), `tier` (recommended config), and `blockers` (missing required deps).
 
@@ -369,12 +369,12 @@ Before filling project-specific values, verify the environment has the required 
 
 5. Execute user's choice via Bash tool:
    - **[a] brew**: run `brew install jq`, wait for completion, re-run env-check.sh to verify.
-   - **[b] vendored**: run `.harness/scripts/env-check.sh --install-jq-vendored` (downloads to `.harness/bin/jq`, updates PATH automatically next time). Verify.
+   - **[b] vendored**: run `bash .harness/scripts/env-check.sh --install-jq-vendored` (downloads to `.harness/bin/jq`, updates PATH automatically next time). Verify.
    - **[c] manual**: print command, wait for user to run it themselves, then re-run env-check.sh when they say done.
 
 6. When `env-check.sh` shows `"all_required_ok": true`, finalize:
    ```bash
-   .harness/scripts/env-check.sh --finalize
+   bash .harness/scripts/env-check.sh --finalize
    ```
    This writes `.harness/state/env-check.json` and marks Phase 1 complete. **Proceed immediately to Step F (Phase 2)** — do NOT ask the user "ready for next phase?", just continue (UX should feel like one continuous flow).
 

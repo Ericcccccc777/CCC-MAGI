@@ -318,14 +318,14 @@ Either outcome must be reported explicitly. No silent advancement to Stage 7 (sm
 After all required tests are green + post-fix auditor-gate passes:
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage 7 \
   --stage-complete 6 \
   --append-audit "$(jq -c '{stage:6, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage6.json)"
 
 # If MAGI Tester needed escalation (3 iterations exhausted) and CEO took over:
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 6 --by "CEO" \
   --decision "manual takeover after test-fixer exhausted 3 iterations" \
   --evidence ".harness/state/test-fix/<feature>-attempts.json"

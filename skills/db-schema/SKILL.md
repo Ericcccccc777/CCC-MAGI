@@ -105,7 +105,7 @@ See `references/methodology.md` § "Anti-patterns to reject" for the full list. 
 If schema work happened:
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage 4 \
   --stage-complete 3 \
@@ -116,7 +116,7 @@ If schema work happened:
 If skipped (no backend configured):
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage 4 \
   --stage-skip 3 --skip-reason "no backend_db_type configured"

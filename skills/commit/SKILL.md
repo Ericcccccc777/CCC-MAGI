@@ -213,7 +213,7 @@ Stage 8 is complete when:
 After the commit is created and (if applicable) pushed, **archive the checkpoint** — the feature is done, no more `/pickup` needed:
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage-complete 8 \
   --archive
@@ -224,7 +224,7 @@ This moves `.harness/state/workflow-checkpoints/<feature>.json` → `.harness/st
 Log the commit decision:
 
 ```bash
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 8 --by "CEO" \
   --decision "shipped <feature>" \
   --evidence "$(git rev-parse --short HEAD)"
@@ -236,8 +236,8 @@ to `done` once all its items are done — see `.harness/docs/todolist.md`):
 
 ```bash
 # For each item of this feature that this commit shipped:
-.harness/scripts/todolist-write.sh --list   # find the feature's fn-id + item ids
-.harness/scripts/todolist-write.sh --set-item-status --fn-id <feature-slug> --item-id <id> --item-status done
+bash .harness/scripts/todolist-write.sh --list   # find the feature's fn-id + item ids
+bash .harness/scripts/todolist-write.sh --set-item-status --fn-id <feature-slug> --item-id <id> --item-status done
 ```
 
 If the feature shipped only part of its planned items, mark only those `done` and
@@ -248,11 +248,11 @@ lands in the same commit as the code.
 If you smoke-tested and decided NOT to ship (rollback / defer), do NOT archive — leave the checkpoint open so resume works:
 
 ```bash
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 7 --by "CEO" \
   --decision "smoke test failed: <symptom>; reverting to Stage 5 to fix"
 
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> --stage 5
   # (resets current_stage; preserves audit history + stages_completed)
 ```

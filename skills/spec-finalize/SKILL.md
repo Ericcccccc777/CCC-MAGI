@@ -155,14 +155,14 @@ Next step: `/db-schema <feature>` (if the spec implies data-layer work AND `back
 After Status: FINALIZED is set and the auditor-gate passes:
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage 3 \
   --stage-complete 2 \
   --append-audit "$(jq -c '{stage:2, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage2.json)"
 
 # If MAGI Verdict returned CONCERNS and CEO chose to advance anyway:
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 2 --by "CEO" \
   --decision "advance despite CONCERNS verdict" \
   --evidence ".harness/audits/concerns-<feature>-stage2-<ts>.json"

@@ -282,7 +282,7 @@ Do not start writing feature code during Stage 4. The plan is the Stage 4 artifa
 After auditor-gate passes for Stage 4:
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --stage 5 \
   --stage-complete 4 \
@@ -290,7 +290,7 @@ After auditor-gate passes for Stage 4:
   --append-audit "$(jq -c '{stage:4, verdict, risk:.risk_score, at:now|todate}' .harness/state/auditor-approvals/<feature>-stage4.json)"
 
 # Log any material trade-off the plan made (e.g., chose technique X over Y):
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 4 --by "CEO" \
   --decision "<e.g. 'chose pessimistic lock over optimistic; reads are 10x more common'>"
 ```
@@ -321,9 +321,9 @@ function. Example:
 On CEO acceptance, seed them (status `todo` — planned, not yet built):
 
 ```bash
-.harness/scripts/todolist-write.sh --add-function \
+bash .harness/scripts/todolist-write.sh --add-function \
   --fn-id <feature-slug> --fn-title "<feature display name>" --linked-feature <feature-slug>
-.harness/scripts/todolist-write.sh --add-item \
+bash .harness/scripts/todolist-write.sh --add-item \
   --fn-id <feature-slug> --item-text "<capability 1>" --source plan --item-status todo
 # ...one --add-item per accepted capability
 ```

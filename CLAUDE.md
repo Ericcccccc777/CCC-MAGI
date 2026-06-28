@@ -56,10 +56,10 @@ First-time user in this project. The hook injects context telling you to **read 
 **If the project already has its own prior harness** (an old CLAUDE.md, `.cursor` rules, `copilot-instructions`, custom `.claude/skills/`, a `*.pre-ccc-magi` backup, etc.), `standalone-bootstrap.md` runs the **takeover flow FIRST**: scan + confirm the existing config, then offer the menu — recommended **[1] take over + absorb-and-merge** (read the user's existing rules/identity and carry them forward into the constitution via `/harness-absorb`), with archive-only / delete / skip as alternatives. Only after that does it run env-check + `/init`.
 
 **If user agrees** (and there is no existing harness to handle first):
-1. Run `.harness/scripts/env-check.sh` via Bash tool. It outputs JSON describing what's installed (jq, git, claude, codex, gemini) and tier (1-claude-codex / 2-single / 3-other / 0-none).
+1. Run `bash .harness/scripts/env-check.sh` via Bash tool. It outputs JSON describing what's installed (jq, git, claude, codex, gemini) and tier (1-claude-codex / 2-single / 3-other / 0-none).
 2. For each missing required dep (only `jq` is a true blocker — git must exist or user couldn't be using Claude Code), surface install options from `jq_install_hints`. Common patterns:
    - macOS + brew detected → offer `brew install jq`
-   - No brew or user prefers no-sudo → offer `.harness/scripts/env-check.sh --install-jq-vendored` (downloads jq binary to `.harness/bin/jq`)
+   - No brew or user prefers no-sudo → offer `bash .harness/scripts/env-check.sh --install-jq-vendored` (downloads jq binary to `.harness/bin/jq`)
    - User wants manual → give them the command, wait for them to run it themselves
 3. Run install command via Bash tool, then re-run env-check.sh to verify.
 4. When all required OK → call `env-check.sh --finalize` to write `env-check.json`.
@@ -219,7 +219,7 @@ CEO is a **human** who shouldn't have to memorize slash commands. The CCC-MAGI w
 | "记一下: X" / "remember X" / "存档" | `/remember X` |
 | "看看待办" / "todolist" / "整体进度" / "我们做到哪了" / "what's left" / "what have we built" | `/todolist` (view) |
 | "把 X 加进待办" / "加个任务 X" / "X 做完了" / "add X to todolist" / "mark X done" | `/todolist` (add/update) |
-| "我环境配置好了吗" / "env ok?" | run `.harness/scripts/env-check.sh` (Bash tool) |
+| "我环境配置好了吗" / "env ok?" | run `bash .harness/scripts/env-check.sh` (Bash tool) |
 | "上次我们决定的是啥" / "之前 X 这块的决策" / "what did we decide about X" / "previously" | `/recall <feature\|tag>` (Tier 2 manifest search) |
 | "查 X 的那条历史" / "load SS-...." / "拉出 X 那个 snapshot" | `/recall <id>` (Tier 2 body fetch) |
 | "查一下半年前 / 找历史 / 我们以前是不是…" / "search archive / older" | `/recall --deep <query>` (Tier 3) |

@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/bootstrap-check.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/bootstrap-check.sh",
             "timeout": 10
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/budget-monitor.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/budget-monitor.sh",
             "timeout": 5
           }
         ]
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/format-edit.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/format-edit.sh",
             "timeout": 30,
             "statusMessage": "Running formatter..."
           }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-recall.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-recall.sh",
             "timeout": 10
           }
         ]
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-snapshot.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.harness/scripts/memory-snapshot.sh",
             "timeout": 10
           }
         ]

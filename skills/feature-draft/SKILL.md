@@ -60,7 +60,7 @@ Without this, an interrupted Step 1 leaves no trace → user comes back next ses
 
 ```bash
 # Detect mode + lane (defaults: new-feature, full)
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <name> \
   --create-if-missing \
   --mode new-feature \
@@ -80,11 +80,11 @@ If write failed (jq missing, permissions, etc.), HALT and surface to user — do
 
 ```bash
 # After paraphrase confirmed
-.harness/scripts/checkpoint-write.sh --feature <name> \
+bash .harness/scripts/checkpoint-write.sh --feature <name> \
   --stage-in-progress "$(jq -nc '{stage_number:1, files_total:0, files_done_list:[], files_remaining_list:[], last_action:\"Paraphrase confirmed\", resume_hint:\"Resume from edge-case round (you confirmed the happy path)\"}')"
 
 # After edge-case round complete  
-.harness/scripts/checkpoint-write.sh --feature <name> \
+bash .harness/scripts/checkpoint-write.sh --feature <name> \
   --stage-in-progress "$(jq -nc '{...resume_hint:\"Resume from spec writing (edge cases gathered)\"}')"
 ```
 
@@ -384,7 +384,7 @@ Stage 1 in new-feature mode is complete when:
 At successful completion, write the checkpoint (first stage = bootstraps the file):
 
 ```bash
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature <feature-slug> \
   --create-if-missing \
   --mode new-feature \
@@ -395,7 +395,7 @@ At successful completion, write the checkpoint (first stage = bootstraps the fil
   [--artifact-implementation docs/features/<feature-slug>-implementation.md]
 
 # If CEO made a material intent decision during paraphrase or edge-case rounds:
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature <feature-slug> --stage 1 --by "CEO" \
   --decision "<one-line summary, e.g. 'edge case #3 race-condition is in scope'>"
 ```

@@ -61,7 +61,7 @@ After user enters reason, MAGI Archivist:
 
 ```bash
 # 1. Archive the checkpoint
-.harness/scripts/checkpoint-write.sh \
+bash .harness/scripts/checkpoint-write.sh \
   --feature user-login \
   --archive
 
@@ -70,7 +70,7 @@ mv .harness/state/workflow-checkpoints/_archived/user-login-*.json \
    .harness/state/workflow-checkpoints/_archived/user-login-abandoned-$(date -u +%Y%m%dT%H%M%SZ).json
 
 # 2. Log decision
-.harness/scripts/decision-log-append.sh \
+bash .harness/scripts/decision-log-append.sh \
   --feature user-login --stage abandon --by "CEO" \
   --decision "abandoned: <user's reason>" \
   --evidence "$(git rev-parse --short HEAD 2>/dev/null || echo 'no-git')"
