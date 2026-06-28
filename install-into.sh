@@ -451,10 +451,13 @@ merge_json_settings() {
   fi
 
   # Build merged JSON. The merge logic:
-  #   - For each event in our hooks (UserPromptSubmit, PreToolUse, PostToolUse),
-  #     for each entry in our event array, append to target's array unless an
-  #     entry already exists with at least one inner hook whose command string
-  #     equals one of ours (idempotency by command path).
+  #   - For each hook event, the harness OWNS its scripts: prune from the user's
+  #     entries any inner hook invoking a .harness/scripts/* script we also ship
+  #     (matched by script basename, ignoring an optional "bash " prefix), then
+  #     append our canonical entries. This REPLACES old hook definitions on
+  #     update (e.g. a direct-path command superseded by its bash-prefixed form)
+  #     instead of leaving a stale duplicate. The user's own custom hooks — and
+  #     harness hooks we no longer ship — are preserved. Idempotent.
   #   - For permissions.allow, union our list with user's (preserving order:
   #     user first, then our additions).
   #   - Preserve all other keys in the user file.
@@ -468,33 +471,37 @@ merge_json_settings() {
   if ! jq --indent 2 --slurpfile ours "$src_path" '
     . as $user
     | ($ours[0]) as $o
-    # Flatten an event-level array (e.g., hooks.UserPromptSubmit) into the
-    # set of inner command strings it contains. Used for idempotency check.
-    | def commands_in_array($arr):
-        [ $arr[]? | (.hooks // [])[]? | .command // empty ];
-      # For a given event name, return user array with our entries appended
-      # iff none of their inner-command strings are already present in user.
+    # Normalize a hook command to the harness script it invokes (basename), or
+    # null if not a harness-owned hook. Strips an optional leading "bash " so
+    # that "<path>/x.sh" and "bash <path>/x.sh" map to the SAME key — this is
+    # what lets an update REPLACE an old direct-path hook with the bash-prefixed
+    # one instead of appending a duplicate.
+    | def harness_script_key($cmd):
+        ($cmd // "" | sub("^\\s*bash\\s+"; "")) as $c
+        | if ($c | test("\\.harness/scripts/[A-Za-z0-9._-]+\\.sh"))
+          then ($c | capture("\\.harness/scripts/(?<n>[A-Za-z0-9._-]+\\.sh)").n)
+          else null end;
+      # Merge one event hook array: prune harness-owned hooks from the user
+      # array that we also ship (kept: user custom hooks + harness hooks we no
+      # longer ship), then append all of ours. Malformed/non-array user values
+      # fall back to [] (mirrors the JS installer). Idempotent.
       def merge_event($event):
-        # If the user has the key but it is not an array (malformed schema or
-        # a documentation key like _comment with a string value), fall back to
-        # [] so the merge still produces a valid array — mirrors the JS
-        # installer (Array.isArray(userArr) ? [...userArr] : []).
         ($user.hooks[$event] // []) as $raw
         | (if ($raw | type) == "array" then $raw else [] end) as $u
         | ($o.hooks[$event] // []) as $oraw
         | (if ($oraw | type) == "array" then $oraw else [] end) as $oarr
-        | commands_in_array($u) as $u_cmds
-        | $u + [
-            $oarr[]
+        | ([ $oarr[] | (.hooks // [])[]? | harness_script_key(.command) | select(. != null) ] | unique) as $our_keys
+        | [ $u[]
             | . as $entry
-            | ([ (.hooks // [])[]? | .command // empty ]) as $entry_cmds
-            | ($entry_cmds | map(IN($u_cmds[]))) as $matches
-            | if ($entry_cmds | length) > 0
-                 and ($matches | all)
-              then empty   # every command in this entry already in user → skip (idempotent)
-              else $entry
-              end
-          ];
+            | ((.hooks // []) | map(select(
+                harness_script_key(.command) as $k
+                | ($k == null) or (($k | IN($our_keys[])) | not)
+              ))) as $kept
+            | if ((.hooks // []) | length) > 0 and ($kept | length) == 0
+              then empty
+              else (.hooks = $kept) end
+          ] as $u_pruned
+        | $u_pruned + $oarr;
       # Build merged hooks: union of event names from both sides.
       # Only include keys whose VALUES are arrays — documentation keys like
       # `_comment` (string value) are NOT events and must be preserved verbatim.
