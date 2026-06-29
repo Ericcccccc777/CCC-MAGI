@@ -277,19 +277,17 @@ Pass `--force-load-bearing` only when you explicitly want to discard local LOAD_
 
 `--force` (existing flag) implies `--force-load-bearing`. For day-to-day re-installs (delivering harness updates), do NOT pass either flag — the content-hash registry at `.harness/state/shipped-hashes.json` auto-updates files you haven't modified while preserving everything else.
 
-### Tuning budget pressure
+### Context pressure
 
-CCC-MAGI includes a budget-pressure hook (P1.6) that emits advisory warnings as the session context fills up. The threshold is 200,000 tokens by default — the Opus historical baseline.
+CCC-MAGI no longer estimates context usage in a hook. The old budget-pressure
+hook (P1.6) divided the token count by a guessed window size (200K default),
+which over-reported ~5x on 1M-context models and fired false alarms — so
+`budget-monitor.sh` is now a no-op and `CCC_CONTEXT_BUDGET` has no effect.
 
-If you're using a 1M-context model variant, raise the budget so the hook doesn't fire prematurely:
-
-```bash
-export CCC_CONTEXT_BUDGET=1000000  # add to ~/.zprofile or ~/.bashrc
-```
-
-Below 50% of budget: hook is silent (zero token overhead).
-At 50-89%: advisory `additionalContext` (~200 tokens) suggesting model downgrade for subagents + narrower reads.
-At 90%+: stronger advisory + recommendation that the user run `/compact`.
+Context management is left to the layers that have the real number: Claude Code
+shows context % natively and auto-compacts when the window fills, and CCC reads
+the real `context_window.used_percentage` from Claude Code's statusLine and
+surfaces a `/compact` vs `/handoff` prompt at a high threshold.
 
 ---
 

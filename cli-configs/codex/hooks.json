@@ -14,7 +14,7 @@
         ]
       },
       {
-        "_comment": "Mirror of claude/settings.json budget pressure monitor (P1.6). Reads transcript size, emits advisory additionalContext at 50%/75%/90% thresholds. Codex may not implement transcript_path semantics identically; if the hook can't parse stdin, it no-ops silently (harmless). Configurable via CCC_CONTEXT_BUDGET env var (default 200000).",
+        "_comment": "Mirror of claude/settings.json context-budget monitor (P1.6) — NO-OP. It used to emit 50/75/90/95% advisories off a guessed window size; context management is now handled by Claude Code natively + CCC. The hook stays wired so the no-op propagates via update; budget-monitor.sh drains stdin and exits. CCC_CONTEXT_BUDGET no longer has any effect.",
         "hooks": [
           {
             "type": "command",
