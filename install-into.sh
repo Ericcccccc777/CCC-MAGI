@@ -353,17 +353,34 @@ install_file_with_hash() {
       return 0
     fi
   else
-    # No registry entry — first v0.8 install on old environment.
-    # Be SAFE: record current dest hash so future installs work.
-    record_hash "$dst_rel" "$dest_hash"
-    if [ "$force_lb" -eq 1 ] && is_load_bearing "$dst_rel"; then
-      backup_existing "$dst_path" >/dev/null
+    # No registry entry. The hash registry (.harness/state/shipped-hashes.json)
+    # is gitignored, so ANY cloned / shared / re-checked-out project has none —
+    # not just "old v0.8 installs". Decide by ownership instead of blanket-
+    # preserving (the old default silently turned every update into a no-op on
+    # cloned projects: with no recorded hash, no file ever matched, so nothing
+    # was overwritten):
+    if is_load_bearing "$dst_rel"; then
+      # User-owned identity files (constitution / CLAUDE / AGENTS): never clobber
+      # silently. Record the current hash and preserve, unless the explicit
+      # --force-load-bearing escape hatch is set.
+      record_hash "$dst_rel" "$dest_hash"
+      if [ "$force_lb" -eq 1 ]; then
+        backup_existing "$dst_path" >/dev/null
+        cp "$src_file" "$dst_path"
+        record_hash "$dst_rel" "$src_hash"
+        echo "FORCED"
+        return 0
+      else
+        echo "PRESERVED"
+        return 0
+      fi
+    else
+      # Harness-internal files (skills / scripts / agents / docs / hooks) are
+      # OURS — updates must land. Overwrite with the shipped version. These are
+      # committed to the project's git, so a prior hand-edit stays recoverable.
       cp "$src_file" "$dst_path"
       record_hash "$dst_rel" "$src_hash"
-      echo "FORCED"
-      return 0
-    else
-      echo "PRESERVED"
+      echo "UPDATED"
       return 0
     fi
   fi
